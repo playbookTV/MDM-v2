@@ -150,3 +150,11 @@ export interface DashboardSummary {
   top_datasets: TopPerformingDatasets[]
   generated_at: string
 }
+
+export interface APIError {
+  error: {
+    code: string
+    message: string
+    trace_id: string
+  }
+}

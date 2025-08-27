@@ -492,33 +492,3 @@ function ObjectAnnotationItem({
   )
 }
 
-// Create the missing Collapsible components for ShadCN
-const CollapsibleComponent = ({ open, onOpenChange, children }: {
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
-  children: React.ReactNode
-}) => {
-  return <div>{children}</div>
-}
-
-const CollapsibleTrigger = ({ children, className, ...props }: {
-  children: React.ReactNode
-  className?: string
-} & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
-  return (
-    <button className={className} {...props}>
-      {children}
-    </button>
-  )
-}
-
-const CollapsibleContent = ({ children, className }: {
-  children: React.ReactNode
-  className?: string
-}) => {
-  return <div className={className}>{children}</div>
-}
-
-// Export the components
-const Collapsible = CollapsibleComponent
-export { Collapsible, CollapsibleContent, CollapsibleTrigger }
