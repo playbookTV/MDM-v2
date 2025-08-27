@@ -1,7 +1,7 @@
 import { 
   Cpu, 
   HardDrive, 
-  MemoryStick, 
+  Database as Memory, 
   Users, 
   Clock, 
   Activity,
@@ -20,7 +20,7 @@ interface SystemHealthCardProps {
   className?: string
 }
 
-export function SystemHealthCard({ query, className }: SystemHealthCardProps) {
+export function SystemHealthCard({ className }: SystemHealthCardProps) {
   const { data: health, isLoading, error } = useSystemHealth()
   const { data: trends } = useSystemTrends({ time_range: '1h', granularity: 'minute' })
 
@@ -147,7 +147,7 @@ export function SystemHealthCard({ query, className }: SystemHealthCardProps) {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <MemoryStick className="h-4 w-4 text-green-500" />
+              <Memory className="h-4 w-4 text-green-500" />
               <span className="text-sm font-medium">Memory Usage</span>
             </div>
             <span className="text-sm text-muted-foreground">

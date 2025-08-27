@@ -119,14 +119,15 @@ export function DatasetUploadModal({ open, onClose }: DatasetUploadModalProps) {
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Upload Dataset</DialogTitle>
-          <DialogDescription>
-            Upload images from your local machine to create a new dataset.
-          </DialogDescription>
-        </DialogHeader>
+        <>
+          <DialogHeader>
+            <DialogTitle>Upload Dataset</DialogTitle>
+            <DialogDescription>
+              Upload images from your local machine to create a new dataset.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-6">
+          <div className="space-y-6">
           {/* Dataset Metadata Form */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -259,21 +260,22 @@ export function DatasetUploadModal({ open, onClose }: DatasetUploadModalProps) {
               <div className="flex items-center space-x-2">
                 <AlertCircle className="h-4 w-4 text-destructive" />
                 <span className="text-sm text-destructive">
-                  {uploadMutation.error.message}
+                  {uploadMutation.error?.message || 'An error occurred during upload'}
                 </span>
               </div>
             </div>
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isUploading}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={!canSubmit}>
-            {isUploading ? 'Uploading...' : `Upload ${files.length} file${files.length !== 1 ? 's' : ''}`}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleClose} disabled={isUploading}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} disabled={!canSubmit}>
+              {isUploading ? 'Uploading...' : `Upload ${files.length} file${files.length !== 1 ? 's' : ''}`}
+            </Button>
+          </DialogFooter>
+        </>
       </DialogContent>
     </Dialog>
   )

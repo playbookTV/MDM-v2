@@ -13,11 +13,8 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
-  ScatterChart,
-  Scatter,
-  Cell
 } from 'recharts'
-import { Brain, Target, TrendingUp, Eye } from 'lucide-react'
+import { Activity, Target, TrendingUp, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -130,7 +127,7 @@ export function ModelPerformanceChart({ query, className }: ModelPerformanceChar
     return (
       <div className={`bg-card border rounded-lg p-6 ${className}`}>
         <div className="flex items-center space-x-2 mb-4">
-          <Brain className="h-5 w-5 text-destructive" />
+          <Activity className="h-5 w-5 text-destructive" />
           <h3 className="text-lg font-semibold">Model Performance</h3>
           <Badge variant="destructive">Error</Badge>
         </div>
@@ -145,7 +142,7 @@ export function ModelPerformanceChart({ query, className }: ModelPerformanceChar
     return (
       <div className={`bg-card border rounded-lg p-6 ${className}`}>
         <div className="flex items-center space-x-2 mb-4">
-          <Brain className="h-5 w-5 animate-pulse" />
+          <Activity className="h-5 w-5 animate-pulse" />
           <h3 className="text-lg font-semibold">Model Performance</h3>
         </div>
         <div className="h-80 bg-muted animate-pulse rounded" />
@@ -158,7 +155,7 @@ export function ModelPerformanceChart({ query, className }: ModelPerformanceChar
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2">
-          <Brain className="h-5 w-5" />
+          <Activity className="h-5 w-5" />
           <h3 className="text-lg font-semibold">Model Performance</h3>
         </div>
         
@@ -236,116 +233,121 @@ export function ModelPerformanceChart({ query, className }: ModelPerformanceChar
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            {chartType === 'confidence' && (
-              <BarChart data={confidenceData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fontSize: 12 }}
-                  stroke="#6b7280"
-                  angle={-45}
-                  textAnchor="end"
-                  height={60}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }} 
-                  stroke="#6b7280"
-                  domain={[0, 100]}
-                  label={{ value: 'Confidence (%)', angle: -90, position: 'insideLeft' }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1f2937',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                  }}
-                  labelStyle={{ color: '#f9fafb' }}
-                  formatter={(value: number) => [`${value.toFixed(1)}%`, 'Avg Confidence']}
-                />
-                <Bar 
-                  dataKey="avgConfidence" 
-                  fill="#3b82f6"
-                  name="Average Confidence"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            )}
-            
-            {chartType === 'accuracy' && accuracyData.length > 0 && (
-              <BarChart data={accuracyData.slice(0, 10)}> {/* Limit to top 10 for readability */}
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-                <XAxis 
-                  dataKey="className" 
-                  tick={{ fontSize: 12 }}
-                  stroke="#6b7280"
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }} 
-                  stroke="#6b7280"
-                  domain={[0, 100]}
-                  label={{ value: 'Score (%)', angle: -90, position: 'insideLeft' }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1f2937',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                  }}
-                  formatter={(value: number) => [`${value.toFixed(1)}%`]}
-                />
-                <Legend />
-                
-                <Bar dataKey="precision" fill="#10b981" name="Precision" />
-                <Bar dataKey="recall" fill="#f59e0b" name="Recall" />
-                <Bar dataKey="f1Score" fill="#8b5cf6" name="F1 Score" />
-              </BarChart>
-            )}
-            
-            {chartType === 'radar' && (
-              <RadarChart data={radarData}>
-                <PolarGrid stroke="#374151" />
-                <PolarAngleAxis 
-                  tick={{ fontSize: 12, fill: '#6b7280' }}
-                  tickFormatter={(value) => {
-                    const labels = { confidence: 'Confidence', predictions: 'Volume', accuracy: 'Accuracy' }
-                    return labels[value as keyof typeof labels] || value
-                  }}
-                />
-                <PolarRadiusAxis 
-                  tick={{ fontSize: 10, fill: '#6b7280' }}
-                  domain={[0, 100]}
-                  tickCount={5}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1f2937',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                  }}
-                />
-                
-                {radarData.map((entry, index) => (
-                  <Radar
-                    key={entry.model}
-                    name={entry.model}
-                    dataKey={entry.model}
-                    data={[
-                      { metric: 'confidence', [entry.model]: entry.confidence },
-                      { metric: 'predictions', [entry.model]: entry.predictions },
-                      { metric: 'accuracy', [entry.model]: entry.accuracy },
-                    ]}
-                    stroke={COLORS[index % COLORS.length]}
-                    fill={COLORS[index % COLORS.length]}
-                    fillOpacity={0.1}
-                    strokeWidth={2}
-                  />
-                ))}
-                <Legend />
-              </RadarChart>
-            )}
+            {(() => {
+              if (chartType === 'confidence') {
+                return (
+                  <BarChart data={confidenceData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fontSize: 12 }}
+                      stroke="#6b7280"
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }} 
+                      stroke="#6b7280"
+                      domain={[0, 100]}
+                      label={{ value: 'Confidence (%)', angle: -90, position: 'insideLeft' }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#1f2937',
+                        border: '1px solid #374151',
+                        borderRadius: '8px',
+                      }}
+                      labelStyle={{ color: '#f9fafb' }}
+                      formatter={(value: number) => [`${value.toFixed(1)}%`, 'Avg Confidence']}
+                    />
+                    <Bar 
+                      dataKey="avgConfidence" 
+                      fill="#3b82f6"
+                      name="Average Confidence"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                )
+              }
+              
+              if (chartType === 'accuracy' && accuracyData.length > 0) {
+                return (
+                  <BarChart data={accuracyData.slice(0, 10)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+                    <XAxis 
+                      dataKey="className" 
+                      tick={{ fontSize: 12 }}
+                      stroke="#6b7280"
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }} 
+                      stroke="#6b7280"
+                      domain={[0, 100]}
+                      label={{ value: 'Score (%)', angle: -90, position: 'insideLeft' }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#1f2937',
+                        border: '1px solid #374151',
+                        borderRadius: '8px',
+                      }}
+                      formatter={(value: number) => [`${value.toFixed(1)}%`]}
+                    />
+                    <Legend />
+                    
+                    <Bar dataKey="precision" fill="#10b981" name="Precision" />
+                    <Bar dataKey="recall" fill="#f59e0b" name="Recall" />
+                    <Bar dataKey="f1Score" fill="#8b5cf6" name="F1 Score" />
+                  </BarChart>
+                )
+              }
+              
+              if (chartType === 'radar') {
+                return (
+                  <RadarChart data={radarData}>
+                    <PolarGrid stroke="#374151" />
+                    <PolarAngleAxis 
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                      tickFormatter={(value) => {
+                        const labels = { confidence: 'Confidence', predictions: 'Volume', accuracy: 'Accuracy' }
+                        return labels[value as keyof typeof labels] || value
+                      }}
+                    />
+                    <PolarRadiusAxis 
+                      tick={{ fontSize: 10, fill: '#6b7280' }}
+                      domain={[0, 100]}
+                      tickCount={5}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#1f2937',
+                        border: '1px solid #374151',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    
+                    {radarData.map((entry, index) => (
+                      <Radar
+                        key={entry.model}
+                        name={entry.model}
+                        dataKey={entry.model}
+                        stroke={COLORS[index % COLORS.length]}
+                        fill={COLORS[index % COLORS.length]}
+                        fillOpacity={0.1}
+                        strokeWidth={2}
+                      />
+                    ))}
+                    <Legend />
+                  </RadarChart>
+                )
+              }
+              
+              return null
+            })()}
           </ResponsiveContainer>
         )}
       </div>

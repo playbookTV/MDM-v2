@@ -3,11 +3,9 @@ import {
   Edit3, 
   Check, 
   X, 
-  Plus, 
   Minus, 
   Save,
   RotateCcw,
-  Palette,
   Tag,
   Home
 } from 'lucide-react'

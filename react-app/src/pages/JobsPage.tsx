@@ -89,18 +89,15 @@ export function JobsPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-destructive mb-2">
-              Failed to load jobs
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {error.message}
-            </p>
-            <Button onClick={() => window.location.reload()}>
-              Retry
-            </Button>
-          </div>
+          {error && (
+            <div className="text-center py-8">
+              <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+              <p className="text-lg font-medium text-destructive mb-2">Failed to load jobs</p>
+              <p className="text-muted-foreground">
+                {error?.message || 'An error occurred while loading jobs'}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     )

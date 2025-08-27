@@ -259,7 +259,7 @@ export function JobLogsModal({ job, open, onClose }: JobLogsModalProps) {
                 <XCircle className="h-4 w-4 text-destructive" />
                 <span className="text-destructive font-medium">Failed to load logs</span>
               </div>
-              <p className="text-sm text-destructive/80 mt-1">{error.message}</p>
+              <p className="text-sm text-destructive/80 mt-1">{error?.message || 'An error occurred'}</p>
             </div>
           )}
 

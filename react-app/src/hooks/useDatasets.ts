@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { getMultipleImageDimensions } from '@/lib/image-utils'
 import type { 
   Dataset, 
   DatasetCreate, 
@@ -171,15 +172,19 @@ export const useUploadDataset = () => {
         throw new Error('No files were uploaded successfully')
       }
       
-      // Step 4: Register successful uploads as scenes
+      // Step 4: Get image dimensions for successful uploads
+      const successfulFiles = successfulUploads.map(result => result.file)
+      const imageDimensions = await getMultipleImageDimensions(successfulFiles)
+      
+      // Step 5: Register successful uploads as scenes
       const registerRequest: RegisterScenesRequest = {
-        scenes: successfulUploads.map(result => {
-          // Get image dimensions (simplified - in production, use proper image processing)
+        scenes: successfulUploads.map((result, index) => {
+          const dimensions = imageDimensions[index]
           return {
             source: result.file.name,
             r2_key_original: result.upload.key,
-            width: 1920, // TODO: Get actual dimensions
-            height: 1080, // TODO: Get actual dimensions
+            width: dimensions?.width || 1920, // fallback for non-images or processing errors
+            height: dimensions?.height || 1080, // fallback for non-images or processing errors
           }
         })
       }

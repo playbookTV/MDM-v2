@@ -78,8 +78,8 @@ export function SceneDetailView({
     setZoom(1)
     setPanX(0)
     setPanY(0)
-    setSelectedObject?.(null)
-  }, [sceneId])
+    onObjectSelect?.(null)
+  }, [sceneId, onObjectSelect])
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault()
@@ -141,7 +141,7 @@ export function SceneDetailView({
         <div className="text-center">
           <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Failed to load scene</h3>
-          <p className="text-sm text-muted-foreground">{error.message}</p>
+          <p className="text-sm text-muted-foreground">{error?.message || 'An error occurred'}</p>
         </div>
       </div>
     )

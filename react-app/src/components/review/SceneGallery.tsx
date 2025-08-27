@@ -108,7 +108,9 @@ export function SceneGallery({
         <div className="text-center">
           <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Failed to load scenes</h3>
-          <p className="text-sm text-muted-foreground">{error.message}</p>
+          {error && (
+            <p className="text-sm text-muted-foreground">{error?.message || 'An error occurred'}</p>
+          )}
         </div>
       </div>
     )

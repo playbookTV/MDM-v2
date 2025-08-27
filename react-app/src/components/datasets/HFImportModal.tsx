@@ -131,14 +131,15 @@ export function HFImportModal({ open, onClose }: HFImportModalProps) {
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Import from HuggingFace</DialogTitle>
-          <DialogDescription>
-            Import a dataset directly from HuggingFace Hub.
-          </DialogDescription>
-        </DialogHeader>
+        <>
+          <DialogHeader>
+            <DialogTitle>Import from HuggingFace</DialogTitle>
+            <DialogDescription>
+              Import a dataset directly from HuggingFace Hub.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4">
+          <div className="space-y-4">
           {/* HuggingFace URL */}
           <div className="space-y-2">
             <Label htmlFor="hf-url">HuggingFace Dataset URL *</Label>
@@ -230,28 +231,29 @@ export function HFImportModal({ open, onClose }: HFImportModalProps) {
               <div className="flex items-center space-x-2">
                 <AlertCircle className="h-4 w-4 text-destructive" />
                 <span className="text-sm text-destructive">
-                  {createMutation.error.message}
+                  {createMutation.error?.message || 'An error occurred during import'}
                 </span>
               </div>
             </div>
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={createMutation.isPending}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={!canSubmit}>
-            {createMutation.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Importing...
-              </>
-            ) : (
-              'Import Dataset'
-            )}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleClose} disabled={createMutation.isPending}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} disabled={!canSubmit}>
+              {createMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Importing...
+                </>
+              ) : (
+                'Import Dataset'
+              )}
+            </Button>
+          </DialogFooter>
+        </>
       </DialogContent>
     </Dialog>
   )

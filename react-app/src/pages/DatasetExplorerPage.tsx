@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Download, Search } from 'lucide-react'
+import { Plus, Download, Search, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DatasetTable } from '@/components/datasets/DatasetTable'
@@ -46,17 +46,15 @@ export function DatasetExplorerPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-destructive mb-2">
-            Failed to load datasets
-          </h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            {error.message}
-          </p>
-          <Button onClick={() => window.location.reload()}>
-            Retry
-          </Button>
-        </div>
+        {error && (
+          <div className="text-center py-8">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <p className="text-lg font-medium text-destructive mb-2">Failed to load datasets</p>
+            <p className="text-muted-foreground">
+              {error?.message || 'An error occurred while loading datasets'}
+            </p>
+          </div>
+        )}
       </div>
     )
   }

@@ -297,7 +297,7 @@ export function StartJobModal({ open, onClose, preselectedDataset }: StartJobMod
               <div className="flex items-center space-x-2">
                 <AlertCircle className="h-4 w-4 text-destructive" />
                 <span className="text-sm text-destructive">
-                  {createJobMutation.error.message}
+                  {createJobMutation.error?.message || 'An error occurred while creating job'}
                 </span>
               </div>
             </div>

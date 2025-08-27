@@ -27,11 +27,9 @@ interface ProcessingMetricsChartProps {
 
 type ChartType = 'line' | 'bar' | 'pie'
 
-const COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6']
 
 export function ProcessingMetricsChart({ query, className }: ProcessingMetricsChartProps) {
   const [chartType, setChartType] = useState<ChartType>('line')
-  const [selectedMetric, setSelectedMetric] = useState<'jobs' | 'success_rate' | 'processing_rate'>('jobs')
   
   const { data: trends, isLoading, error } = useProcessingTrends(query)
 
