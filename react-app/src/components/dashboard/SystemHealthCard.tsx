@@ -30,7 +30,10 @@ export function SystemHealthCard({ className }: SystemHealthCardProps) {
     const criticalThreshold = 90
     const warningThreshold = 75
     
-    const maxUsage = Math.max(health.cpu_usage_percent, health.memory_usage_percent, health.disk_usage_percent)
+    const cpuUsage = health.cpu_usage_percent || 0
+    const memoryUsage = health.memory_usage_percent || (health.memory_usage_mb ? Math.min(health.memory_usage_mb / 8192 * 100, 100) : 0)
+    const diskUsage = health.disk_usage_percent || 0
+    const maxUsage = Math.max(cpuUsage, memoryUsage, diskUsage)
     
     if (maxUsage >= criticalThreshold) {
       return { status: 'critical', label: 'Critical', color: 'text-red-500' }
@@ -137,10 +140,10 @@ export function SystemHealthCard({ className }: SystemHealthCardProps) {
               <span className="text-sm font-medium">CPU Usage</span>
             </div>
             <span className="text-sm text-muted-foreground">
-              {health.cpu_usage_percent.toFixed(1)}%
+              {(health.cpu_usage_percent || 0).toFixed(1)}%
             </span>
           </div>
-          <Progress value={health.cpu_usage_percent} className="h-2" />
+          <Progress value={health.cpu_usage_percent || 0} className="h-2" />
         </div>
 
         {/* Memory Usage */}
@@ -151,10 +154,10 @@ export function SystemHealthCard({ className }: SystemHealthCardProps) {
               <span className="text-sm font-medium">Memory Usage</span>
             </div>
             <span className="text-sm text-muted-foreground">
-              {health.memory_usage_percent.toFixed(1)}%
+              {(health.memory_usage_percent || (health.memory_usage_mb ? Math.min(health.memory_usage_mb / 8192 * 100, 100) : 0)).toFixed(1)}%
             </span>
           </div>
-          <Progress value={health.memory_usage_percent} className="h-2" />
+          <Progress value={health.memory_usage_percent || (health.memory_usage_mb ? Math.min(health.memory_usage_mb / 8192 * 100, 100) : 0)} className="h-2" />
         </div>
 
         {/* Disk Usage */}
@@ -165,10 +168,10 @@ export function SystemHealthCard({ className }: SystemHealthCardProps) {
               <span className="text-sm font-medium">Disk Usage</span>
             </div>
             <span className="text-sm text-muted-foreground">
-              {health.disk_usage_percent.toFixed(1)}%
+              {(health.disk_usage_percent || 0).toFixed(1)}%
             </span>
           </div>
-          <Progress value={health.disk_usage_percent} className="h-2" />
+          <Progress value={health.disk_usage_percent || 0} className="h-2" />
         </div>
 
         {/* Processing Stats Grid */}
@@ -178,9 +181,9 @@ export function SystemHealthCard({ className }: SystemHealthCardProps) {
               <Users className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Workers</span>
             </div>
-            <div className="text-xl font-semibold">{health.active_workers}</div>
+            <div className="text-xl font-semibold">{health.active_workers || 0}</div>
             <div className="text-xs text-muted-foreground">
-              Queue: {health.queue_depth}
+              Queue: {health.queue_depth || 0}
             </div>
           </div>
           
@@ -196,7 +199,7 @@ export function SystemHealthCard({ className }: SystemHealthCardProps) {
               )}
             </div>
             <div className="text-xl font-semibold">
-              {health.processing_rate_per_minute.toFixed(1)}
+              {(health.processing_rate_per_minute || 0).toFixed(1)}
             </div>
             <div className="text-xs text-muted-foreground">scenes/min</div>
           </div>
@@ -215,7 +218,7 @@ export function SystemHealthCard({ className }: SystemHealthCardProps) {
 
         {/* Last Updated */}
         <div className="text-xs text-muted-foreground text-center">
-          Last updated: {new Date(health.last_updated).toLocaleTimeString()}
+          Last updated: {health.last_updated ? new Date(health.last_updated).toLocaleTimeString() : 'Unknown'}
         </div>
       </div>
     </div>

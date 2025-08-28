@@ -141,35 +141,35 @@ export function StatsDashboardPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
                 <div>
                   <div className="text-2xl font-bold text-blue-600">
-                    {dashboardData.dataset_stats.length}
+                    {dashboardData.total_datasets || 0}
                   </div>
                   <div className="text-sm text-muted-foreground">Active Datasets</div>
                 </div>
                 
                 <div>
                   <div className="text-2xl font-bold text-green-600">
-                    {dashboardData.processing_metrics.scenes_processed.toLocaleString()}
+                    {(dashboardData.total_scenes || 0).toLocaleString()}
                   </div>
-                  <div className="text-sm text-muted-foreground">Scenes Processed</div>
+                  <div className="text-sm text-muted-foreground">Total Scenes</div>
                 </div>
                 
                 <div>
                   <div className="text-2xl font-bold text-purple-600">
-                    {dashboardData.processing_metrics.objects_detected.toLocaleString()}
+                    {(dashboardData.total_objects || 0).toLocaleString()}
                   </div>
-                  <div className="text-sm text-muted-foreground">Objects Detected</div>
+                  <div className="text-sm text-muted-foreground">Total Objects</div>
                 </div>
                 
                 <div>
                   <div className="text-2xl font-bold text-orange-600">
-                    {(dashboardData.processing_metrics.success_rate * 100).toFixed(1)}%
+                    {dashboardData.system_health_score || 0}%
                   </div>
-                  <div className="text-sm text-muted-foreground">Success Rate</div>
+                  <div className="text-sm text-muted-foreground">System Health</div>
                 </div>
               </div>
               
               <div className="text-center mt-4 text-xs text-muted-foreground">
-                Dashboard generated at {new Date(dashboardData.generated_at).toLocaleString()}
+                Dashboard generated at {new Date().toLocaleString()}
               </div>
             </div>
           )}

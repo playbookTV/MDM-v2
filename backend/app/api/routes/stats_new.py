@@ -61,6 +61,20 @@ class SystemMetricsTrend(BaseModel):
     queue_length: int
     active_jobs: int
 
+class ErrorAnalysis(BaseModel):
+    error_type: str
+    error_count: int
+    error_rate: float
+    common_messages: List[str]
+    affected_jobs: int
+
+class TopPerformingDataset(BaseModel):
+    dataset_id: str
+    dataset_name: str
+    scenes_processed: int
+    success_rate: float
+    avg_processing_time: float
+
 class DashboardSummary(BaseModel):
     total_datasets: int
     total_scenes: int
@@ -180,6 +194,91 @@ async def get_dashboard_summary():
     except Exception as e:
         logger.error(f"Failed to get dashboard summary: {e}")
         raise HTTPException(status_code=500, detail="Failed to get dashboard summary")
+
+@router.get("/system-health", response_model=SystemHealth)
+async def get_system_health_alt():
+    """Get system health metrics (alternative endpoint)"""
+    try:
+        service = StatsService()
+        health = await service.get_system_health()
+        
+        return SystemHealth(**health)
+        
+    except Exception as e:
+        logger.error(f"Failed to get system health: {e}")
+        # Return basic unhealthy status on error
+        return SystemHealth(
+            status="unhealthy",
+            database_status="error",
+            storage_status="unknown",
+            queue_status="unknown",
+            uptime_seconds=0,
+            memory_usage_mb=0,
+            cpu_usage_percent=0
+        )
+
+@router.get("/error-analysis", response_model=List[ErrorAnalysis])
+async def get_error_analysis(
+    hours: int = Query(24, description="Time window in hours")
+):
+    """Get error analysis data"""
+    try:
+        # Mock error analysis data - in production would query actual error logs
+        return [
+            ErrorAnalysis(
+                error_type="processing_timeout",
+                error_count=15,
+                error_rate=2.5,
+                common_messages=["Processing timeout after 30s", "Connection lost to AI service"],
+                affected_jobs=12
+            ),
+            ErrorAnalysis(
+                error_type="validation_error",
+                error_count=8,
+                error_rate=1.3,
+                common_messages=["Invalid image format", "Image too small"],
+                affected_jobs=8
+            ),
+            ErrorAnalysis(
+                error_type="storage_error",
+                error_count=3,
+                error_rate=0.5,
+                common_messages=["R2 upload failed", "Storage quota exceeded"],
+                affected_jobs=3
+            )
+        ]
+        
+    except Exception as e:
+        logger.error(f"Failed to get error analysis: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get error analysis")
+
+@router.get("/top-datasets", response_model=List[TopPerformingDataset])
+async def get_top_datasets(
+    limit: int = Query(10, description="Number of top datasets to return"),
+    hours: int = Query(24, description="Time window in hours")
+):
+    """Get top performing datasets"""
+    try:
+        service = StatsService()
+        dataset_stats = await service.get_dataset_stats()
+        
+        # Sort by completion rate and processing volume
+        sorted_datasets = sorted(dataset_stats, key=lambda x: (x["completion_rate"], x["total_scenes"]), reverse=True)
+        
+        return [
+            TopPerformingDataset(
+                dataset_id=ds["dataset_id"],
+                dataset_name=ds["dataset_name"], 
+                scenes_processed=ds["processed_scenes"],
+                success_rate=ds["completion_rate"],
+                avg_processing_time=15.0  # Mock processing time
+            )
+            for ds in sorted_datasets[:limit]
+        ]
+        
+    except Exception as e:
+        logger.error(f"Failed to get top datasets: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get top datasets")
 
 # Additional endpoints for specific React hook compatibility
 @router.get("/overview")

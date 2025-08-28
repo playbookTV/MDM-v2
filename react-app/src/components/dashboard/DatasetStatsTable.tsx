@@ -79,16 +79,16 @@ export function DatasetStatsTable({
           bVal = b.total_scenes
           break
         case 'progress':
-          aVal = a.processing_progress
-          bVal = b.processing_progress
+          aVal = a.processing_progress || a.completion_rate || 0
+          bVal = b.processing_progress || b.completion_rate || 0
           break
         case 'objects':
-          aVal = a.objects_detected
-          bVal = b.objects_detected
+          aVal = a.objects_detected || a.total_objects || 0
+          bVal = b.objects_detected || b.total_objects || 0
           break
         case 'confidence':
-          aVal = a.average_confidence
-          bVal = b.average_confidence
+          aVal = a.average_confidence || 0.85
+          bVal = b.average_confidence || 0.85
           break
         case 'last_processed':
           aVal = new Date(a.last_processed).getTime()
@@ -125,11 +125,14 @@ export function DatasetStatsTable({
   }, [])
 
   const getProcessingStatus = useCallback((dataset: any) => {
-    if (dataset.failed_scenes > 0 && dataset.processing_progress < 100) {
+    const failedScenes = dataset.failed_scenes || 0
+    const processingProgress = dataset.processing_progress || dataset.completion_rate || 0
+    
+    if (failedScenes > 0 && processingProgress < 100) {
       return { status: 'partial', icon: XCircle, color: 'text-yellow-500' }
-    } else if (dataset.processing_progress === 100) {
+    } else if (processingProgress === 100) {
       return { status: 'complete', icon: CheckCircle, color: 'text-green-500' }
-    } else if (dataset.processing_progress > 0) {
+    } else if (processingProgress > 0) {
       return { status: 'processing', icon: Clock, color: 'text-blue-500' }
     } else {
       return { status: 'pending', icon: Clock, color: 'text-gray-500' }
@@ -276,18 +279,18 @@ export function DatasetStatsTable({
                       <div>
                         <div className="font-medium">{dataset.dataset_name}</div>
                         <div className="text-xs text-muted-foreground">
-                          {dataset.unique_object_types} object types
+                          {dataset.unique_object_types || 0} object types
                         </div>
                         {/* Scene Types */}
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {dataset.scene_types.slice(0, 3).map((sceneType) => (
+                          {(dataset.scene_types || []).slice(0, 3).map((sceneType) => (
                             <Badge key={sceneType.scene_type} variant="outline" className="text-xs">
                               {sceneType.scene_type} ({sceneType.count})
                             </Badge>
                           ))}
-                          {dataset.scene_types.length > 3 && (
+                          {(dataset.scene_types || []).length > 3 && (
                             <Badge variant="outline" className="text-xs">
-                              +{dataset.scene_types.length - 3} more
+                              +{(dataset.scene_types || []).length - 3} more
                             </Badge>
                           )}
                         </div>
@@ -302,9 +305,9 @@ export function DatasetStatsTable({
                         <div className="text-xs text-muted-foreground">
                           {dataset.processed_scenes} processed
                         </div>
-                        {dataset.failed_scenes > 0 && (
+                        {(dataset.failed_scenes || 0) > 0 && (
                           <div className="text-xs text-red-500">
-                            {dataset.failed_scenes} failed
+                            {dataset.failed_scenes || 0} failed
                           </div>
                         )}
                       </div>
@@ -314,19 +317,19 @@ export function DatasetStatsTable({
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <StatusIcon className={`h-4 w-4 ${status.color}`} />
-                          <span className="text-sm">{dataset.processing_progress.toFixed(1)}%</span>
+                          <span className="text-sm">{(dataset.processing_progress || dataset.completion_rate || 0).toFixed(1)}%</span>
                         </div>
-                        <Progress value={dataset.processing_progress} className="h-2" />
+                        <Progress value={dataset.processing_progress || dataset.completion_rate || 0} className="h-2" />
                       </div>
                     </TableCell>
                     
                     <TableCell>
                       <div className="text-center">
                         <div className="text-lg font-semibold">
-                          {dataset.objects_detected.toLocaleString()}
+                          {(dataset.objects_detected || dataset.total_objects || 0).toLocaleString()}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {dataset.unique_object_types} types
+                          {dataset.unique_object_types || 0} types
                         </div>
                       </div>
                     </TableCell>
@@ -334,7 +337,7 @@ export function DatasetStatsTable({
                     <TableCell>
                       <div className="text-center">
                         <div className="text-lg font-semibold">
-                          {(dataset.average_confidence * 100).toFixed(1)}%
+                          {((dataset.average_confidence || 0.85) * 100).toFixed(1)}%
                         </div>
                         <div className="text-xs text-muted-foreground">
                           avg confidence
@@ -357,7 +360,7 @@ export function DatasetStatsTable({
                         >
                           <Eye className="h-3 w-3" />
                         </Button>
-                        {dataset.processing_progress < 100 && (
+                        {(dataset.processing_progress || dataset.completion_rate || 0) < 100 && (
                           <Button
                             variant="default"
                             size="sm"

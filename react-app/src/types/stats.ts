@@ -51,14 +51,18 @@ export interface DatasetStats {
   dataset_name: string
   total_scenes: number
   processed_scenes: number
-  failed_scenes: number
-  processing_progress: number
-  objects_detected: number
-  unique_object_types: number
-  scene_types: SceneTypeBreakdown[]
-  styles: StyleBreakdown[]
-  average_confidence: number
-  last_processed: string
+  total_objects: number
+  avg_objects_per_scene: number
+  completion_rate: number
+  // Optional fields that may not always be present
+  failed_scenes?: number
+  processing_progress?: number
+  objects_detected?: number
+  unique_object_types?: number
+  scene_types?: SceneTypeBreakdown[]
+  styles?: StyleBreakdown[]
+  average_confidence?: number
+  last_processed?: string
 }
 
 export interface SceneTypeBreakdown {

@@ -40,6 +40,16 @@ class ReviewProgressStats(BaseModel):
     corrected_scenes: int
     completion_rate: float
 
+class ReviewStats(BaseModel):
+    total_scenes: int
+    reviewed_scenes: int
+    pending_scenes: int
+    approved_scenes: int
+    rejected_scenes: int
+    corrected_scenes: int
+    review_rate: float
+    avg_time_per_scene: float
+
 @router.post("", response_model=Review)
 async def create_review(review_data: ReviewCreate):
     """Create a new review/annotation"""
@@ -120,6 +130,32 @@ async def end_review_session(session_id: str):
     except Exception as e:
         logger.error(f"Failed to end review session {session_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to end review session")
+
+@router.get("/stats", response_model=ReviewStats)
+async def get_review_stats(
+    dataset_id: Optional[str] = Query(None, description="Filter by dataset ID"),
+    reviewer_id: Optional[str] = Query(None, description="Filter by reviewer ID"),
+    time_range: Optional[str] = Query(None, description="Time range filter")
+):
+    """Get review statistics"""
+    try:
+        service = ReviewService()
+        
+        # Mock review stats - in production would query actual review data
+        return ReviewStats(
+            total_scenes=500,
+            reviewed_scenes=350,
+            pending_scenes=150,
+            approved_scenes=280,
+            rejected_scenes=45,
+            corrected_scenes=25,
+            review_rate=70.0,  # 350/500
+            avg_time_per_scene=45.0  # seconds
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to get review stats: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get review stats")
 
 # Additional endpoints for workflow compatibility
 @router.post("/scenes/{scene_id}/approve")
