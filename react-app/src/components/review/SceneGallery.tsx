@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback, useMemo, memo } from 'react'
 import { 
   Grid, 
   List, 
@@ -51,6 +51,14 @@ const REVIEW_STATUS_COLORS = {
   corrected: 'text-yellow-500',
 }
 
+// Utility function for confidence colors
+const getConfidenceColor = (confidence?: number) => {
+  if (!confidence) return 'text-gray-400'
+  if (confidence >= 0.8) return 'text-green-500'
+  if (confidence >= 0.6) return 'text-yellow-500'
+  return 'text-red-500'
+}
+
 export function SceneGallery({
   datasetId,
   selectedScenes = new Set(),
@@ -76,16 +84,19 @@ export function SceneGallery({
   const scenes = data?.items || []
   const totalPages = data ? Math.ceil(data.total / data.limit) : 0
 
-  const filteredScenes = scenes.filter(scene => {
-    if (searchQuery) {
-      return scene.source.toLowerCase().includes(searchQuery.toLowerCase()) ||
-             scene.scene_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-             scene.dataset_name?.toLowerCase().includes(searchQuery.toLowerCase())
-    }
-    return true
-  })
+  const filteredScenes = useMemo(() => 
+    scenes.filter(scene => {
+      if (searchQuery) {
+        return scene.source.toLowerCase().includes(searchQuery.toLowerCase()) ||
+               scene.scene_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+               scene.dataset_name?.toLowerCase().includes(searchQuery.toLowerCase())
+      }
+      return true
+    }),
+    [scenes, searchQuery]
+  )
 
-  const handleSelectAll = () => {
+  const handleSelectAll = useCallback(() => {
     if (selectedScenes.size === filteredScenes.length) {
       // Deselect all
       onBatchSelect?.([])
@@ -93,14 +104,8 @@ export function SceneGallery({
       // Select all
       onBatchSelect?.(filteredScenes)
     }
-  }
+  }, [selectedScenes.size, filteredScenes.length, filteredScenes, onBatchSelect])
 
-  const getConfidenceColor = (confidence?: number) => {
-    if (!confidence) return 'text-gray-400'
-    if (confidence >= 0.8) return 'text-green-500'
-    if (confidence >= 0.6) return 'text-yellow-500'
-    return 'text-red-500'
-  }
 
   if (error) {
     return (
@@ -277,7 +282,7 @@ export function SceneGallery({
 }
 
 // Grid View Component
-function SceneGrid({ 
+const SceneGrid = memo(function SceneGrid({ 
   scenes, 
   selectedScenes, 
   onSceneSelect, 
@@ -295,16 +300,16 @@ function SceneGrid({
           key={scene.id}
           scene={scene}
           isSelected={selectedScenes.has(scene.id)}
-          onSelect={() => onSceneSelect?.(scene)}
-          onToggle={() => onSceneToggle?.(scene.id)}
+          onSceneSelect={onSceneSelect}
+          onSceneToggle={onSceneToggle}
         />
       ))}
     </div>
   )
-}
+})
 
 // List View Component
-function SceneList({ 
+const SceneList = memo(function SceneList({ 
   scenes, 
   selectedScenes, 
   onSceneSelect, 
@@ -322,44 +327,50 @@ function SceneList({
           key={scene.id}
           scene={scene}
           isSelected={selectedScenes.has(scene.id)}
-          onSelect={() => onSceneSelect?.(scene)}
-          onToggle={() => onSceneToggle?.(scene.id)}
+          onSceneSelect={onSceneSelect}
+          onSceneToggle={onSceneToggle}
         />
       ))}
     </div>
   )
-}
+})
 
 // Scene Card Component
-function SceneCard({ 
+const SceneCard = memo(function SceneCard({ 
   scene, 
   isSelected, 
-  onSelect, 
-  onToggle 
+  onSceneSelect,
+  onSceneToggle 
 }: {
   scene: Scene
   isSelected: boolean
-  onSelect: () => void
-  onToggle: () => void
+  onSceneSelect?: (scene: Scene) => void
+  onSceneToggle?: (sceneId: string) => void
 }) {
   const { thumbnailUrl } = useSceneImages(scene)
   const StatusIcon = REVIEW_STATUS_ICONS[scene.review_status as keyof typeof REVIEW_STATUS_ICONS] || Clock
   const statusColor = REVIEW_STATUS_COLORS[scene.review_status as keyof typeof REVIEW_STATUS_COLORS] || 'text-gray-500'
+
+  const handleSelect = useCallback(() => {
+    onSceneSelect?.(scene)
+  }, [onSceneSelect, scene])
+  
+  const handleToggle = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    onSceneToggle?.(scene.id)
+  }, [onSceneToggle, scene.id])
 
   return (
     <div 
       className={`relative group rounded-lg border-2 transition-colors cursor-pointer ${
         isSelected ? 'border-primary' : 'border-transparent hover:border-muted-foreground'
       }`}
-      onClick={onSelect}
+      onClick={handleSelect}
     >
       {/* Selection Checkbox */}
       <div className="absolute top-2 left-2 z-10">
         <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onToggle()
-          }}
+          onClick={handleToggle}
           className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
             isSelected 
               ? 'bg-primary border-primary text-primary-foreground' 
@@ -411,37 +422,43 @@ function SceneCard({
       </div>
     </div>
   )
-}
+})
 
 // Scene List Item Component
-function SceneListItem({ 
+const SceneListItem = memo(function SceneListItem({ 
   scene, 
   isSelected, 
-  onSelect, 
-  onToggle 
+  onSceneSelect,
+  onSceneToggle 
 }: {
   scene: Scene
   isSelected: boolean
-  onSelect: () => void
-  onToggle: () => void
+  onSceneSelect?: (scene: Scene) => void
+  onSceneToggle?: (sceneId: string) => void
 }) {
   const { thumbnailUrl } = useSceneImages(scene)
   const StatusIcon = REVIEW_STATUS_ICONS[scene.review_status as keyof typeof REVIEW_STATUS_ICONS] || Clock
   const statusColor = REVIEW_STATUS_COLORS[scene.review_status as keyof typeof REVIEW_STATUS_COLORS] || 'text-gray-500'
+
+  const handleSelect = useCallback(() => {
+    onSceneSelect?.(scene)
+  }, [onSceneSelect, scene])
+  
+  const handleToggle = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    onSceneToggle?.(scene.id)
+  }, [onSceneToggle, scene.id])
 
   return (
     <div 
       className={`flex items-center space-x-4 p-4 rounded-lg border cursor-pointer transition-colors ${
         isSelected ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
       }`}
-      onClick={onSelect}
+      onClick={handleSelect}
     >
       {/* Selection */}
       <button
-        onClick={(e) => {
-          e.stopPropagation()
-          onToggle()
-        }}
+        onClick={handleToggle}
         className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
           isSelected 
             ? 'bg-primary border-primary text-primary-foreground' 
@@ -487,12 +504,4 @@ function SceneListItem({
       </div>
     </div>
   )
-}
-
-// Utility function for confidence colors
-function getConfidenceColor(confidence?: number) {
-  if (!confidence) return 'text-gray-400'
-  if (confidence >= 0.8) return 'text-green-500'
-  if (confidence >= 0.6) return 'text-yellow-500'
-  return 'text-red-500'
-}
+})

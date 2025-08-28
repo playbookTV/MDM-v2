@@ -11,8 +11,10 @@ from pydantic import BaseModel
 
 from app.services.datasets import DatasetService
 from app.services.storage import StorageService
+from app.services.huggingface import HuggingFaceService
 from app.schemas.database import Dataset, DatasetCreate, SceneCreate
 from app.core.config import settings
+from app.core.validation import validate_huggingface_url
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -46,6 +48,18 @@ class RegisterScenesResponse(BaseModel):
     """Register scenes response"""
     created: int
     scene_ids: List[str]
+
+class ProcessHuggingFaceRequest(BaseModel):
+    """Process HuggingFace dataset request"""
+    hf_url: str
+    split: str = "train"
+    image_column: str = "image"
+    max_images: Optional[int] = None
+
+class ProcessHuggingFaceResponse(BaseModel):
+    """Process HuggingFace dataset response"""
+    job_id: str
+    status: str
 
 @router.get("")
 async def get_datasets(
@@ -218,3 +232,55 @@ async def delete_dataset(dataset_id: str):
     except Exception as e:
         logger.error(f"Failed to delete dataset {dataset_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete dataset")
+
+@router.post("/{dataset_id}/process-huggingface", response_model=ProcessHuggingFaceResponse)
+async def process_huggingface_dataset(
+    dataset_id: str,
+    request: ProcessHuggingFaceRequest
+):
+    """Process HuggingFace dataset: validate URL and start background job"""
+    try:
+        # Verify dataset exists
+        service = DatasetService()
+        dataset = await service.get_dataset(dataset_id)
+        
+        if not dataset:
+            raise HTTPException(status_code=404, detail="Dataset not found")
+        
+        # Validate HuggingFace URL (security + format)
+        validate_huggingface_url(request.hf_url)
+        
+        # Additional validation with HuggingFace service
+        hf_service = HuggingFaceService()
+        org_dataset = hf_service.validate_hf_url(request.hf_url)
+        
+        if not org_dataset:
+            raise HTTPException(
+                status_code=400, 
+                detail="Invalid HuggingFace dataset URL or dataset not accessible"
+            )
+        
+        # Import the task here to avoid circular imports
+        from app.worker.huggingface_tasks import process_huggingface_dataset as hf_task
+        
+        # Start background processing job
+        job = hf_task.delay(
+            dataset_id=dataset_id,
+            hf_dataset_url=request.hf_url,
+            split=request.split,
+            image_column=request.image_column,
+            max_images=request.max_images
+        )
+        
+        logger.info(f"Started HF processing job {job.id} for dataset {dataset_id}")
+        
+        return ProcessHuggingFaceResponse(
+            job_id=str(job.id),
+            status="started"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to start HF processing for dataset {dataset_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to start HuggingFace processing")

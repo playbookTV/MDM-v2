@@ -5,7 +5,7 @@ Database models for datasets and related entities
 import uuid
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from sqlalchemy import String, DateTime, Integer, Float, Boolean, Text, JSON
+from sqlalchemy import String, DateTime, Integer, Float, Boolean, Text, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -33,6 +33,26 @@ class Dataset(Base):
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SceneStyle(Base):
+    """Scene to style relationship with confidence"""
+    __tablename__ = "scene_styles"
+    
+    scene_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("scenes.id", ondelete="CASCADE"), primary_key=True)
+    style_code: Mapped[str] = mapped_column(String(50), primary_key=True)  # references style_labels.code
+    conf: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ObjectMaterial(Base):
+    """Object to material relationship with confidence"""
+    __tablename__ = "object_materials"
+    
+    object_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("objects.id", ondelete="CASCADE"), primary_key=True)
+    material_code: Mapped[str] = mapped_column(String(50), primary_key=True)  # references material_labels.code
+    conf: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
@@ -50,7 +70,7 @@ class Scene(Base):
     source: Mapped[str] = mapped_column(String(255), nullable=False)  # original filename
     r2_key_original: Mapped[str] = mapped_column(String(500), nullable=False)
     r2_key_thumbnail: Mapped[Optional[str]] = mapped_column(String(500))
-    r2_key_depth: Mapped[Optional[str]] = mapped_column(String(500))
+    depth_key: Mapped[Optional[str]] = mapped_column(String(500))
     
     # Image dimensions
     width: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -80,6 +100,26 @@ class Scene(Base):
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SceneStyle(Base):
+    """Scene to style relationship with confidence"""
+    __tablename__ = "scene_styles"
+    
+    scene_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("scenes.id", ondelete="CASCADE"), primary_key=True)
+    style_code: Mapped[str] = mapped_column(String(50), primary_key=True)  # references style_labels.code
+    conf: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ObjectMaterial(Base):
+    """Object to material relationship with confidence"""
+    __tablename__ = "object_materials"
+    
+    object_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("objects.id", ondelete="CASCADE"), primary_key=True)
+    material_code: Mapped[str] = mapped_column(String(50), primary_key=True)  # references material_labels.code
+    conf: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
     processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     
@@ -95,20 +135,20 @@ class SceneObject(Base):
     scene_id: Mapped[str] = mapped_column(UUID(as_uuid=False), nullable=False)
     
     # Object classification
-    label: Mapped[str] = mapped_column(String(100), nullable=False)
+    category_code: Mapped[str] = mapped_column(String(100), nullable=False)  # canonical category code
+    subcategory: Mapped[Optional[str]] = mapped_column(String(100))
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
-    category: Mapped[Optional[str]] = mapped_column(String(50))
     
-    # Bounding box (YOLO format)
-    bbox: Mapped[Dict[str, float]] = mapped_column(JSON, nullable=False)  # {x, y, width, height}
+    # Bounding box (stored as separate columns for fast querying)
+    bbox_x: Mapped[float] = mapped_column(Float, nullable=False)
+    bbox_y: Mapped[float] = mapped_column(Float, nullable=False) 
+    bbox_w: Mapped[float] = mapped_column(Float, nullable=False)
+    bbox_h: Mapped[float] = mapped_column(Float, nullable=False)
     
-    # Material detection
-    material: Mapped[Optional[str]] = mapped_column(String(50))
-    material_conf: Mapped[Optional[float]] = mapped_column(Float)
-    
-    # Segmentation and visual features
-    r2_key_mask: Mapped[Optional[str]] = mapped_column(String(500))
-    r2_key_thumbnail: Mapped[Optional[str]] = mapped_column(String(500))
+    # Segmentation and visual features  
+    mask_key: Mapped[Optional[str]] = mapped_column(String(500))
+    thumb_key: Mapped[Optional[str]] = mapped_column(String(500))
+    depth_key: Mapped[Optional[str]] = mapped_column(String(500))
     description: Mapped[Optional[str]] = mapped_column(Text)
     
     # Review status
@@ -119,6 +159,26 @@ class SceneObject(Base):
     attrs: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
     
     # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SceneStyle(Base):
+    """Scene to style relationship with confidence"""
+    __tablename__ = "scene_styles"
+    
+    scene_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("scenes.id", ondelete="CASCADE"), primary_key=True)
+    style_code: Mapped[str] = mapped_column(String(50), primary_key=True)  # references style_labels.code
+    conf: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ObjectMaterial(Base):
+    """Object to material relationship with confidence"""
+    __tablename__ = "object_materials"
+    
+    object_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("objects.id", ondelete="CASCADE"), primary_key=True)
+    material_code: Mapped[str] = mapped_column(String(50), primary_key=True)  # references material_labels.code
+    conf: Mapped[float] = mapped_column(Float, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
     
@@ -174,4 +234,24 @@ class Review(Base):
     reviewer: Mapped[Optional[str]] = mapped_column(String(100))
     
     # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SceneStyle(Base):
+    """Scene to style relationship with confidence"""
+    __tablename__ = "scene_styles"
+    
+    scene_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("scenes.id", ondelete="CASCADE"), primary_key=True)
+    style_code: Mapped[str] = mapped_column(String(50), primary_key=True)  # references style_labels.code
+    conf: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ObjectMaterial(Base):
+    """Object to material relationship with confidence"""
+    __tablename__ = "object_materials"
+    
+    object_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("objects.id", ondelete="CASCADE"), primary_key=True)
+    material_code: Mapped[str] = mapped_column(String(50), primary_key=True)  # references material_labels.code
+    conf: Mapped[float] = mapped_column(Float, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

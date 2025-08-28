@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getMultipleImageDimensions } from '@/lib/image-utils'
+import { apiRequest, withRetry, ValidationError } from '@/lib/error-handling'
 import type { 
   Dataset, 
   DatasetCreate, 
@@ -24,72 +25,74 @@ const fetchDatasets = async (params?: {
   if (params?.page) searchParams.set('page', params.page.toString())
   if (params?.limit) searchParams.set('limit', params.limit.toString())
   
-  const response = await fetch(`${API_BASE}/datasets?${searchParams}`)
-  if (!response.ok) {
-    const error: APIError = await response.json()
-    throw new Error(error.error.message)
-  }
-  return response.json()
+  return withRetry(() => 
+    apiRequest<Page<Dataset>>(`${API_BASE}/datasets?${searchParams}`)
+  )
 }
 
 const createDataset = async (dataset: DatasetCreate): Promise<Dataset> => {
-  const response = await fetch(`${API_BASE}/datasets`, {
+  if (!dataset.name?.trim()) {
+    throw new ValidationError('Dataset name is required')
+  }
+  
+  return apiRequest<Dataset>(`${API_BASE}/datasets`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(dataset),
   })
-  
-  if (!response.ok) {
-    const error: APIError = await response.json()
-    throw new Error(error.error.message)
-  }
-  return response.json()
 }
 
 const getPresignedUrls = async (
   datasetId: string, 
   request: PresignRequest
 ): Promise<PresignResponse> => {
-  const response = await fetch(`${API_BASE}/datasets/${datasetId}/presign`, {
+  if (!datasetId) {
+    throw new ValidationError('Dataset ID is required')
+  }
+  if (!request.files?.length) {
+    throw new ValidationError('At least one file is required')
+  }
+  
+  return apiRequest<PresignResponse>(`${API_BASE}/datasets/${datasetId}/presign`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
   })
-  
-  if (!response.ok) {
-    const error: APIError = await response.json()
-    throw new Error(error.error.message)
-  }
-  return response.json()
 }
 
 const uploadFileToR2 = async (file: File, presignedUrl: string, headers: Record<string, string>) => {
-  const response = await fetch(presignedUrl, {
-    method: 'PUT',
-    headers,
-    body: file,
-  })
-  
-  if (!response.ok) {
-    throw new Error(`Failed to upload ${file.name}: ${response.statusText}`)
-  }
+  return withRetry(
+    async () => {
+      const response = await fetch(presignedUrl, {
+        method: 'PUT',
+        headers,
+        body: file,
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to upload ${file.name}: ${response.statusText}`)
+      }
+    },
+    { maxAttempts: 2 } // Limit retries for file uploads to avoid excessive traffic
+  )
 }
 
 const registerScenes = async (
   datasetId: string,
   request: RegisterScenesRequest
 ): Promise<RegisterScenesResponse> => {
-  const response = await fetch(`${API_BASE}/datasets/${datasetId}/register-scenes`, {
+  if (!datasetId) {
+    throw new ValidationError('Dataset ID is required')
+  }
+  if (!request.scenes?.length) {
+    throw new ValidationError('At least one scene is required')
+  }
+  
+  return apiRequest<RegisterScenesResponse>(`${API_BASE}/datasets/${datasetId}/register-scenes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
   })
-  
-  if (!response.ok) {
-    const error: APIError = await response.json()
-    throw new Error(error.error.message)
-  }
-  return response.json()
 }
 
 // React Query hooks

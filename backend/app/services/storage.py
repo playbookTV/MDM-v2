@@ -102,6 +102,31 @@ class StorageService:
         
         return results
     
+    async def upload_object(
+        self, 
+        key: str, 
+        data: bytes, 
+        content_type: str,
+        metadata: Dict[str, str] = None
+    ) -> bool:
+        """Upload an object directly to R2"""
+        try:
+            extra_args = {'ContentType': content_type}
+            if metadata:
+                extra_args['Metadata'] = metadata
+                
+            self.client.put_object(
+                Bucket=self.bucket_name,
+                Key=key,
+                Body=data,
+                **extra_args
+            )
+            return True
+            
+        except ClientError as e:
+            logger.error(f"Failed to upload object {key}: {e}")
+            return False
+    
     def get_public_url(self, key: str) -> str:
         """Get public URL for an object (if bucket is public)"""
         return f"{settings.R2_PUBLIC_URL}/{key}"

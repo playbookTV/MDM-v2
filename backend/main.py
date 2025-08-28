@@ -13,10 +13,19 @@ from fastapi.responses import JSONResponse
 import asyncio
 from contextlib import asynccontextmanager
 
-from app.api.routes import datasets_new as datasets, jobs, scenes, reviews, stats
+from app.api.routes import (
+    datasets_new as datasets, 
+    jobs_new as jobs, 
+    scenes_new as scenes, 
+    reviews_new as reviews, 
+    stats_new as stats,
+    queue
+)
 from app.core.config import settings
 from app.core.supabase import init_supabase
+from app.core.redis import init_redis, close_redis
 from app.core.logging import setup_logging
+from app.core.rate_limit import RateLimitMiddleware
 
 # Setup logging
 setup_logging()
@@ -31,13 +40,17 @@ async def lifespan(app: FastAPI):
     await init_supabase()
     print("✅ Supabase initialized")
     
-    # TODO: Initialize Redis connection for job queue
+    # Initialize Redis connection for job queue
+    await init_redis()
+    print("✅ Redis initialized")
+    
     print("✅ Application started successfully")
     
     yield
     
     # Shutdown
     print("🛑 Shutting down Modomo API...")
+    await close_redis()
 
 # Create FastAPI app
 app = FastAPI(
@@ -58,6 +71,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Rate limiting middleware
+app.add_middleware(RateLimitMiddleware)
+
 # Health check endpoint
 @app.get("/health")
 async def health_check():
@@ -70,6 +86,7 @@ app.include_router(jobs.router, prefix="/api/v1/jobs", tags=["jobs"])
 app.include_router(scenes.router, prefix="/api/v1/scenes", tags=["scenes"])
 app.include_router(reviews.router, prefix="/api/v1/reviews", tags=["reviews"])
 app.include_router(stats.router, prefix="/api/v1/stats", tags=["stats"])
+app.include_router(queue.router, prefix="/api/v1/queue", tags=["queue"])
 
 # Global exception handler
 @app.exception_handler(HTTPException)

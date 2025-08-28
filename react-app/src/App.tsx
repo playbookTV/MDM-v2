@@ -3,18 +3,21 @@ import { DatasetExplorerPage } from '@/pages/DatasetExplorerPage'
 import { JobsPage } from '@/pages/JobsPage'
 import { StatsDashboardPage } from '@/pages/StatsDashboardPage'
 import { SceneReviewPage } from '@/pages/SceneReviewPage'
+import ErrorBoundary from '@/components/ui/error-boundary'
 
 function App() {
   return (
-    <div className="min-h-screen bg-background">
-      <Routes>
-        <Route path="/" element={<Navigate to="/datasets" replace />} />
-        <Route path="/datasets" element={<DatasetExplorerPage />} />
-        <Route path="/jobs" element={<JobsPage />} />
-        <Route path="/dashboard" element={<StatsDashboardPage />} />
-        <Route path="/review" element={<SceneReviewPage />} />
-      </Routes>
-    </div>
+    <ErrorBoundary>
+      <div className="min-h-screen bg-background">
+        <Routes>
+          <Route path="/" element={<Navigate to="/datasets" replace />} />
+          <Route path="/datasets" element={<DatasetExplorerPage />} />
+          <Route path="/jobs" element={<JobsPage />} />
+          <Route path="/dashboard" element={<StatsDashboardPage />} />
+          <Route path="/review" element={<SceneReviewPage />} />
+        </Routes>
+      </div>
+    </ErrorBoundary>
   )
 }
 

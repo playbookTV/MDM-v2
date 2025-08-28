@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback, memo } from 'react'
 import { 
   Database,
   Search,
@@ -57,7 +57,7 @@ export function DatasetStatsTable({
     }
   }
 
-  const getSortedAndFilteredData = () => {
+  const getSortedAndFilteredData = useMemo(() => {
     if (!datasetStats) return []
     
     // Filter by search query
@@ -106,9 +106,9 @@ export function DatasetStatsTable({
     })
     
     return filtered
-  }
+  }, [datasetStats, searchQuery, sortField, sortDirection])
 
-  const formatLastProcessed = (dateString: string) => {
+  const formatLastProcessed = useCallback((dateString: string) => {
     const date = new Date(dateString)
     const now = new Date()
     const diffMs = now.getTime() - date.getTime()
@@ -122,9 +122,9 @@ export function DatasetStatsTable({
     } else {
       return 'Recently'
     }
-  }
+  }, [])
 
-  const getProcessingStatus = (dataset: any) => {
+  const getProcessingStatus = useCallback((dataset: any) => {
     if (dataset.failed_scenes > 0 && dataset.processing_progress < 100) {
       return { status: 'partial', icon: XCircle, color: 'text-yellow-500' }
     } else if (dataset.processing_progress === 100) {
@@ -134,7 +134,7 @@ export function DatasetStatsTable({
     } else {
       return { status: 'pending', icon: Clock, color: 'text-gray-500' }
     }
-  }
+  }, [])
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) {
@@ -145,7 +145,7 @@ export function DatasetStatsTable({
       : <ArrowDown className="h-4 w-4" />
   }
 
-  const filteredData = getSortedAndFilteredData()
+  const filteredData = getSortedAndFilteredData
 
   if (error) {
     return (
