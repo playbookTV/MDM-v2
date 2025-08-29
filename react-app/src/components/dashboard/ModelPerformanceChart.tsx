@@ -34,12 +34,7 @@ interface ModelPerformanceChartProps {
 
 type ChartType = 'confidence' | 'accuracy' | 'radar'
 
-const MODEL_TYPE_LABELS = {
-  scene_classifier: 'Scene Classifier',
-  style_classifier: 'Style Classifier', 
-  object_detector: 'Object Detector',
-  material_detector: 'Material Detector'
-}
+// MODEL_TYPE_LABELS removed - not used
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
 
@@ -64,14 +59,14 @@ export function ModelPerformanceChart({ query, className }: ModelPerformanceChar
     
     return models.map(model => ({
       name: model.model_name,
-      avgConfidence: (model.avg_confidence * 100),
-      totalPredictions: model.predictions_count,
+      avgConfidence: (model.average_confidence * 100),
+      totalPredictions: model.total_predictions,
       modelType: model.model_type || 'classifier',
-      // Mock confidence distribution buckets from high/low confidence rates
-      bucket0: model.low_confidence_rate || 0,
-      bucket1: ((100 - (model.high_confidence_rate || 0) - (model.low_confidence_rate || 0)) / 2) || 0,
-      bucket2: ((100 - (model.high_confidence_rate || 0) - (model.low_confidence_rate || 0)) / 2) || 0,
-      bucket3: model.high_confidence_rate || 0
+      // Calculate confidence distribution from confidence_distribution buckets
+      bucket0: model.confidence_distribution?.[0]?.percentage || 10,
+      bucket1: model.confidence_distribution?.[1]?.percentage || 20,
+      bucket2: model.confidence_distribution?.[2]?.percentage || 30,
+      bucket3: model.confidence_distribution?.[3]?.percentage || 40
     }))
   }
 
@@ -81,10 +76,10 @@ export function ModelPerformanceChart({ query, className }: ModelPerformanceChar
     return models.map(model => ({
       model: model.model_name,
       className: model.model_name,
-      precision: model.high_confidence_rate || 85,
-      recall: model.high_confidence_rate || 85, 
-      f1Score: model.high_confidence_rate || 85,
-      support: model.predictions_count || 0
+      precision: model.accuracy_by_class?.[0]?.precision || 85,
+      recall: model.accuracy_by_class?.[0]?.recall || 85,
+      f1Score: model.accuracy_by_class?.[0]?.f1_score || 85,
+      support: model.total_predictions || 0
     }))
   }
 
@@ -93,9 +88,9 @@ export function ModelPerformanceChart({ query, className }: ModelPerformanceChar
     
     return models.map(model => ({
       model: model.model_name,
-      confidence: model.avg_confidence * 100,
-      predictions: Math.min((model.predictions_count / 1000) * 100, 100), // Normalize to 0-100
-      accuracy: model.high_confidence_rate || 85,
+      confidence: model.average_confidence * 100,
+      predictions: Math.min((model.total_predictions / 1000) * 100, 100), // Normalize to 0-100
+      accuracy: (model.confidence_distribution?.slice(-2).reduce((sum, bucket) => sum + bucket.percentage, 0)) || 85,
     }))
   }
 
@@ -104,8 +99,8 @@ export function ModelPerformanceChart({ query, className }: ModelPerformanceChar
     
     if (models.length === 0) return null
     
-    const totalPredictions = models.reduce((sum, model) => sum + (model.predictions_count || 0), 0)
-    const avgConfidence = models.reduce((sum, model) => sum + (model.avg_confidence || 0), 0) / models.length
+    const totalPredictions = models.reduce((sum, model) => sum + (model.total_predictions || 0), 0)
+    const avgConfidence = models.reduce((sum, model) => sum + (model.average_confidence || 0), 0) / models.length
     
     return {
       totalModels: models.length,

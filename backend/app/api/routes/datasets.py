@@ -4,8 +4,7 @@ Dataset management endpoints
 
 import uuid
 import logging
-from typing import Optional, List
-from datetime import datetime, timedelta
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func, desc
@@ -21,8 +20,7 @@ from app.schemas.dataset import (
     PresignResponse,
     PresignUpload,
     RegisterScenesRequest,
-    RegisterScenesResponse,
-    SceneCreate
+    RegisterScenesResponse
 )
 from app.schemas.common import Page
 from app.services.storage import StorageService
@@ -31,12 +29,15 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+
 @router.get("", response_model=Page[DatasetSchema])
 async def get_datasets(
     db: AsyncSession = Depends(get_db),
     q: Optional[str] = Query(None, description="Search query"),
     page: int = Query(1, ge=1, description="Page number"),
-    limit: int = Query(20, ge=1, le=settings.MAX_PAGE_SIZE, description="Items per page")
+    limit: int = Query(
+        20, ge=1, le=settings.MAX_PAGE_SIZE, description="Items per page"
+    )
 ):
     """Get paginated list of datasets with optional search"""
     try:

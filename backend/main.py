@@ -5,19 +5,17 @@ Modomo Dataset Management API Server
 FastAPI backend for React web application
 """
 
-import os
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import asyncio
 from contextlib import asynccontextmanager
 
 from app.api.routes import (
-    datasets_new as datasets, 
-    jobs_new as jobs, 
-    scenes_new as scenes, 
-    reviews_new as reviews, 
+    datasets_new as datasets,
+    jobs_new as jobs,
+    scenes_new as scenes,
+    reviews_new as reviews,
     stats_new as stats,
     queue
 )
@@ -30,24 +28,25 @@ from app.core.rate_limit import RateLimitMiddleware
 # Setup logging
 setup_logging()
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
     print("🚀 Starting Modomo Dataset Management API...")
-    
+
     # Initialize Supabase connection
     await init_supabase()
     print("✅ Supabase initialized")
-    
+
     # Initialize Redis connection for job queue
     await init_redis()
     print("✅ Redis initialized")
-    
+
     print("✅ Application started successfully")
-    
+
     yield
-    
+
     # Shutdown
     print("🛑 Shutting down Modomo API...")
     await close_redis()
@@ -114,6 +113,7 @@ async def general_exception_handler(request, exc):
             }
         }
     )
+
 
 if __name__ == "__main__":
     uvicorn.run(

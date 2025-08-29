@@ -62,6 +62,18 @@ class Settings(BaseSettings):
     JOB_TIMEOUT: int = Field(default=1800, description="Job timeout in seconds (30 minutes)")
     JOB_RETRY_ATTEMPTS: int = Field(default=3, description="Max job retry attempts")
     
+    # RunPod AI processing settings
+    RUNPOD_API_KEY: Optional[str] = Field(default=None, description="RunPod API key for serverless AI")
+    RUNPOD_ENDPOINT_ID: Optional[str] = Field(default=None, description="RunPod serverless endpoint ID")
+    RUNPOD_ENDPOINT_URL: Optional[str] = Field(default=None, description="RunPod custom endpoint URL")
+    RUNPOD_TIMEOUT: int = Field(default=300, description="RunPod request timeout in seconds (5 minutes)")
+    RUNPOD_MAX_RETRIES: int = Field(default=2, description="Max RunPod API retries")
+    
+    # AI processing fallback settings
+    USE_LOCAL_AI: bool = Field(default=True, description="Use local AI models when RunPod unavailable")
+    AI_PROCESSING_ENABLED: bool = Field(default=True, description="Enable real AI processing (vs mocks)")
+    AI_MODEL_CACHE_DIR: str = Field(default="./models", description="Directory for local AI model cache")
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

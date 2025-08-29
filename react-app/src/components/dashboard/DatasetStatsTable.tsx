@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, memo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { 
   Database,
   Search,
@@ -91,8 +91,8 @@ export function DatasetStatsTable({
           bVal = b.average_confidence || 0.85
           break
         case 'last_processed':
-          aVal = new Date(a.last_processed).getTime()
-          bVal = new Date(b.last_processed).getTime()
+          aVal = a.last_processed ? new Date(a.last_processed).getTime() : 0
+          bVal = b.last_processed ? new Date(b.last_processed).getTime() : 0
           break
         default:
           return 0
@@ -108,7 +108,8 @@ export function DatasetStatsTable({
     return filtered
   }, [datasetStats, searchQuery, sortField, sortDirection])
 
-  const formatLastProcessed = useCallback((dateString: string) => {
+  const formatLastProcessed = useCallback((dateString: string | undefined) => {
+    if (!dateString) return 'Never'
     const date = new Date(dateString)
     const now = new Date()
     const diffMs = now.getTime() - date.getTime()

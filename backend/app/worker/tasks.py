@@ -11,6 +11,8 @@ from app.worker.celery_app import celery_app
 from app.services.jobs import JobService
 from app.services.datasets import DatasetService
 from app.services.scenes import SceneService
+from app.services.ai_pipeline import process_scene_ai
+from app.services.storage import StorageService
 from app.core.supabase import init_supabase, get_supabase
 from app.core.redis import init_redis
 
@@ -182,25 +184,82 @@ def process_scene(self, job_id: str, scene_id: str, options: Dict[str, Any] = No
             if not scene:
                 raise Exception(f"Scene {scene_id} not found")
             
-            # Simulate AI processing pipeline
+            # Real AI processing pipeline
+            storage_service = StorageService()
+            
+            # Load image from R2 storage
+            current_task.update_state(
+                state='PROGRESS',
+                meta={
+                    'current': 1,
+                    'total': 8,
+                    'stage': 'loading',
+                    'description': 'Loading image from storage',
+                    'scene_id': scene_id
+                }
+            )
+            
+            await job_service.add_job_event(job_id, "progress", {
+                "stage": "loading",
+                "description": "Loading image from storage",
+                "scene_id": scene_id,
+                "progress": 12.5
+            })
+            
+            # Get scene info to find R2 image key
+            scene_data = await scene_service.get_scene(scene_id, include_objects=False)
+            if not scene_data or not scene_data.get('image_key'):
+                raise Exception(f"Scene {scene_id} missing image data")
+            
+            # Download image from R2
+            image_data = await storage_service.download_object(scene_data['image_key'])
+            if not image_data:
+                raise Exception(f"Failed to download image for scene {scene_id}")
+            
+            # Run AI pipeline stages with progress updates
             ai_stages = [
-                ("loading", "Loading image"),
                 ("scene_classification", "Classifying scene type"),
-                ("object_detection", "Detecting objects"),
-                ("segmentation", "Generating masks"),
-                ("depth_estimation", "Estimating depth"),
+                ("object_detection", "Detecting objects"), 
                 ("style_analysis", "Analyzing design style"),
+                ("depth_estimation", "Estimating depth"),
+                ("color_analysis", "Analyzing color palette"),
                 ("material_classification", "Classifying materials"),
-                ("quality_assessment", "Assessing image quality")
+                ("quality_assessment", "Final quality assessment")
             ]
             
-            total_stages = len(ai_stages)
-            for i, (stage, description) in enumerate(ai_stages):
+            # Update progress for AI processing start
+            current_task.update_state(
+                state='PROGRESS',
+                meta={
+                    'current': 2,
+                    'total': 8,
+                    'stage': 'ai_processing',
+                    'description': 'Running AI analysis',
+                    'scene_id': scene_id
+                }
+            )
+            
+            await job_service.add_job_event(job_id, "progress", {
+                "stage": "ai_processing", 
+                "description": "Starting AI analysis pipeline",
+                "scene_id": scene_id,
+                "progress": 25.0
+            })
+            
+            # Process scene with real AI pipeline
+            ai_results = await process_scene_ai(
+                image_data=image_data,
+                scene_id=scene_id,
+                options=options or {}
+            )
+            
+            # Update progress through remaining stages
+            for i, (stage, description) in enumerate(ai_stages, start=3):
                 current_task.update_state(
                     state='PROGRESS',
                     meta={
-                        'current': i + 1,
-                        'total': total_stages,
+                        'current': i,
+                        'total': 8,
                         'stage': stage,
                         'description': description,
                         'scene_id': scene_id
@@ -210,40 +269,44 @@ def process_scene(self, job_id: str, scene_id: str, options: Dict[str, Any] = No
                 await job_service.add_job_event(job_id, "progress", {
                     "stage": stage,
                     "description": description,
-                    "scene_id": scene_id,
-                    "progress": (i + 1) / total_stages * 100
+                    "scene_id": scene_id, 
+                    "progress": (i / 8) * 100
                 })
                 
-                # Simulate AI processing time
-                await asyncio.sleep(1.5)
+                # Small delay for realistic progress
+                await asyncio.sleep(0.5)
             
-            # Update scene with mock AI results
-            ai_results = {
+            # Prepare final results
+            processing_results = {
                 "status": "processed",
-                "scene_type": "living_room",
-                "scene_conf": 0.92,
-                "style": "contemporary",
-                "objects_detected": 8,
-                "processing_time": len(ai_stages) * 1.5
+                "scene_type": ai_results.get("scene_type", "unknown"),
+                "scene_conf": ai_results.get("scene_conf", 0.0),
+                "primary_style": ai_results.get("primary_style", "contemporary"),
+                "style_confidence": ai_results.get("style_confidence", 0.0),
+                "objects_detected": ai_results.get("objects_detected", 0),
+                "color_analysis": ai_results.get("dominant_color", {}),
+                "depth_available": ai_results.get("depth_available", False),
+                "processing_success": ai_results.get("success", False),
+                "ai_error": ai_results.get("error") if not ai_results.get("success") else None
             }
             
-            await scene_service.update_scene(scene_id, ai_results)
+            await scene_service.update_scene(scene_id, processing_results)
             
             # Complete job
             await job_service.update_job(job_id, {
                 "status": "succeeded", 
                 "finished_at": datetime.utcnow().isoformat(),
-                "result": ai_results
+                "result": processing_results
             })
             
             await job_service.add_job_event(job_id, "completed", {
                 "stage": "finished",
                 "scene_id": scene_id,
-                **ai_results
+                **processing_results
             })
             
             logger.info(f"Scene processing job {job_id} completed successfully")
-            return ai_results
+            return processing_results
             
         except Exception as e:
             logger.error(f"Scene processing job {job_id} failed: {e}")

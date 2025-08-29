@@ -127,6 +127,22 @@ class StorageService:
             logger.error(f"Failed to upload object {key}: {e}")
             return False
     
+    async def download_object(self, key: str) -> bytes:
+        """Download an object from R2"""
+        try:
+            response = self.client.get_object(
+                Bucket=self.bucket_name,
+                Key=key
+            )
+            return response['Body'].read()
+            
+        except ClientError as e:
+            logger.error(f"Failed to download object {key}: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error downloading object {key}: {e}")
+            return None
+    
     def get_public_url(self, key: str) -> str:
         """Get public URL for an object (if bucket is public)"""
         return f"{settings.R2_PUBLIC_URL}/{key}"

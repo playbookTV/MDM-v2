@@ -356,6 +356,16 @@ def handler(event):
             "error": f"Handler failed: {str(e)}"
         }
 
+# Health check endpoint
+def health_check():
+    """Health check for the handler"""
+    return {
+        "status": "healthy",
+        "models_loaded": len(models) > 0,
+        "gpu_available": torch.cuda.is_available(),
+        "timestamp": time.time()
+    }
+
 # Start RunPod serverless
 if __name__ == "__main__":
     logger.info("🚀 Starting Modomo AI Pipeline on RunPod")

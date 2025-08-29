@@ -9,7 +9,16 @@ set -e
 POD_NAME=${1:-"modomo-ai-pipeline"}
 GPU_TYPE=${2:-"RTX4090"}
 IMAGE_NAME="modomo-ai:latest"
-REGISTRY="your-registry"  # Change this to your Docker registry
+REGISTRY=${DOCKER_REGISTRY:-"your-registry"}  # Change this to your Docker registry
+
+# Check for environment file
+if [ ! -f ".env" ]; then
+    echo "⚠️  No .env file found. Creating from template..."
+    cp .env.runpod.template .env
+    echo "📝 Please edit .env with your actual credentials before continuing"
+    echo "❌ Deployment halted - configure .env first"
+    exit 1
+fi
 
 echo "🚀 Deploying Modomo AI Pipeline to RunPod..."
 echo "Pod Name: $POD_NAME"

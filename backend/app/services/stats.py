@@ -9,6 +9,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 
 from app.core.supabase import get_supabase
+from app.core.redis import get_redis
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,7 @@ class StatsService:
     
     def __init__(self):
         self.supabase = get_supabase()
+        self.redis = get_redis()
     
     async def get_system_health(self) -> Dict[str, Any]:
         """Get system health metrics"""
@@ -33,11 +35,23 @@ class StatsService:
             cpu_percent = psutil.cpu_percent()
             uptime = int(time.time() - APP_START_TIME)
             
+            # Test Redis connectivity
+            redis_status = "healthy"
+            if self.redis:
+                try:
+                    await self.redis.ping()
+                    redis_status = "healthy"
+                except Exception as e:
+                    logger.warning(f"Redis health check failed: {e}")
+                    redis_status = "error"
+            else:
+                redis_status = "unavailable"
+            
             return {
-                "status": "healthy" if db_status == "healthy" else "unhealthy",
+                "status": "healthy" if db_status == "healthy" and redis_status in ["healthy", "unavailable"] else "unhealthy",
                 "database_status": db_status,
                 "storage_status": "healthy",  # TODO: Test R2 connectivity
-                "queue_status": "healthy",    # TODO: Test Redis connectivity
+                "queue_status": redis_status,
                 "uptime_seconds": uptime,
                 "memory_usage_mb": memory_info.used / (1024 * 1024),
                 "cpu_usage_percent": cpu_percent
@@ -86,13 +100,35 @@ class StatsService:
             error_rate = 100 - success_rate
             scenes_per_hour = processed_scenes / hours if hours > 0 else 0
             
+            # Get real processing times from jobs
+            processing_times = []
+            avg_processing_time = 15.0  # Default fallback
+            if jobs_result.data:
+                for job in jobs_result.data:
+                    if job["status"] == "succeeded" and job.get("result") and isinstance(job["result"], dict):
+                        proc_time = job["result"].get("processing_time")
+                        if proc_time and isinstance(proc_time, (int, float)):
+                            processing_times.append(proc_time)
+                
+                if processing_times:
+                    avg_processing_time = sum(processing_times) / len(processing_times)
+            
+            # Get current queue length from Redis
+            queue_length = 0
+            if self.redis:
+                try:
+                    from app.core.config import settings
+                    queue_length = await self.redis.llen(settings.REDIS_JOB_QUEUE)
+                except Exception as e:
+                    logger.warning(f"Failed to get queue length: {e}")
+            
             return {
                 "total_scenes_processed": processed_scenes,
-                "avg_processing_time_seconds": 15.0,  # Mock value
-                "scenes_per_hour": scenes_per_hour,
-                "success_rate_percent": success_rate,
-                "error_rate_percent": error_rate,
-                "queue_length": 0  # TODO: Get from Redis
+                "avg_processing_time_seconds": round(avg_processing_time, 1),
+                "scenes_per_hour": round(scenes_per_hour, 1),
+                "success_rate_percent": round(success_rate, 1),
+                "error_rate_percent": round(error_rate, 1),
+                "queue_length": queue_length
             }
             
         except Exception as e:
@@ -295,14 +331,53 @@ class StatsService:
                 }
             ]
             
+            # Calculate system health score based on real metrics  
+            health_score = 100.0
+            if avg_confidence < 0.7:
+                health_score -= 10
+            if active_jobs > 10:
+                health_score -= 5
+            if scenes_today == 0:
+                health_score -= 5
+                
+            # Get recent activity from job events
+            try:
+                recent_jobs = (
+                    self.supabase.table("jobs")
+                    .select("*")
+                    .order("created_at", desc=True)
+                    .limit(5)
+                    .execute()
+                )
+                
+                recent_activity = []
+                for job in recent_jobs.data:
+                    activity_type = "job_completed" if job["status"] == "succeeded" else "job_failed"
+                    message = f"Job {job['type']} {job['status']}"
+                    recent_activity.append({
+                        "type": activity_type,
+                        "message": message,
+                        "timestamp": job.get("finished_at") or job.get("created_at")
+                    })
+                    
+            except Exception as e:
+                logger.warning(f"Failed to get recent activity: {e}")
+                recent_activity = [
+                    {
+                        "type": "system_start",
+                        "message": "System monitoring active",
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                ]
+            
             return {
                 "total_datasets": total_datasets,
                 "total_scenes": total_scenes,
                 "total_objects": total_objects,
                 "scenes_processed_today": scenes_today,
                 "active_jobs": active_jobs,
-                "avg_confidence": avg_confidence,
-                "system_health_score": 95.0,  # Mock health score
+                "avg_confidence": round(avg_confidence, 3),
+                "system_health_score": round(health_score, 1),
                 "recent_activity": recent_activity
             }
             
