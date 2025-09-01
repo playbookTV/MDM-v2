@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Play, RefreshCw, Filter, AlertCircle, CheckCircle, Clock, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +26,7 @@ export function JobsPage() {
 
   // Enable real-time monitoring
   const { refreshJobs } = useJobMonitoring(true)
+  const navigate = useNavigate()
 
   const { data: jobsPage, isLoading, error } = useJobs({
     status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -45,7 +47,8 @@ export function JobsPage() {
 
   const handleViewDataset = (job: Job) => {
     console.log('Navigate to dataset:', job.dataset_id)
-    // TODO: Navigate to dataset detail page
+    // Navigate to datasets page with the specific dataset ID highlighted
+    navigate(`/datasets?dataset=${job.dataset_id}`)
   }
 
   const getStatusStats = () => {

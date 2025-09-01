@@ -15,6 +15,7 @@ import type { Dataset } from '@/types/dataset'
 interface DatasetTableProps {
   datasets: Dataset[]
   loading?: boolean
+  highlightId?: string | null
   onSelectDataset?: (dataset: Dataset) => void
   onViewScenes?: (dataset: Dataset) => void
   onProcessDataset?: (dataset: Dataset) => void
@@ -23,6 +24,7 @@ interface DatasetTableProps {
 export function DatasetTable({
   datasets,
   loading = false,
+  highlightId,
   onSelectDataset,
   onViewScenes,
   onProcessDataset,
@@ -63,12 +65,18 @@ export function DatasetTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {datasets.map((dataset) => (
-            <TableRow 
-              key={dataset.id}
-              className="cursor-pointer"
-              onClick={() => onSelectDataset?.(dataset)}
-            >
+          {datasets.map((dataset) => {
+            const isHighlighted = highlightId === dataset.id
+            return (
+              <TableRow 
+                key={dataset.id}
+                className={`cursor-pointer transition-colors ${
+                  isHighlighted 
+                    ? "bg-blue-50 border-blue-200 shadow-sm" 
+                    : "hover:bg-muted/50"
+                }`}
+                onClick={() => onSelectDataset?.(dataset)}
+              >
               <TableCell className="font-medium">
                 <div className="flex items-center space-x-2">
                   <span>{dataset.name}</span>
@@ -139,7 +147,8 @@ export function DatasetTable({
                 </div>
               </TableCell>
             </TableRow>
-          ))}
+            )
+          })}
         </TableBody>
       </Table>
     </div>

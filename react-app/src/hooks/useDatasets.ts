@@ -95,6 +95,34 @@ const registerScenes = async (
   })
 }
 
+const processHuggingFaceDataset = async (
+  datasetId: string,
+  hfUrl: string,
+  options?: {
+    split?: string
+    image_column?: string
+    max_images?: number
+  }
+): Promise<{ job_id: string; status: string }> => {
+  if (!datasetId) {
+    throw new ValidationError('Dataset ID is required')
+  }
+  if (!hfUrl) {
+    throw new ValidationError('HuggingFace URL is required')
+  }
+  
+  return apiRequest<{ job_id: string; status: string }>(`${API_BASE}/datasets/${datasetId}/process-huggingface`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      hf_url: hfUrl,
+      split: options?.split || 'train',
+      image_column: options?.image_column || 'image',
+      max_images: options?.max_images,
+    }),
+  })
+}
+
 // React Query hooks
 export const useDatasets = (params?: { 
   q?: string
@@ -112,6 +140,32 @@ export const useCreateDataset = () => {
   
   return useMutation({
     mutationFn: createDataset,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['datasets'] })
+    },
+  })
+}
+
+export const useProcessHuggingFaceDataset = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async ({
+      datasetId,
+      hfUrl,
+      options
+    }: {
+      datasetId: string
+      hfUrl: string
+      options?: {
+        split?: string
+        image_column?: string
+        max_images?: number
+      }
+    }) => {
+      console.log(`Starting HuggingFace dataset processing: ${hfUrl}`)
+      return processHuggingFaceDataset(datasetId, hfUrl, options)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['datasets'] })
     },

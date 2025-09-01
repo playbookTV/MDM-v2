@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, Download, Search, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DatasetTable } from '@/components/datasets/DatasetTable'
 import { DatasetUploadModal } from '@/components/datasets/DatasetUploadModal'
 import { HFImportModal } from '@/components/datasets/HFImportModal'
-import { useDatasets } from '@/hooks/useDatasets'
+import { useDatasets, useProcessHuggingFaceDataset } from '@/hooks/useDatasets'
+import { useToast } from '@/components/ui/use-toast'
 import type { Dataset } from '@/types/dataset'
 
 export function DatasetExplorerPage() {
@@ -13,6 +15,9 @@ export function DatasetExplorerPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
+  const [highlightDatasetId, setHighlightDatasetId] = useState<string | null>(null)
+  
+  const [searchParams, setSearchParams] = useSearchParams()
   
   const { data, isLoading, error } = useDatasets({
     q: searchQuery || undefined,
@@ -20,8 +25,31 @@ export function DatasetExplorerPage() {
     limit: 50,
   })
 
+  const processHuggingFace = useProcessHuggingFaceDataset()
+  const navigate = useNavigate()
+  const { toast } = useToast()
+
   const datasets = data?.items || []
   const totalPages = data ? Math.ceil(data.total / data.limit) : 0
+
+  // Handle dataset highlighting from URL parameters
+  useEffect(() => {
+    const datasetId = searchParams.get('dataset')
+    if (datasetId) {
+      setHighlightDatasetId(datasetId)
+      // Clear the URL parameter after highlighting
+      const newSearchParams = new URLSearchParams(searchParams)
+      newSearchParams.delete('dataset')
+      setSearchParams(newSearchParams, { replace: true })
+      
+      // Clear highlight after 3 seconds
+      const timer = setTimeout(() => {
+        setHighlightDatasetId(null)
+      }, 3000)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [searchParams, setSearchParams])
 
   const handleSelectDataset = (dataset: Dataset) => {
     console.log('Selected dataset:', dataset)
@@ -33,9 +61,49 @@ export function DatasetExplorerPage() {
     // TODO: Navigate to scenes view for this dataset
   }
 
-  const handleProcessDataset = (dataset: Dataset) => {
+  const handleProcessDataset = async (dataset: Dataset) => {
     console.log('Process dataset:', dataset)
-    // TODO: Start processing job for this dataset
+    
+    if (!dataset.source_url) {
+      toast({
+        title: "Processing Failed",
+        description: "Dataset has no source URL to process",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    try {
+      const result = await processHuggingFace.mutateAsync({
+        datasetId: dataset.id,
+        hfUrl: dataset.source_url,
+        options: {
+          split: 'train',
+          image_column: 'image',
+          max_images: 100 // Optional limit for testing
+        }
+      })
+      
+      console.log(`Processing started successfully. Job ID: ${result.job_id}`)
+      
+      toast({
+        title: "Processing Started",
+        description: `Dataset processing job ${result.job_id} started successfully`,
+        variant: "default"
+      })
+      
+      // Navigate to job monitoring page
+      navigate('/jobs')
+      
+    } catch (error) {
+      console.error('Failed to start dataset processing:', error)
+      
+      toast({
+        title: "Processing Failed",
+        description: error instanceof Error ? error.message : "Failed to start dataset processing",
+        variant: "destructive"
+      })
+    }
   }
 
   const handleSearch = (query: string) => {
@@ -108,6 +176,7 @@ export function DatasetExplorerPage() {
       <DatasetTable
         datasets={datasets}
         loading={isLoading}
+        highlightId={highlightDatasetId}
         onSelectDataset={handleSelectDataset}
         onViewScenes={handleViewScenes}
         onProcessDataset={handleProcessDataset}

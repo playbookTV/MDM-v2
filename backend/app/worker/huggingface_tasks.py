@@ -11,7 +11,7 @@ from celery import current_task
 from app.worker.celery_app import celery_app
 from app.services.huggingface import HuggingFaceService
 from app.services.datasets import DatasetService
-from app.schemas.database import SceneCreate
+from app.schemas.dataset import SceneCreate
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -61,11 +61,15 @@ def process_huggingface_dataset(
         hf_service = HuggingFaceService()
         dataset_service = DatasetService()
         
-        # Validate dataset exists
-        dataset = asyncio.run(dataset_service.get_dataset(dataset_id))
-        if not dataset:
-            logger.error(f"Dataset {dataset_id} not found")
-            return {"status": "failed", "error": "Dataset not found"}
+        # Validate dataset exists - using sync version for Celery
+        try:
+            dataset = dataset_service.get_dataset_sync(dataset_id)
+            if not dataset:
+                logger.error(f"Dataset {dataset_id} not found")
+                return {"status": "failed", "error": "Dataset not found"}
+        except Exception as e:
+            logger.error(f"Failed to validate dataset {dataset_id}: {e}")
+            return {"status": "failed", "error": f"Dataset validation failed: {e}"}
         
         # Load images from HuggingFace
         self.update_state(
@@ -105,21 +109,20 @@ def process_huggingface_dataset(
                         }
                     )
                 
-                # Upload image to R2
+                # Upload image to R2 - using sync version for Celery
                 filename = f"hf_image_{image_data['hf_index']}.jpg"
-                r2_key = asyncio.run(hf_service.upload_image_to_r2(
+                r2_key = hf_service.upload_image_to_r2_sync(
                     image_data['image'], 
                     filename
-                ))
+                )
                 
                 if not r2_key:
                     logger.warning(f"Failed to upload image {idx} to R2")
                     failed_scenes += 1
                     continue
                 
-                # Create scene record
+                # Create scene record - using sync version for Celery
                 scene_data = SceneCreate(
-                    dataset_id=dataset_id,
                     source=f"huggingface:{hf_dataset_url}",
                     r2_key_original=r2_key,
                     width=image_data['width'],
@@ -131,7 +134,7 @@ def process_huggingface_dataset(
                     }
                 )
                 
-                scene = asyncio.run(dataset_service.create_scene(scene_data))
+                scene = dataset_service.create_scene_sync(dataset_id, scene_data)
                 processed_scenes.append(scene.id)
                 
                 logger.debug(f"Processed image {idx + 1}/{total_images}: {scene.id}")
@@ -141,14 +144,11 @@ def process_huggingface_dataset(
                 failed_scenes += 1
                 continue
         
-        # Final status update
+        # Final status update - match specification contract
         result = {
             "status": "completed",
             "processed_scenes": len(processed_scenes),
-            "failed_scenes": failed_scenes,
-            "total_images": total_images,
-            "job_id": str(self.request.id),
-            "scene_ids": processed_scenes[:100]  # Limit for response size
+            "failed_scenes": failed_scenes
         }
         
         logger.info(f"HF dataset processing completed: {result}")
@@ -172,8 +172,7 @@ def process_huggingface_dataset(
             "status": "failed",
             "error": str(e),
             "processed_scenes": 0,
-            "failed_scenes": 0,
-            "job_id": str(self.request.id)
+            "failed_scenes": 0
         }
         
         self.update_state(

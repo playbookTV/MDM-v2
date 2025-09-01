@@ -27,7 +27,7 @@ import uuid
 from app.core.config import settings
 from app.services.storage import StorageService
 from app.services.datasets import DatasetService
-from app.schemas.database import SceneCreate
+from app.schemas.dataset import SceneCreate
 
 logger = logging.getLogger(__name__)
 
@@ -104,16 +104,18 @@ class HuggingFaceService:
         hf_url: str, 
         split: str = "train", 
         image_column: str = "image",
-        max_images: Optional[int] = None
+        max_images: Optional[int] = None,
+        max_retries: int = 3
     ) -> List[Dict[str, Any]]:
         """
-        Load images from HuggingFace dataset.
+        Load images from HuggingFace dataset with retry logic.
         
         Args:
             hf_url: HuggingFace dataset URL
             split: Dataset split to load
             image_column: Column name containing images
             max_images: Maximum images to load (None for all)
+            max_retries: Maximum number of retry attempts
             
         Returns:
             List of image records with metadata
@@ -128,63 +130,75 @@ class HuggingFaceService:
             logger.error("HuggingFace dependencies not available")
             return []
             
-        try:
-            org_dataset = self.validate_hf_url(hf_url)
-            if not org_dataset:
-                logger.error(f"Invalid HuggingFace URL: {hf_url}")
-                return []
-                
-            org, dataset_name = org_dataset
-            dataset_id = f"{org}/{dataset_name}"
-            
-            logger.info(f"Loading HF dataset {dataset_id}, split={split}")
-            
-            # Load dataset
-            dataset = load_dataset(dataset_id, split=split, streaming=True)
-            
-            images = []
-            for idx, item in enumerate(dataset):
-                if max_images and idx >= max_images:
-                    break
+        import time
+        
+        for attempt in range(max_retries):
+            try:
+                org_dataset = self.validate_hf_url(hf_url)
+                if not org_dataset:
+                    logger.error(f"Invalid HuggingFace URL: {hf_url}")
+                    return []
                     
-                # Extract image
-                if image_column not in item:
-                    logger.warning(f"Image column '{image_column}' not found in item {idx}")
-                    continue
-                    
-                image_obj = item[image_column]
-                if image_obj is None:
-                    continue
+                org, dataset_name = org_dataset
+                dataset_id = f"{org}/{dataset_name}"
                 
-                # Handle different image formats from HF
-                if hasattr(image_obj, 'save'):  # PIL Image
-                    pil_image = image_obj
-                elif isinstance(image_obj, dict) and 'bytes' in image_obj:
-                    pil_image = Image.open(io.BytesIO(image_obj['bytes']))
+                logger.info(f"Loading HF dataset {dataset_id}, split={split} (attempt {attempt + 1})")
+                
+                # Load dataset
+                dataset = load_dataset(dataset_id, split=split, streaming=True)
+                
+                images = []
+                for idx, item in enumerate(dataset):
+                    if max_images and idx >= max_images:
+                        break
+                        
+                    # Extract image
+                    if image_column not in item:
+                        logger.warning(f"Image column '{image_column}' not found in item {idx}")
+                        continue
+                        
+                    image_obj = item[image_column]
+                    if image_obj is None:
+                        continue
+                    
+                    # Handle different image formats from HF
+                    if hasattr(image_obj, 'save'):  # PIL Image
+                        pil_image = image_obj
+                    elif isinstance(image_obj, dict) and 'bytes' in image_obj:
+                        pil_image = Image.open(io.BytesIO(image_obj['bytes']))
+                    else:
+                        logger.warning(f"Unknown image format in item {idx}")
+                        continue
+                    
+                    # Get image metadata
+                    width, height = pil_image.size
+                    
+                    images.append({
+                        "image": pil_image,
+                        "width": width,
+                        "height": height,
+                        "hf_index": idx,
+                        "metadata": {k: v for k, v in item.items() if k != image_column}
+                    })
+                    
+                    if idx % 10 == 0:
+                        logger.info(f"Loaded {idx + 1} images from HF dataset")
+                
+                logger.info(f"Successfully loaded {len(images)} images from {dataset_id}")
+                return images
+                
+            except Exception as e:
+                logger.warning(f"HF dataset loading attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries - 1:
+                    # Exponential backoff: wait 2, 4, 8 seconds
+                    wait_time = 2 ** (attempt + 1)
+                    logger.info(f"Retrying HF dataset load in {wait_time} seconds...")
+                    time.sleep(wait_time)
                 else:
-                    logger.warning(f"Unknown image format in item {idx}")
-                    continue
-                
-                # Get image metadata
-                width, height = pil_image.size
-                
-                images.append({
-                    "image": pil_image,
-                    "width": width,
-                    "height": height,
-                    "hf_index": idx,
-                    "metadata": {k: v for k, v in item.items() if k != image_column}
-                })
-                
-                if idx % 10 == 0:
-                    logger.info(f"Loaded {idx + 1} images from HF dataset")
-            
-            logger.info(f"Successfully loaded {len(images)} images from {dataset_id}")
-            return images
-            
-        except Exception as e:
-            logger.error(f"Failed to load HF dataset {hf_url}: {e}")
-            return []
+                    logger.error(f"Failed to load HF dataset {hf_url} after {max_retries} attempts")
+                    return []
+        
+        return []
     
     async def upload_image_to_r2(self, pil_image: Image.Image, filename: str) -> Optional[str]:
         """
@@ -227,3 +241,71 @@ class HuggingFaceService:
         except Exception as e:
             logger.error(f"Failed to upload image {filename} to R2: {e}")
             return None
+    
+    def upload_image_to_r2_sync(self, pil_image: Image.Image, filename: str, max_retries: int = 3) -> Optional[str]:
+        """
+        Sync version for Celery tasks - upload PIL image to R2 storage with retry logic.
+        
+        Args:
+            pil_image: PIL Image object
+            filename: Base filename (will generate UUID-based key)
+            max_retries: Maximum number of retry attempts
+            
+        Returns:
+            R2 key if successful, None otherwise
+        """
+        import time
+        from botocore.exceptions import ClientError
+        
+        for attempt in range(max_retries):
+            try:
+                # Generate R2 key
+                file_id = str(uuid.uuid4())
+                # Preserve original extension if present, default to jpg
+                if '.' in filename:
+                    ext = filename.split('.')[-1].lower()
+                else:
+                    ext = 'jpg'
+                r2_key = f"scenes/{file_id}.{ext}"
+                
+                # Convert PIL image to bytes
+                img_buffer = io.BytesIO()
+                # Convert RGBA to RGB if needed
+                if pil_image.mode == 'RGBA':
+                    pil_image = pil_image.convert('RGB')
+                pil_image.save(img_buffer, format='JPEG', quality=95)
+                img_bytes = img_buffer.getvalue()
+                
+                # Upload directly to R2 using boto3 client (truly synchronous)
+                self.storage.client.put_object(
+                    Bucket=self.storage.bucket_name,
+                    Key=r2_key,
+                    Body=img_bytes,
+                    ContentType='image/jpeg'
+                )
+                
+                logger.debug(f"Successfully uploaded {filename} to R2 as {r2_key}")
+                return r2_key
+                
+            except ClientError as e:
+                logger.warning(f"Upload attempt {attempt + 1} failed for {filename} (AWS error): {e}")
+                if attempt < max_retries - 1:
+                    # Exponential backoff: wait 1, 2, 4 seconds
+                    wait_time = 2 ** attempt
+                    logger.info(f"Retrying upload in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"Failed to upload image {filename} to R2 after {max_retries} attempts")
+                    return None
+            except Exception as e:
+                logger.warning(f"Upload attempt {attempt + 1} failed for {filename}: {e}")
+                if attempt < max_retries - 1:
+                    # Exponential backoff: wait 1, 2, 4 seconds
+                    wait_time = 2 ** attempt
+                    logger.info(f"Retrying upload in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"Failed to upload image {filename} to R2 after {max_retries} attempts")
+                    return None
+        
+        return None

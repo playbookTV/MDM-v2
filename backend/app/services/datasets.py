@@ -8,7 +8,8 @@ from uuid import UUID, uuid4
 from datetime import datetime
 
 from app.core.supabase import get_supabase
-from app.schemas.database import Dataset, DatasetCreate, Scene, SceneCreate
+from app.schemas.database import Dataset, DatasetCreate, Scene
+from app.schemas.dataset import SceneCreate
 
 logger = logging.getLogger(__name__)
 
@@ -161,4 +162,32 @@ class DatasetService:
             
         except Exception as e:
             logger.error(f"Failed to create scenes batch: {e}")
+            raise
+    
+    def get_dataset_sync(self, dataset_id: str) -> Optional[Dataset]:
+        """Sync version for Celery tasks - get dataset by ID"""
+        try:
+            result = self.supabase.table("datasets").select("*").eq("id", dataset_id).execute()
+            
+            if result.data:
+                return Dataset(**result.data[0])
+            return None
+            
+        except Exception as e:
+            logger.error(f"Failed to get dataset {dataset_id}: {e}")
+            raise
+    
+    def create_scene_sync(self, dataset_id: str, scene_data: SceneCreate) -> Scene:
+        """Sync version for Celery tasks - create a scene in a dataset"""
+        try:
+            data = scene_data.model_dump()
+            data["id"] = str(uuid4())
+            data["dataset_id"] = dataset_id
+            
+            result = self.supabase.table("scenes").insert(data).execute()
+            
+            return Scene(**result.data[0])
+            
+        except Exception as e:
+            logger.error(f"Failed to create scene: {e}")
             raise

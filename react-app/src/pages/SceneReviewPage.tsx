@@ -22,6 +22,7 @@ import {
 import { SceneGallery } from '@/components/review/SceneGallery'
 import { SceneDetailView } from '@/components/review/SceneDetailView'
 import { AnnotationTools } from '@/components/review/AnnotationTools'
+import { AIAnalysisPanel } from '@/components/review/AIAnalysisPanel'
 import { ReviewProgress } from '@/components/review/ReviewProgress'
 import { BatchActions } from '@/components/review/BatchActions'
 import { useScenePagination } from '@/hooks/useScenes'
@@ -316,7 +317,7 @@ export function SceneReviewPage() {
           </div>
         ) : (
           currentScene && (
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
               {/* Scene Detail View */}
               <div className="xl:col-span-3">
                 <SceneDetailView
@@ -332,8 +333,18 @@ export function SceneReviewPage() {
                 />
               </div>
 
+              {/* AI Analysis Panel */}
+              <div className="xl:col-span-1">
+                <AIAnalysisPanel
+                  scene={currentScene}
+                  selectedObject={selectedObject}
+                  onObjectSelect={setSelectedObject}
+                  className="max-h-[calc(100vh-200px)] overflow-y-auto"
+                />
+              </div>
+
               {/* Annotation Tools Sidebar */}
-              <div className="space-y-4">
+              <div className="xl:col-span-1 space-y-4">
                 <AnnotationTools
                   scene={currentScene}
                   selectedObject={selectedObject}
