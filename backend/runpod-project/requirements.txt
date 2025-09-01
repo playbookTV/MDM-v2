@@ -1,0 +1,27 @@
+# Core AI Models
+transformers>=4.30.0
+ultralytics>=8.0.0
+git+https://github.com/facebookresearch/segment-anything-2.git
+git+https://github.com/openai/CLIP.git
+timm>=0.9.0
+accelerate>=0.20.0
+huggingface_hub>=0.15.0
+
+# Image Processing
+Pillow>=9.0.0
+opencv-python>=4.8.0
+numpy>=1.21.0
+scipy>=1.9.0
+matplotlib>=3.5.0
+
+# Color Analysis
+scikit-learn>=1.3.0
+colorspacious>=1.1.0
+webcolors>=1.13.0
+
+# Utilities
+requests>=2.28.0
+tqdm>=4.64.0
+einops>=0.6.0
+ftfy>=6.1.0
+regex>=2022.7.0

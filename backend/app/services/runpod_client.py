@@ -108,14 +108,12 @@ class RunPodClient:
     
     async def _request_serverless_endpoint(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Make request to RunPod serverless endpoint"""
-        url = f"{self.base_url}/{self.endpoint_id}/run"
-        
+        # Use our HTTP endpoint directly
         async with httpx.AsyncClient() as client:
-            # Make initial request
+            # Make initial request to our HTTP server
             response = await client.post(
-                url,
-                json=payload,
-                headers=self.headers,
+                self.endpoint_url,
+                json=payload.get("input", {}),  # Send just the input data
                 timeout=self.timeout
             )
             
@@ -128,20 +126,17 @@ class RunPodClient:
             
             result = response.json()
             
-            # Handle different RunPod response formats
-            if result.get("status") == "COMPLETED":
+            # Handle our HTTP server response format
+            if result.get("status") == "success":
                 return {
-                    "status": "success",
-                    "result": result.get("output", {}),
+                    "status": "success", 
+                    "result": result.get("result", {}),
                     "success": True
                 }
-            elif result.get("status") == "IN_PROGRESS":
-                # Poll for completion
-                return await self._poll_for_completion(result.get("id"))
             else:
                 return {
                     "status": "error",
-                    "error": result.get("error", "Unknown RunPod error"),
+                    "error": result.get("error", "AI processing failed"),
                     "success": False
                 }
     
@@ -285,30 +280,21 @@ class RunPodClient:
             }
         
         try:
-            # Create minimal test payload for health check
-            test_payload = {
-                "input": {
-                    "health_check": True
-                }
-            }
-            
-            # Use the serverless endpoint for health check
-            url = f"{self.base_url}/{self.endpoint_id}/run"
+            # Use direct HTTP endpoint health check
+            health_url = self.endpoint_url.replace('/process', '/health')
             async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    url,
-                    json=test_payload,
-                    headers=self.headers,
+                response = await client.get(
+                    health_url,
                     timeout=30
                 )
                 
                 if response.status_code == 200:
                     result = response.json()
-                    # Check if we got a valid response (including queued jobs)
-                    if result.get("status") in ["COMPLETED", "IN_PROGRESS", "IN_QUEUE"]:
+                    # Direct HTTP endpoint returns simple health status
+                    if result.get("status") == "healthy":
                         return {
                             "success": True,
-                            "response": result.get("output", result)
+                            "response": result
                         }
                 
             return {

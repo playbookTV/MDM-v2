@@ -1,0 +1,9 @@
+[project]
+name = "modomo-ai-handler"
+base_image = "runpod/pytorch:2.1.0-py3.10-cuda11.8.0-devel-ubuntu22.04"
+
+[project.env]
+PYTHONPATH = "/workspace"
+HF_HOME = "/workspace/models"
+TORCH_CACHE = "/workspace/models"
+TRANSFORMERS_CACHE = "/workspace/models"
