@@ -12,7 +12,7 @@ const fetchJobLogs = async (
     limit?: number
     offset?: number 
   }
-): Promise<JobLogEntry[]> => {
+): Promise<{ logs: JobLogEntry[], total: number, has_more: boolean }> => {
   const searchParams = new URLSearchParams()
   if (params?.level) searchParams.set('level', params.level)
   if (params?.limit) searchParams.set('limit', params.limit.toString())
@@ -58,7 +58,7 @@ export const useJobLogsStream = (jobId: string, options?: {
   const [lastFetchTime, setLastFetchTime] = useState<string | null>(null)
   
   // Query to fetch new logs since last fetch
-  const { data: newLogs, error, isLoading } = useQuery({
+  const { data: newLogsData, error, isLoading } = useQuery({
     queryKey: ['jobLogsStream', jobId, lastFetchTime],
     queryFn: async () => {
       const params = new URLSearchParams()
@@ -72,12 +72,15 @@ export const useJobLogsStream = (jobId: string, options?: {
         const error: APIError = await response.json()
         throw new Error(error.error.message)
       }
-      return response.json() as Promise<JobLogEntry[]>
+      return response.json() as Promise<{ logs: JobLogEntry[], total: number, has_more: boolean }>
     },
     enabled: !!jobId,
     refetchInterval: 1500, // Fast refresh for real-time feel
     refetchIntervalInBackground: false,
   })
+
+  // Extract logs from the response
+  const newLogs = newLogsData?.logs || []
 
   // Accumulate new logs
   useEffect(() => {

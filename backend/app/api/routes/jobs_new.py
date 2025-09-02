@@ -210,7 +210,8 @@ async def get_job_logs(
         # Get job data from Supabase
         job_result = supabase.table("jobs").select("*").eq("id", job_id).execute()
         
-        if not job_result.data:
+        # Check if job_result is None or has no data
+        if not job_result or not job_result.data or len(job_result.data) == 0:
             raise HTTPException(status_code=404, detail="Job not found")
         
         job = job_result.data[0]
@@ -222,7 +223,7 @@ async def get_job_logs(
         finished_at = job.get("finished_at")
         status = job.get("status", "queued")
         error = job.get("error")
-        meta = job.get("meta", {})
+        meta = job.get("meta", {}) if job.get("meta") is not None else {}
         
         # Job creation log
         if created_at:
@@ -234,7 +235,7 @@ async def get_job_logs(
             ))
         
         # HuggingFace processing logs from metadata
-        hf_url = meta.get("hf_url")
+        hf_url = meta.get("hf_url") if meta else None
         if hf_url:  # If there's an HF URL, it's definitely a HuggingFace job
             timestamp_str = started_at or created_at
             logs.append(JobLogEntry(
@@ -250,12 +251,12 @@ async def get_job_logs(
                 timestamp=datetime.fromisoformat(started_at.replace('Z', '+00:00')),
                 level="INFO",
                 message="Job processing started",
-                context={"celery_task_id": meta.get("celery_task_id")}
+                context={"celery_task_id": meta.get("celery_task_id") if meta else None}
             ))
         
         # Processing progress from metadata
-        processed_scenes = meta.get("processed_scenes", 0)
-        failed_scenes = meta.get("failed_scenes", 0)
+        processed_scenes = meta.get("processed_scenes", 0) if meta else 0
+        failed_scenes = meta.get("failed_scenes", 0) if meta else 0
         
         if processed_scenes > 0 or failed_scenes > 0:
             timestamp_str = finished_at or started_at or created_at
