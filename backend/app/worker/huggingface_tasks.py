@@ -270,8 +270,30 @@ def process_huggingface_dataset(
             # Import here to avoid circular imports
             from app.worker.tasks import process_scenes_in_dataset
             
-            # Trigger AI processing job for the dataset
+            # Create job record for AI processing BEFORE starting the task
             ai_job_id = str(uuid4())
+            
+            if job_service:
+                from app.core.supabase import get_supabase
+                supabase = get_supabase()
+                
+                job_data = {
+                    "id": ai_job_id,
+                    "dataset_id": dataset_id,
+                    "kind": "process",
+                    "status": "queued",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "meta": {
+                        "trigger": "auto_after_ingestion",
+                        "source_job": job_id,
+                        "total_scenes": len(processed_scenes)
+                    }
+                }
+                
+                supabase.table("jobs").insert(job_data).execute()
+                logger.info(f"Created AI processing job record {ai_job_id}")
+            
+            # Now trigger the AI processing task
             ai_processing_task = process_scenes_in_dataset.delay(
                 ai_job_id,
                 dataset_id,
@@ -284,27 +306,16 @@ def process_huggingface_dataset(
             
             logger.info(f"Started AI processing job {ai_job_id} with Celery task {ai_processing_task.id}")
             
-            # Create job record for AI processing directly in Supabase
+            # Update job with Celery task ID
             if job_service:
-                from app.core.supabase import get_supabase
-                supabase = get_supabase()
-                
-                job_data = {
-                    "id": ai_job_id,
-                    "dataset_id": dataset_id,
-                    "kind": "ai_processing",
-                    "status": "queued",
-                    "created_at": datetime.now(timezone.utc).isoformat(),
+                supabase.table("jobs").update({
                     "meta": {
                         "celery_task_id": ai_processing_task.id,
                         "trigger": "auto_after_ingestion",
                         "source_job": job_id,
                         "total_scenes": len(processed_scenes)
                     }
-                }
-                
-                supabase.table("jobs").insert(job_data).execute()
-                logger.info(f"Created AI processing job record {ai_job_id}")
+                }).eq("id", ai_job_id).execute()
                 
         else:
             logger.warning("No scenes processed successfully - skipping AI processing trigger")

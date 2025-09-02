@@ -17,7 +17,8 @@ from app.api.routes import (
     scenes_new as scenes,
     reviews_new as reviews,
     stats_new as stats,
-    queue
+    queue,
+    images
 )
 from app.core.config import settings
 from app.core.supabase import init_supabase
@@ -86,6 +87,7 @@ app.include_router(scenes.router, prefix="/api/v1/scenes", tags=["scenes"])
 app.include_router(reviews.router, prefix="/api/v1/reviews", tags=["reviews"])
 app.include_router(stats.router, prefix="/api/v1/stats", tags=["stats"])
 app.include_router(queue.router, prefix="/api/v1/queue", tags=["queue"])
+app.include_router(images.router, prefix="/api/v1/images", tags=["images"])
 
 # Global exception handler
 @app.exception_handler(HTTPException)

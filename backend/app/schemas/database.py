@@ -8,7 +8,7 @@ from datetime import datetime
 from uuid import UUID
 
 # Enums from database
-JobKind = Literal["ingest", "process"]
+JobKind = Literal["ingest", "process", "scene_processing"]
 JobStatus = Literal["queued", "running", "succeeded", "failed", "skipped"]
 ReviewVerdict = Literal["approve", "reject", "edit"]
 TargetType = Literal["scene", "object"]

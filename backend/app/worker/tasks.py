@@ -208,11 +208,12 @@ def process_scene(self, job_id: str, scene_id: str, options: Dict[str, Any] = No
             
             # Get scene info to find R2 image key
             scene_data = await scene_service.get_scene(scene_id, include_objects=False)
-            if not scene_data or not scene_data.get('image_key'):
+            r2_key = scene_data.get('r2_key_original') if scene_data else None
+            if not scene_data or not r2_key:
                 raise Exception(f"Scene {scene_id} missing image data")
             
             # Download image from R2
-            image_data = await storage_service.download_object(scene_data['image_key'])
+            image_data = await storage_service.download_object(r2_key)
             if not image_data:
                 raise Exception(f"Failed to download image for scene {scene_id}")
             
@@ -428,7 +429,7 @@ def process_scenes_in_dataset(self, job_id: str, dataset_id: str, options: Dict[
             else:
                 # Get all scenes in dataset
                 scenes_result = await scene_service.get_scenes_by_dataset(dataset_id)
-                scene_ids = [scene.id for scene in scenes_result["data"]]
+                scene_ids = [str(scene.id) for scene in scenes_result["data"]]
                 logger.info(f"Processing all {len(scene_ids)} scenes in dataset")
             
             if not scene_ids:

@@ -307,29 +307,23 @@ async def process_scene_endpoint(
                 "job_id": None
             }
         
-        # Create a processing job
-        job_id = str(uuid.uuid4())
-        job = Job(
-            id=job_id,
-            kind="scene_processing",
-            status="pending",
+        # Create a processing job using the proper JobService
+        from app.services.jobs import JobService
+        from app.schemas.database import JobCreate
+        
+        job_service = JobService()
+        job_data = JobCreate(
+            kind="process",  # Use existing enum value
             dataset_id=scene.dataset_id,
-            metadata={
+            meta={
                 "scene_id": scene_id,
                 "force_reprocess": force_reprocess,
                 "processing_type": "ai_pipeline"
-            },
-            created_at=datetime.now(timezone.utc)
+            }
         )
         
-        db.add(job)
-        await db.commit()
-        
-        # Queue the processing task
-        queue_service = QueueService()
-        await queue_service.enqueue_scene_processing(job_id, scene_id, {
-            "force_reprocess": force_reprocess
-        })
+        job = await job_service.create_job(job_data)
+        job_id = str(job.id)
         
         logger.info(f"Queued scene processing job {job_id} for scene {scene_id}")
         

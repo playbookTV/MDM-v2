@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { 
-  Activity,
   Eye,
   Palette,
   Layers,
@@ -34,6 +33,7 @@ export function AIAnalysisPanel({
   scene, 
   selectedObject, 
   onObjectSelect, 
+  onProcessingComplete,
   className 
 }: AIAnalysisPanelProps) {
   const [expandedSections, setExpandedSections] = useState({
@@ -83,8 +83,8 @@ export function AIAnalysisPanel({
             open={expandedSections.sceneAnalysis} 
             onOpenChange={() => toggleSection('sceneAnalysis')}
           >
-            <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors pb-3">
+            <CollapsibleTrigger className="cursor-pointer hover:bg-muted/50 transition-colors pb-3">
+              <CardHeader>
                 <CardTitle className="flex items-center justify-between text-base">
                   <div className="flex items-center space-x-2">
                     <Eye className="h-4 w-4" />
@@ -143,8 +143,8 @@ export function AIAnalysisPanel({
             open={expandedSections.objects} 
             onOpenChange={() => toggleSection('objects')}
           >
-            <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors pb-3">
+            <CollapsibleTrigger className="cursor-pointer hover:bg-muted/50 transition-colors pb-3">
+              <CardHeader>
                 <CardTitle className="flex items-center justify-between text-base">
                   <div className="flex items-center space-x-2">
                     <Layers className="h-4 w-4" />
@@ -229,8 +229,8 @@ export function AIAnalysisPanel({
             open={expandedSections.styles} 
             onOpenChange={() => toggleSection('styles')}
           >
-            <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors pb-3">
+            <CollapsibleTrigger className="cursor-pointer hover:bg-muted/50 transition-colors pb-3">
+              <CardHeader>
                 <CardTitle className="flex items-center justify-between text-base">
                   <div className="flex items-center space-x-2">
                     <BarChart3 className="h-4 w-4" />
@@ -253,7 +253,7 @@ export function AIAnalysisPanel({
                   <div className="space-y-3">
                     {scene.styles
                       .sort((a, b) => b.conf - a.conf)
-                      .map((style, index) => (
+                      .map((style) => (
                         <div key={style.code} className="space-y-1">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium capitalize">
@@ -284,8 +284,8 @@ export function AIAnalysisPanel({
             open={expandedSections.colors} 
             onOpenChange={() => toggleSection('colors')}
           >
-            <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors pb-3">
+            <CollapsibleTrigger className="cursor-pointer hover:bg-muted/50 transition-colors pb-3">
+              <CardHeader>
                 <CardTitle className="flex items-center justify-between text-base">
                   <div className="flex items-center space-x-2">
                     <Palette className="h-4 w-4" />
@@ -359,8 +359,8 @@ export function AIAnalysisPanel({
             open={expandedSections.depth} 
             onOpenChange={() => toggleSection('depth')}
           >
-            <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors pb-3">
+            <CollapsibleTrigger className="cursor-pointer hover:bg-muted/50 transition-colors pb-3">
+              <CardHeader>
                 <CardTitle className="flex items-center justify-between text-base">
                   <div className="flex items-center space-x-2">
                     <Mountain className="h-4 w-4" />

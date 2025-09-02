@@ -207,7 +207,7 @@ async def get_job_logs(
         
         supabase = get_supabase()
         
-        # Get job data from Supabase
+        # First, verify the job exists
         job_result = supabase.table("jobs").select("*").eq("id", job_id).execute()
         
         # Check if job_result is None or has no data
@@ -217,89 +217,134 @@ async def get_job_logs(
         job = job_result.data[0]
         logs = []
         
-        # Generate logs based on job status and metadata
-        created_at = job.get("created_at")
-        started_at = job.get("started_at") 
-        finished_at = job.get("finished_at")
-        status = job.get("status", "queued")
-        error = job.get("error")
-        meta = job.get("meta", {}) if job.get("meta") is not None else {}
+        # Get actual job events from the job_events table
+        events_query = supabase.table("job_events").select("*").eq("job_id", job_id).order("at", desc=False)
         
-        # Job creation log
-        if created_at:
-            logs.append(JobLogEntry(
-                timestamp=datetime.fromisoformat(created_at.replace('Z', '+00:00')),
-                level="INFO",
-                message=f"Job created for dataset processing",
-                context={"job_id": job_id, "kind": job.get("kind", "unknown")}
-            ))
+        # Apply timestamp filter if provided
+        if since:
+            events_query = events_query.gte("at", since.isoformat())
         
-        # HuggingFace processing logs from metadata
-        hf_url = meta.get("hf_url") if meta else None
-        if hf_url:  # If there's an HF URL, it's definitely a HuggingFace job
-            timestamp_str = started_at or created_at
-            logs.append(JobLogEntry(
-                timestamp=datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')),
-                level="INFO", 
-                message=f"Loading HuggingFace dataset: {hf_url}",
-                context={"dataset_url": hf_url}
-            ))
+        events_result = events_query.execute()
         
-        # Job start log
-        if started_at:
-            logs.append(JobLogEntry(
-                timestamp=datetime.fromisoformat(started_at.replace('Z', '+00:00')),
-                level="INFO",
-                message="Job processing started",
-                context={"celery_task_id": meta.get("celery_task_id") if meta else None}
-            ))
+        # Convert job events to log entries
+        if events_result and events_result.data:
+            for event in events_result.data:
+                event_data = event.get("data", {}) if event.get("data") else {}
+                
+                # Determine log level based on event name
+                event_name = event.get("name", "unknown")
+                if "error" in event_name.lower() or "fail" in event_name.lower():
+                    log_level = "ERROR"
+                elif "warning" in event_name.lower() or "retry" in event_name.lower():
+                    log_level = "WARNING"
+                elif "debug" in event_name.lower():
+                    log_level = "DEBUG"
+                else:
+                    log_level = "INFO"
+                
+                # Create log message from event
+                message = f"Job event: {event_name}"
+                if event_data:
+                    if "message" in event_data:
+                        message = event_data["message"]
+                    elif "status" in event_data:
+                        message = f"{event_name}: {event_data['status']}"
+                    elif "count" in event_data:
+                        message = f"{event_name}: {event_data['count']} items"
+                
+                logs.append(JobLogEntry(
+                    timestamp=datetime.fromisoformat(event.get("at", "").replace('Z', '+00:00')),
+                    level=log_level,
+                    message=message,
+                    scene_id=event_data.get("scene_id"),
+                    stage=event_name,
+                    context=event_data
+                ))
         
-        # Processing progress from metadata
-        processed_scenes = meta.get("processed_scenes", 0) if meta else 0
-        failed_scenes = meta.get("failed_scenes", 0) if meta else 0
-        
-        if processed_scenes > 0 or failed_scenes > 0:
-            timestamp_str = finished_at or started_at or created_at
-            logs.append(JobLogEntry(
-                timestamp=datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')),
-                level="INFO" if failed_scenes == 0 else "WARNING",
-                message=f"Processed {processed_scenes} scenes successfully, {failed_scenes} failed",
-                context={
-                    "processed_scenes": processed_scenes,
-                    "failed_scenes": failed_scenes
-                }
-            ))
-        
-        # Job completion/failure logs
-        if status == "succeeded" and finished_at:
-            logs.append(JobLogEntry(
-                timestamp=datetime.fromisoformat(finished_at.replace('Z', '+00:00')),
-                level="INFO",
-                message=f"Job completed successfully! Processed {processed_scenes} scenes.",
-                context={"final_status": status, "total_processed": processed_scenes}
-            ))
-        elif status == "failed":
-            timestamp_str = finished_at or started_at or created_at
-            logs.append(JobLogEntry(
-                timestamp=datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')),
-                level="ERROR", 
-                message=error or "Job failed with unknown error",
-                context={"error_details": error}
-            ))
-        elif status == "running":
-            timestamp_str = started_at or created_at
-            logs.append(JobLogEntry(
-                timestamp=datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')),
-                level="INFO",
-                message="Job is currently processing...",
-                context={"current_status": status}
-            ))
+        # If no events found, generate basic logs from job metadata
+        if not logs:
+            created_at = job.get("created_at")
+            started_at = job.get("started_at") 
+            finished_at = job.get("finished_at")
+            status = job.get("status", "queued")
+            error = job.get("error")
+            meta = job.get("meta", {}) if job.get("meta") is not None else {}
+            
+            # Job creation log
+            if created_at:
+                logs.append(JobLogEntry(
+                    timestamp=datetime.fromisoformat(created_at.replace('Z', '+00:00')),
+                    level="INFO",
+                    message=f"Job created for dataset processing",
+                    context={"job_id": job_id, "kind": job.get("kind", "unknown")}
+                ))
+            
+            # HuggingFace processing logs from metadata
+            hf_url = meta.get("hf_url") if meta else None
+            if hf_url:
+                timestamp_str = started_at or created_at
+                logs.append(JobLogEntry(
+                    timestamp=datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')),
+                    level="INFO", 
+                    message=f"Loading HuggingFace dataset: {hf_url}",
+                    context={"dataset_url": hf_url}
+                ))
+            
+            # Job start log
+            if started_at:
+                logs.append(JobLogEntry(
+                    timestamp=datetime.fromisoformat(started_at.replace('Z', '+00:00')),
+                    level="INFO",
+                    message="Job processing started",
+                    context={"celery_task_id": meta.get("celery_task_id") if meta else None}
+                ))
+            
+            # Processing progress from metadata
+            processed_scenes = meta.get("processed_scenes", 0) if meta else 0
+            failed_scenes = meta.get("failed_scenes", 0) if meta else 0
+            
+            if processed_scenes > 0 or failed_scenes > 0:
+                timestamp_str = finished_at or started_at or created_at
+                logs.append(JobLogEntry(
+                    timestamp=datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')),
+                    level="INFO" if failed_scenes == 0 else "WARNING",
+                    message=f"Processed {processed_scenes} scenes successfully, {failed_scenes} failed",
+                    context={
+                        "processed_scenes": processed_scenes,
+                        "failed_scenes": failed_scenes
+                    }
+                ))
+            
+            # Job completion/failure logs
+            if status == "succeeded" and finished_at:
+                logs.append(JobLogEntry(
+                    timestamp=datetime.fromisoformat(finished_at.replace('Z', '+00:00')),
+                    level="INFO",
+                    message=f"Job completed successfully! Processed {processed_scenes} scenes.",
+                    context={"final_status": status, "total_processed": processed_scenes}
+                ))
+            elif status == "failed":
+                timestamp_str = finished_at or started_at or created_at
+                logs.append(JobLogEntry(
+                    timestamp=datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')),
+                    level="ERROR", 
+                    message=error or "Job failed with unknown error",
+                    context={"error_details": error}
+                ))
+            elif status == "running":
+                timestamp_str = started_at or created_at
+                logs.append(JobLogEntry(
+                    timestamp=datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')),
+                    level="INFO",
+                    message="Job is currently processing...",
+                    context={"current_status": status}
+                ))
         
         # Filter by level if specified
         if level:
             logs = [log for log in logs if log.level == level]
         
-        # Filter by timestamp if since is provided
+        # Filter by timestamp if since is provided (additional filtering)
         if since:
             logs = [log for log in logs if log.timestamp > since]
         

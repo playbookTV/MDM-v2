@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 from datetime import datetime
 
 from app.core.supabase import get_supabase
-from app.core.redis import RedisQueue, RedisEventStream
+from app.core.redis import RedisQueue, RedisEventStream, init_redis
 from app.schemas.database import Job, JobCreate, JobEvent
 
 logger = logging.getLogger(__name__)
@@ -20,6 +20,7 @@ class JobService:
         self.supabase = get_supabase()
         self.queue = RedisQueue()
         self.event_stream = RedisEventStream()
+        self._redis_initialized = False
     
     async def get_jobs(
         self, 
@@ -84,6 +85,11 @@ class JobService:
     async def create_job(self, job_data: JobCreate) -> Job:
         """Create a new job and queue it for processing"""
         try:
+            # Initialize Redis if not already done
+            if not self._redis_initialized:
+                await init_redis()
+                self._redis_initialized = True
+            
             # Convert to dict with JSON-safe serialization and add ID
             data = job_data.model_dump(mode='json')
             job_id = str(uuid4())
@@ -133,7 +139,7 @@ class JobService:
                     )
                     logger.info(f"Dataset ingestion job {job.id} queued with task ID: {task.id}")
                     
-                elif job.kind == "process":
+                elif job.kind == "process" or job.kind == "scene_processing":
                     # Scene processing job - AI analysis pipeline
                     task = process_scene.delay(
                         job_id=str(job.id),

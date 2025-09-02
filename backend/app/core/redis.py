@@ -70,18 +70,22 @@ class RedisQueue:
     
     def __init__(self, queue_name: str = None):
         self.queue_name = queue_name or settings.REDIS_JOB_QUEUE
-        self.redis = get_redis()
+    
+    def _get_redis(self):
+        """Get Redis client instance dynamically"""
+        return get_redis()
     
     async def enqueue_job(self, job_data: dict) -> str:
         """Add job to queue"""
-        if not self.redis:
+        redis = self._get_redis()
+        if not redis:
             logger.warning("Redis not available - skipping job queue")
             return job_data.get('id', 'unknown')
             
         try:
             # Use Redis list for FIFO queue, properly serialize JSON
             job_json = json.dumps(job_data)
-            await self.redis.lpush(self.queue_name, job_json)
+            await redis.lpush(self.queue_name, job_json)
             logger.info(f"Job enqueued to {self.queue_name}: {job_data.get('id')}")
             return job_data.get('id', 'unknown')
         except Exception as e:
@@ -90,12 +94,13 @@ class RedisQueue:
     
     async def dequeue_job(self, timeout: int = 10) -> Optional[dict]:
         """Get job from queue with blocking pop"""
-        if not self.redis:
+        redis = self._get_redis()
+        if not redis:
             return None
             
         try:
             # Use blocking right pop for FIFO processing
-            result = await self.redis.brpop(self.queue_name, timeout=timeout)
+            result = await redis.brpop(self.queue_name, timeout=timeout)
             if result:
                 queue_name, job_json = result
                 # Parse job data from JSON
@@ -107,11 +112,12 @@ class RedisQueue:
     
     async def get_queue_length(self) -> int:
         """Get current queue length"""
-        if not self.redis:
+        redis = self._get_redis()
+        if not redis:
             return 0
             
         try:
-            return await self.redis.llen(self.queue_name)
+            return await redis.llen(self.queue_name)
         except Exception as e:
             logger.error(f"Failed to get queue length: {e}")
             return 0
@@ -121,11 +127,15 @@ class RedisEventStream:
     
     def __init__(self, stream_name: str = None):
         self.stream_name = stream_name or settings.REDIS_EVENT_STREAM
-        self.redis = get_redis()
+    
+    def _get_redis(self):
+        """Get Redis client instance dynamically"""
+        return get_redis()
     
     async def publish_event(self, job_id: str, event_type: str, data: dict) -> str:
         """Publish job event to stream"""
-        if not self.redis:
+        redis = self._get_redis()
+        if not redis:
             logger.debug("Redis not available - skipping event publishing")
             return f"mock-{job_id}-{event_type}"
             
@@ -138,7 +148,7 @@ class RedisEventStream:
             }
             
             # Add to Redis stream
-            message_id = await self.redis.xadd(self.stream_name, event_data)
+            message_id = await redis.xadd(self.stream_name, event_data)
             logger.debug(f"Event published to {self.stream_name}: {event_type} for job {job_id}")
             return message_id
             
@@ -148,12 +158,13 @@ class RedisEventStream:
     
     async def read_events(self, job_id: str = None, count: int = 100) -> list:
         """Read events from stream"""
-        if not self.redis:
+        redis = self._get_redis()
+        if not redis:
             return []
             
         try:
             # Read from stream
-            messages = await self.redis.xread({self.stream_name: '0'}, count=count)
+            messages = await redis.xread({self.stream_name: '0'}, count=count)
             
             events = []
             for stream_name, stream_messages in messages:

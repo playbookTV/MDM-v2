@@ -210,6 +210,12 @@ def segment_objects(image: Image.Image, objects: list) -> list:
         if not objects:
             return []
             
+        # Check if we have a proper SAM2 predictor or fallback string
+        if models['sam2_predictor'] == "transformers_sam2":
+            # Use transformers SAM2 approach
+            return segment_objects_transformers(image, objects)
+        
+        # Use native SAM2 approach
         # Convert PIL to numpy array for SAM2
         img_array = np.array(image)
         
@@ -261,6 +267,74 @@ def segment_objects(image: Image.Image, objects: list) -> list:
         
     except Exception as e:
         logger.error(f"Object segmentation failed: {e}")
+        return objects  # Return original objects without masks
+
+def segment_objects_transformers(image: Image.Image, objects: list) -> list:
+    """Generate segmentation masks using transformers SAM2 (fallback method)"""
+    try:
+        import torch
+        
+        segmented_objects = []
+        for obj in objects:
+            try:
+                # Get bounding box for input prompts
+                bbox = obj['bbox']
+                # Convert to input format for transformers SAM2
+                input_points = [[[int((bbox[0] + bbox[2]) / 2), int((bbox[1] + bbox[3]) / 2)]]]
+                input_labels = [[1]]  # 1 for foreground
+                
+                # Prepare inputs
+                inputs = models['sam2_processor'](
+                    images=image,
+                    input_points=input_points,
+                    input_labels=input_labels,
+                    return_tensors="pt"
+                )
+                
+                # Generate mask
+                with torch.no_grad():
+                    outputs = models['sam2_model'](**inputs)
+                
+                # Extract mask from outputs
+                masks = outputs.pred_masks.squeeze().cpu().numpy()
+                scores = outputs.iou_scores.squeeze().cpu().numpy()
+                
+                # Handle single mask case
+                if masks.ndim == 2:
+                    mask = masks
+                    score = float(scores) if scores.ndim == 0 else float(scores[0])
+                else:
+                    # Multiple masks, use the best one
+                    best_idx = np.argmax(scores)
+                    mask = masks[best_idx]
+                    score = float(scores[best_idx])
+                
+                # Calculate mask statistics
+                mask_area = int(np.sum(mask))
+                mask_coverage = mask_area / (image.size[0] * image.size[1])
+                
+                segmented_objects.append({
+                    **obj,  # Include original object data
+                    "has_mask": True,
+                    "mask_area": mask_area,
+                    "mask_coverage": round(mask_coverage, 4),
+                    "segmentation_confidence": score
+                })
+                
+            except Exception as e:
+                logger.error(f"Transformers segmentation failed for object {obj['label']}: {e}")
+                segmented_objects.append({
+                    **obj,
+                    "has_mask": False,
+                    "mask_area": 0,
+                    "mask_coverage": 0.0,
+                    "segmentation_confidence": 0.0
+                })
+        
+        return segmented_objects
+        
+    except Exception as e:
+        logger.error(f"Transformers object segmentation failed: {e}")
         return objects  # Return original objects without masks
 
 def analyze_style(image: Image.Image) -> dict:
