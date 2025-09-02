@@ -56,6 +56,7 @@ class JobLogEntry(BaseModel):
     message: str = Field(..., description="Log message")
     scene_id: Optional[str] = Field(None, description="Scene ID if applicable")
     stage: Optional[str] = Field(None, description="Processing stage")
+    context: Optional[Dict[str, Any]] = Field(None, description="Additional context data")
 
 class JobLogs(BaseModel):
     """Job logs response"""

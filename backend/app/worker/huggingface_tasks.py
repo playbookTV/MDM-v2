@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional
 import asyncio
 from datetime import datetime, timezone
 import traceback
+from uuid import uuid4
 
 from celery import current_task
 from app.worker.celery_app import celery_app
@@ -22,23 +23,32 @@ logger = logging.getLogger(__name__)
 
 
 async def _find_or_create_job_record(dataset_id: str, hf_url: str, celery_task_id: str) -> str:
-    """Find existing job or create a new one for tracking"""
+    """Find existing job or link to existing queued job"""
     try:
-        from app.models.dataset import Job
         from app.core.supabase import get_supabase
-        from uuid import uuid4
         
         supabase = get_supabase()
         
-        # Try to find existing job by celery task ID in metadata
+        # First, try to find a queued job for this dataset - this is likely the job from the UI
         result = supabase.table("jobs").select("*").eq(
-            "meta->>celery_task_id", celery_task_id
-        ).execute()
+            "dataset_id", dataset_id
+        ).eq("status", "queued").order("created_at", desc=True).limit(1).execute()
         
         if result.data:
-            return result.data[0]["id"]
+            job_id = result.data[0]["id"]
+            # Update the job with our Celery task ID for tracking
+            supabase.table("jobs").update({
+                "meta": {
+                    "celery_task_id": celery_task_id,
+                    "hf_url": hf_url,
+                    "processing_type": "huggingface"
+                }
+            }).eq("id", job_id).execute()
+            
+            logger.info(f"Linked to existing job {job_id} for Celery task {celery_task_id}")
+            return job_id
         
-        # Create new job record
+        # Fallback: create new job if no queued job found
         job_id = str(uuid4())
         job_data = {
             "id": job_id,
@@ -54,11 +64,11 @@ async def _find_or_create_job_record(dataset_id: str, hf_url: str, celery_task_i
         }
         
         supabase.table("jobs").insert(job_data).execute()
-        logger.info(f"Created job record {job_id} for Celery task {celery_task_id}")
+        logger.info(f"Created new job record {job_id} for Celery task {celery_task_id}")
         return job_id
         
     except Exception as e:
-        logger.warning(f"Failed to create job record: {e}")
+        logger.error(f"Failed to find/create job record: {e}")
         return str(uuid4())  # Fallback to random ID
 
 
@@ -137,7 +147,7 @@ def process_huggingface_dataset(
         if job_service:
             asyncio.run(job_service.update_job(job_id, {
                 "status": "running",
-                "started_at": datetime.now(timezone.utc)
+                "started_at": datetime.now(timezone.utc).isoformat()
             }))
         
         # Initialize services
@@ -209,12 +219,7 @@ def process_huggingface_dataset(
                     source=f"huggingface:{hf_dataset_url}",
                     r2_key_original=r2_key,
                     width=image_data['width'],
-                    height=image_data['height'],
-                    attrs={
-                        'hf_index': image_data['hf_index'],
-                        'hf_split': split,
-                        'hf_metadata': image_data.get('metadata', {})
-                    }
+                    height=image_data['height']
                 )
                 
                 scene = dataset_service.create_scene_sync(dataset_id, scene_data)
@@ -239,7 +244,7 @@ def process_huggingface_dataset(
         if job_service:
             asyncio.run(job_service.update_job(job_id, {
                 "status": "succeeded",
-                "finished_at": datetime.now(timezone.utc),
+                "finished_at": datetime.now(timezone.utc).isoformat(),
                 "meta": {
                     **result,
                     "celery_task_id": self.request.id,
@@ -257,6 +262,52 @@ def process_huggingface_dataset(
                 "total_images": total_images
             }
         )
+        
+        # AUTO-TRIGGER AI PROCESSING: Start AI processing for all scenes after successful ingestion
+        if len(processed_scenes) > 0:
+            logger.info(f"Auto-triggering AI processing for {len(processed_scenes)} scenes in dataset {dataset_id}")
+            
+            # Import here to avoid circular imports
+            from app.worker.tasks import process_scenes_in_dataset
+            
+            # Trigger AI processing job for the dataset
+            ai_job_id = str(uuid4())
+            ai_processing_task = process_scenes_in_dataset.delay(
+                ai_job_id,
+                dataset_id,
+                {
+                    "trigger": "auto_after_ingestion",
+                    "source_job": job_id,
+                    "scene_ids": processed_scenes
+                }
+            )
+            
+            logger.info(f"Started AI processing job {ai_job_id} with Celery task {ai_processing_task.id}")
+            
+            # Create job record for AI processing directly in Supabase
+            if job_service:
+                from app.core.supabase import get_supabase
+                supabase = get_supabase()
+                
+                job_data = {
+                    "id": ai_job_id,
+                    "dataset_id": dataset_id,
+                    "kind": "ai_processing",
+                    "status": "queued",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "meta": {
+                        "celery_task_id": ai_processing_task.id,
+                        "trigger": "auto_after_ingestion",
+                        "source_job": job_id,
+                        "total_scenes": len(processed_scenes)
+                    }
+                }
+                
+                supabase.table("jobs").insert(job_data).execute()
+                logger.info(f"Created AI processing job record {ai_job_id}")
+                
+        else:
+            logger.warning("No scenes processed successfully - skipping AI processing trigger")
         
         self.update_state(
             state='SUCCESS',
@@ -286,7 +337,7 @@ def process_huggingface_dataset(
             try:
                 asyncio.run(job_service.update_job(job_id, {
                     "status": "failed",
-                    "finished_at": datetime.now(timezone.utc),
+                    "finished_at": datetime.now(timezone.utc).isoformat(),
                     "error": error_message,
                     "meta": {
                         "celery_task_id": self.request.id,

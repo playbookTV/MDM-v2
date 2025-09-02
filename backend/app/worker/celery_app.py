@@ -34,6 +34,7 @@ celery_app.conf.update(
 celery_app.conf.task_routes = {
     'app.worker.tasks.process_dataset': {'queue': 'dataset_processing'},
     'app.worker.tasks.process_scene': {'queue': 'scene_processing'},
+    'app.worker.tasks.process_scenes_in_dataset': {'queue': 'scene_processing'},
     'app.worker.tasks.cleanup_job': {'queue': 'maintenance'},
     'app.worker.huggingface_tasks.process_huggingface_dataset': {'queue': 'huggingface'},
     'app.worker.huggingface_tasks.validate_huggingface_url': {'queue': 'huggingface'},

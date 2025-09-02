@@ -32,6 +32,6 @@ celery -A app.worker.celery_app worker \
     --heartbeat-interval=30 \
     --without-gossip \
     --without-mingle \
-    --without-heartbeat-check
+    --without-heartbeat
 
 echo "Celery worker started successfully!"

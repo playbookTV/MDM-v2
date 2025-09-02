@@ -68,7 +68,6 @@ class SceneBase(BaseModel):
 class SceneCreate(SceneBase):
     """Create scene request"""
     r2_key_original: str = Field(..., description="R2 key for original image")
-    attrs: Optional[Dict[str, Any]] = Field(None, description="Additional attributes")
 
 class Scene(SceneBase):
     """Scene response model"""

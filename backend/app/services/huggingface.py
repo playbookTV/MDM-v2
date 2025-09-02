@@ -99,6 +99,53 @@ class HuggingFaceService:
             logger.warning(f"Failed to extract HF dataset info from {hf_url}: {e}")
             return {}
     
+    def _detect_image_column(self, item: Dict[str, Any], preferred_column: str = "image") -> Optional[str]:
+        """
+        Auto-detect the image column name in a HuggingFace dataset item.
+        
+        Args:
+            item: First dataset item to examine
+            preferred_column: Preferred column name to try first
+            
+        Returns:
+            Name of the image column, or None if not found
+        """
+        # First try the preferred column
+        if preferred_column in item:
+            obj = item[preferred_column]
+            if self._is_image_object(obj):
+                return preferred_column
+        
+        # Try common image column names
+        common_names = ["image", "img", "picture", "photo", "thumbnail", "jpeg", "png"]
+        for name in common_names:
+            if name in item:
+                obj = item[name]
+                if self._is_image_object(obj):
+                    return name
+        
+        # Try all columns and look for image-like objects
+        for key, value in item.items():
+            if self._is_image_object(value):
+                return key
+                
+        return None
+    
+    def _is_image_object(self, obj: Any) -> bool:
+        """Check if an object looks like a PIL Image or image data"""
+        if obj is None:
+            return False
+            
+        # PIL Image object
+        if hasattr(obj, 'save') and hasattr(obj, 'size'):
+            return True
+            
+        # Dictionary with bytes (some HF formats)
+        if isinstance(obj, dict) and 'bytes' in obj:
+            return True
+            
+        return False
+    
     def load_hf_dataset_images(
         self, 
         hf_url: str, 
@@ -148,16 +195,23 @@ class HuggingFaceService:
                 dataset = load_dataset(dataset_id, split=split, streaming=True)
                 
                 images = []
+                detected_image_column = None
+                
                 for idx, item in enumerate(dataset):
                     if max_images and idx >= max_images:
                         break
+                    
+                    # Auto-detect image column on first item
+                    if detected_image_column is None:
+                        detected_image_column = self._detect_image_column(item, image_column)
+                        if not detected_image_column:
+                            logger.error(f"No image column found in dataset {dataset_id}")
+                            break
+                        if detected_image_column != image_column:
+                            logger.info(f"Auto-detected image column: '{detected_image_column}' (instead of '{image_column}')")
                         
-                    # Extract image
-                    if image_column not in item:
-                        logger.warning(f"Image column '{image_column}' not found in item {idx}")
-                        continue
-                        
-                    image_obj = item[image_column]
+                    # Extract image using detected column
+                    image_obj = item.get(detected_image_column)
                     if image_obj is None:
                         continue
                     
@@ -178,7 +232,7 @@ class HuggingFaceService:
                         "width": width,
                         "height": height,
                         "hf_index": idx,
-                        "metadata": {k: v for k, v in item.items() if k != image_column}
+                        "metadata": {k: v for k, v in item.items() if k != detected_image_column}
                     })
                     
                     if idx % 10 == 0:

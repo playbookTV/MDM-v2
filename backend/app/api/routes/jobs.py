@@ -293,59 +293,128 @@ async def get_job_stats(
 @router.get("/{job_id}/logs", response_model=JobLogs)
 async def get_job_logs(
     job_id: str,
-    db: AsyncSession = Depends(get_db),
     since: Optional[datetime] = Query(None, description="Get logs since timestamp"),
-    limit: int = Query(100, ge=1, le=1000, description="Max log entries")
+    limit: int = Query(100, ge=1, le=1000, description="Max log entries"),
+    level: Optional[str] = Query(None, regex="^(DEBUG|INFO|WARNING|ERROR)$"),
+    offset: int = Query(0, ge=0)
 ):
-    """Get job logs (placeholder - would use Redis streams in production)"""
+    """Get job logs from Supabase database"""
     try:
-        query = select(Job).where(Job.id == job_id)
-        result = await db.execute(query)
-        job = result.scalar_one_or_none()
+        from app.core.supabase import get_supabase
         
-        if not job:
+        supabase = get_supabase()
+        
+        # Get job data from Supabase
+        job_result = supabase.table("jobs").select("*").eq("id", job_id).execute()
+        
+        if not job_result.data:
             raise HTTPException(status_code=404, detail="Job not found")
         
-        # TODO: In production, fetch logs from Redis streams
-        # For now, return mock logs based on job status
+        job = job_result.data[0]
         logs = []
         
-        if job.status != "queued":
+        # Generate logs based on job status and metadata
+        created_at = job.get("created_at")
+        started_at = job.get("started_at") 
+        finished_at = job.get("finished_at")
+        status = job.get("status", "queued")
+        error = job.get("error")
+        meta = job.get("meta", {})
+        
+        # Job creation log
+        if created_at:
             logs.append(JobLogEntry(
-                timestamp=job.created_at,
+                timestamp=datetime.fromisoformat(created_at.replace('Z', '+00:00')),
                 level="INFO",
-                message="Job created and queued"
+                message=f"Job created for dataset processing",
+                context={"job_id": job_id, "kind": job.get("kind", "unknown")}
             ))
         
-        if job.started_at:
+        # HuggingFace processing logs from metadata
+        hf_url = meta.get("hf_url")
+        if hf_url:  # If there's an HF URL, it's definitely a HuggingFace job
+            timestamp_str = started_at or created_at
             logs.append(JobLogEntry(
-                timestamp=job.started_at,
-                level="INFO",
-                message="Job started processing"
+                timestamp=datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')),
+                level="INFO", 
+                message=f"Loading HuggingFace dataset: {hf_url}",
+                context={"dataset_url": hf_url}
             ))
         
-        if job.status == "completed" and job.completed_at:
+        # Job start log
+        if started_at:
             logs.append(JobLogEntry(
-                timestamp=job.completed_at,
+                timestamp=datetime.fromisoformat(started_at.replace('Z', '+00:00')),
                 level="INFO",
-                message=f"Job completed successfully. Processed {job.completed_items} items."
+                message="Job processing started",
+                context={"celery_task_id": meta.get("celery_task_id")}
             ))
-        elif job.status == "failed":
+        
+        # Processing progress from metadata
+        processed_scenes = meta.get("processed_scenes", 0)
+        failed_scenes = meta.get("failed_scenes", 0)
+        
+        if processed_scenes > 0 or failed_scenes > 0:
+            timestamp_str = finished_at or started_at or created_at
             logs.append(JobLogEntry(
-                timestamp=job.updated_at or job.created_at,
-                level="ERROR",
-                message=job.error_message or "Job failed with unknown error"
+                timestamp=datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')),
+                level="INFO" if failed_scenes == 0 else "WARNING",
+                message=f"Processed {processed_scenes} scenes successfully, {failed_scenes} failed",
+                context={
+                    "processed_scenes": processed_scenes,
+                    "failed_scenes": failed_scenes
+                }
             ))
+        
+        # Job completion/failure logs
+        if status == "succeeded" and finished_at:
+            logs.append(JobLogEntry(
+                timestamp=datetime.fromisoformat(finished_at.replace('Z', '+00:00')),
+                level="INFO",
+                message=f"Job completed successfully! Processed {processed_scenes} scenes.",
+                context={"final_status": status, "total_processed": processed_scenes}
+            ))
+        elif status == "failed":
+            timestamp_str = finished_at or started_at or created_at
+            logs.append(JobLogEntry(
+                timestamp=datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')),
+                level="ERROR", 
+                message=error or "Job failed with unknown error",
+                context={"error_details": error}
+            ))
+        elif status == "running":
+            timestamp_str = started_at or created_at
+            logs.append(JobLogEntry(
+                timestamp=datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')),
+                level="INFO",
+                message="Job is currently processing...",
+                context={"current_status": status}
+            ))
+        
+        # Filter by level if specified
+        if level:
+            logs = [log for log in logs if log.level == level]
+        
+        # Filter by timestamp if since is provided
+        if since:
+            logs = [log for log in logs if log.timestamp > since]
+        
+        # Sort by timestamp
+        logs.sort(key=lambda x: x.timestamp)
+        
+        # Apply pagination
+        total = len(logs)
+        logs = logs[offset:offset + limit]
         
         return JobLogs(
             job_id=job_id,
-            logs=logs[-limit:],
-            total=len(logs),
-            has_more=False
+            logs=logs,
+            total=total,
+            has_more=offset + len(logs) < total
         )
         
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Failed to fetch job logs for {job_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch job logs")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch job logs: {str(e)}")

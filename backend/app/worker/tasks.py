@@ -127,9 +127,9 @@ def process_dataset(self, job_id: str, dataset_id: str, options: Dict[str, Any] 
                     "stage": "retry"
                 })
                 
-                # Mark job as retrying
+                # Mark job as running (retrying)
                 await job_service.update_job(job_id, {
-                    "status": "retrying",
+                    "status": "running",
                     "error": f"Attempt {self.request.retries + 1}/{self.max_retries}: {str(e)}"
                 })
                 
@@ -324,9 +324,9 @@ def process_scene(self, job_id: str, scene_id: str, options: Dict[str, Any] = No
                     "stage": "retry"
                 })
                 
-                # Mark job as retrying
+                # Mark job as running (retrying)
                 await job_service.update_job(job_id, {
-                    "status": "retrying",
+                    "status": "running",
                     "error": f"Attempt {self.request.retries + 1}/{self.max_retries}: {str(e)}"
                 })
                 
@@ -389,3 +389,184 @@ def task_failure_handler(self, task_id, error, traceback, args, kwargs):
     """Handle task failure"""
     logger.error(f"Task {task_id} failed with error: {error}")
     logger.error(f"Traceback: {traceback}")
+
+@celery_app.task(bind=True, name='process_scenes_in_dataset', max_retries=1)
+def process_scenes_in_dataset(self, job_id: str, dataset_id: str, options: Dict[str, Any] = None):
+    """
+    Process all scenes in a dataset with AI pipeline
+    Triggered automatically after successful data ingestion
+    """
+    current_task = self
+    logger.info(f"Starting AI processing for dataset {dataset_id} - Job {job_id}")
+    
+    async def _process():
+        # Initialize connections for worker process
+        await init_supabase()
+        await init_redis()
+        
+        job_service = JobService()
+        scene_service = SceneService()
+        
+        try:
+            # Update job status
+            await job_service.update_job(job_id, {
+                "status": "running",
+                "started_at": datetime.utcnow().isoformat()
+            })
+            
+            await job_service.add_job_event(job_id, "started", {
+                "stage": "ai_processing",
+                "dataset_id": dataset_id,
+                "trigger": options.get("trigger", "manual") if options else "manual"
+            })
+            
+            # Get scenes to process
+            if options and "scene_ids" in options:
+                # Process specific scenes
+                scene_ids = options["scene_ids"]
+                logger.info(f"Processing {len(scene_ids)} specific scenes")
+            else:
+                # Get all scenes in dataset
+                scenes_result = await scene_service.get_scenes_by_dataset(dataset_id)
+                scene_ids = [scene.id for scene in scenes_result["data"]]
+                logger.info(f"Processing all {len(scene_ids)} scenes in dataset")
+            
+            if not scene_ids:
+                raise Exception(f"No scenes found to process in dataset {dataset_id}")
+            
+            total_scenes = len(scene_ids)
+            processed_count = 0
+            failed_count = 0
+            
+            # Process each scene individually
+            for idx, scene_id in enumerate(scene_ids):
+                try:
+                    # Update progress
+                    current_task.update_state(
+                        state='PROGRESS',
+                        meta={
+                            'current': idx + 1,
+                            'total': total_scenes,
+                            'stage': 'ai_processing',
+                            'description': f'Processing scene {idx + 1}/{total_scenes}',
+                            'scene_id': scene_id,
+                            'processed': processed_count,
+                            'failed': failed_count
+                        }
+                    )
+                    
+                    await job_service.add_job_event(job_id, "progress", {
+                        "stage": "ai_processing",
+                        "description": f"Processing scene {idx + 1}/{total_scenes}",
+                        "scene_id": scene_id,
+                        "progress": (idx + 1) / total_scenes * 100,
+                        "processed": processed_count,
+                        "failed": failed_count
+                    })
+                    
+                    # Trigger individual scene processing task
+                    scene_job_id = f"{job_id}_scene_{idx}"
+                    scene_task = process_scene.delay(scene_job_id, scene_id, {
+                        "parent_job": job_id,
+                        "dataset_id": dataset_id,
+                        "scene_index": idx + 1,
+                        "total_scenes": total_scenes
+                    })
+                    
+                    # Wait for scene processing to complete (with timeout)
+                    scene_result = scene_task.get(timeout=300)  # 5 minute timeout per scene
+                    processed_count += 1
+                    
+                    logger.info(f"Successfully processed scene {idx + 1}/{total_scenes}: {scene_id}")
+                    
+                except Exception as e:
+                    failed_count += 1
+                    logger.error(f"Failed to process scene {idx + 1}/{total_scenes} ({scene_id}): {e}")
+                    
+                    await job_service.add_job_event(job_id, "scene_failed", {
+                        "scene_id": scene_id,
+                        "error": str(e),
+                        "scene_index": idx + 1
+                    })
+                    
+                    # Continue processing other scenes
+                    continue
+            
+            # Update final job status
+            final_status = "succeeded" if failed_count == 0 else ("partial_success" if processed_count > 0 else "failed")
+            
+            await job_service.update_job(job_id, {
+                "status": "succeeded" if final_status == "succeeded" else "failed",
+                "finished_at": datetime.utcnow().isoformat(),
+                "meta": {
+                    "total_scenes": total_scenes,
+                    "processed_scenes": processed_count,
+                    "failed_scenes": failed_count,
+                    "success_rate": (processed_count / total_scenes * 100) if total_scenes > 0 else 0,
+                    "trigger": options.get("trigger", "manual") if options else "manual",
+                    "dataset_id": dataset_id
+                }
+            })
+            
+            await job_service.add_job_event(job_id, "completed", {
+                "stage": "ai_processing",
+                "total_scenes": total_scenes,
+                "processed_scenes": processed_count,
+                "failed_scenes": failed_count,
+                "success_rate": (processed_count / total_scenes * 100) if total_scenes > 0 else 0
+            })
+            
+            result = {
+                "status": "completed",
+                "total_scenes": total_scenes,
+                "processed_scenes": processed_count,
+                "failed_scenes": failed_count,
+                "success_rate": (processed_count / total_scenes * 100) if total_scenes > 0 else 0
+            }
+            
+            current_task.update_state(
+                state='SUCCESS',
+                meta=result
+            )
+            
+            logger.info(
+                f"AI processing completed for dataset {dataset_id}",
+                extra={
+                    "job_id": job_id,
+                    "dataset_id": dataset_id,
+                    "total_scenes": total_scenes,
+                    "processed_scenes": processed_count,
+                    "failed_scenes": failed_count,
+                    "success_rate": (processed_count / total_scenes * 100) if total_scenes > 0 else 0
+                }
+            )
+            
+            return result
+            
+        except Exception as e:
+            error_message = str(e)
+            logger.error(f"AI processing failed for dataset {dataset_id}: {error_message}")
+            
+            # Update job status to failed
+            await job_service.update_job(job_id, {
+                "status": "failed",
+                "finished_at": datetime.utcnow().isoformat(),
+                "meta": {
+                    "error": error_message,
+                    "dataset_id": dataset_id
+                }
+            })
+            
+            await job_service.add_job_event(job_id, "failed", {
+                "error": error_message,
+                "stage": "ai_processing"
+            })
+            
+            current_task.update_state(
+                state='FAILURE',
+                meta={'error': error_message}
+            )
+            
+            raise e
+    
+    return run_async(_process())

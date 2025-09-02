@@ -28,9 +28,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         
         # Specific rate limits for different endpoint patterns
         self.endpoint_limits = {
-            '/api/v1/datasets/{dataset_id}/process-huggingface': {'requests': 5, 'window': 300},  # 5 per 5 minutes
-            '/api/v1/datasets/{dataset_id}/presign': {'requests': 20, 'window': 60},  # 20 per minute
-            '/api/v1/datasets': {'requests': 30, 'window': 60},  # 30 per minute for dataset operations
+            '/api/v1/datasets/{dataset_id}/process-huggingface': {'requests': 50, 'window': 300},  # 50 per 5 minutes (dev-friendly)
+            '/api/v1/datasets/{dataset_id}/presign': {'requests': 100, 'window': 60},  # 100 per minute
+            '/api/v1/datasets': {'requests': 100, 'window': 60},  # 100 per minute for dataset operations
         }
     
     def get_rate_limit_for_path(self, path: str) -> Dict[str, int]:
