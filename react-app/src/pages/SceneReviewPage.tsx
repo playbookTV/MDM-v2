@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { 
   Eye, 
   Grid, 
@@ -33,6 +34,7 @@ import type { Scene, SceneObject } from '@/types/dataset'
 type ViewMode = 'gallery' | 'detail'
 
 export function SceneReviewPage() {
+  const [searchParams] = useSearchParams()
   const [viewMode, setViewMode] = useState<ViewMode>('gallery')
   const [selectedScenes, setSelectedScenes] = useState<Set<string>>(new Set())
   const [currentScene, setCurrentScene] = useState<Scene | null>(null)
@@ -40,6 +42,14 @@ export function SceneReviewPage() {
   const [datasetFilter, setDatasetFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('pending')
   const [isSessionActive, setIsSessionActive] = useState(false)
+
+  // Read dataset filter from URL parameters
+  useEffect(() => {
+    const datasetParam = searchParams.get('dataset')
+    if (datasetParam) {
+      setDatasetFilter(datasetParam)
+    }
+  }, [searchParams])
 
   // Fetch datasets for filter
   const { data: datasetsData } = useDatasets({ limit: 100 })

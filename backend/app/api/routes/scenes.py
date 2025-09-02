@@ -2,8 +2,10 @@
 Scene management endpoints
 """
 
+import uuid
 import logging
 from typing import Optional, List
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func, desc, and_
@@ -11,13 +13,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
-from app.models.dataset import Scene, SceneObject, Dataset
+from app.models.dataset import Scene, SceneObject, Dataset, Job
 from app.schemas.dataset import (
     Scene as SceneSchema,
     SceneObject as SceneObjectSchema
 )
 from app.schemas.common import Page
 from app.services.storage import StorageService
+from app.services.queue import QueueService
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -278,3 +281,135 @@ async def update_scene_object(
         logger.error(f"Failed to update object {object_id} in scene {scene_id}: {e}")
         await db.rollback()
         raise HTTPException(status_code=500, detail="Failed to update object")
+
+@router.post("/{scene_id}/process")
+async def process_scene_endpoint(
+    scene_id: str,
+    db: AsyncSession = Depends(get_db),
+    force_reprocess: bool = Query(False, description="Force reprocessing even if already processed")
+):
+    """Trigger AI processing for a specific scene"""
+    try:
+        # Check if scene exists
+        scene_query = select(Scene).where(Scene.id == scene_id)
+        scene_result = await db.execute(scene_query)
+        scene = scene_result.scalar_one_or_none()
+        
+        if not scene:
+            raise HTTPException(status_code=404, detail="Scene not found")
+        
+        # Check if already processed (unless forcing)
+        if not force_reprocess and scene.status == "processed":
+            return {
+                "message": "Scene already processed",
+                "scene_id": scene_id,
+                "status": "skipped",
+                "job_id": None
+            }
+        
+        # Create a processing job
+        job_id = str(uuid.uuid4())
+        job = Job(
+            id=job_id,
+            kind="scene_processing",
+            status="pending",
+            dataset_id=scene.dataset_id,
+            metadata={
+                "scene_id": scene_id,
+                "force_reprocess": force_reprocess,
+                "processing_type": "ai_pipeline"
+            },
+            created_at=datetime.now(timezone.utc)
+        )
+        
+        db.add(job)
+        await db.commit()
+        
+        # Queue the processing task
+        queue_service = QueueService()
+        await queue_service.enqueue_scene_processing(job_id, scene_id, {
+            "force_reprocess": force_reprocess
+        })
+        
+        logger.info(f"Queued scene processing job {job_id} for scene {scene_id}")
+        
+        return {
+            "message": "Scene processing started",
+            "scene_id": scene_id,
+            "job_id": job_id,
+            "status": "queued"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to start scene processing for {scene_id}: {e}")
+        await db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to start scene processing")
+
+@router.get("/{scene_id}/process-status")
+async def get_scene_process_status(
+    scene_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get the current processing status for a scene"""
+    try:
+        # Get the most recent processing job for this scene
+        job_query = select(Job).where(
+            Job.kind == "scene_processing",
+            Job.metadata.contains({"scene_id": scene_id})
+        ).order_by(desc(Job.created_at)).limit(1)
+        
+        job_result = await db.execute(job_query)
+        job = job_result.scalar_one_or_none()
+        
+        if not job:
+            return {
+                "scene_id": scene_id,
+                "status": "no_job",
+                "message": "No processing job found for this scene"
+            }
+        
+        # Get processing progress from job metadata
+        progress = 0
+        stage = "unknown"
+        description = ""
+        
+        if job.status == "pending":
+            progress = 0
+            stage = "queued"
+            description = "Job queued for processing"
+        elif job.status == "running":
+            # Try to get progress from job result if available
+            if job.result and isinstance(job.result, dict):
+                progress = job.result.get("progress", 0)
+                stage = job.result.get("stage", "processing")
+                description = job.result.get("description", "Processing scene...")
+            else:
+                progress = 10
+                stage = "processing"
+                description = "AI analysis in progress..."
+        elif job.status == "succeeded":
+            progress = 100
+            stage = "completed"
+            description = "Scene processing completed successfully"
+        elif job.status == "failed":
+            progress = 0
+            stage = "failed"
+            description = job.error or "Scene processing failed"
+        
+        return {
+            "scene_id": scene_id,
+            "job_id": job.id,
+            "status": job.status,
+            "progress": progress,
+            "stage": stage,
+            "description": description,
+            "started_at": job.started_at,
+            "finished_at": job.finished_at,
+            "error": job.error
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get processing status for scene {scene_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get processing status")

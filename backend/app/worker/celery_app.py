@@ -30,7 +30,7 @@ celery_app.conf.update(
     broker_connection_retry_on_startup=True
 )
 
-# Task routing
+# Task routing - route tasks to specific queues for better control
 celery_app.conf.task_routes = {
     'app.worker.tasks.process_dataset': {'queue': 'dataset_processing'},
     'app.worker.tasks.process_scene': {'queue': 'scene_processing'},

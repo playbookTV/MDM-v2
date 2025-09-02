@@ -58,7 +58,8 @@ export function DatasetExplorerPage() {
 
   const handleViewScenes = (dataset: Dataset) => {
     console.log('View scenes for dataset:', dataset)
-    // TODO: Navigate to scenes view for this dataset
+    // Navigate to review page with dataset filter
+    navigate(`/review?dataset=${dataset.id}`)
   }
 
   const handleProcessDataset = async (dataset: Dataset) => {

@@ -2,8 +2,10 @@
 Scene management endpoints using Supabase
 """
 
+import uuid
 import logging
 from typing import Optional
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -190,3 +192,91 @@ async def get_scenes_paginated(
     except Exception as e:
         logger.error(f"Failed to fetch paginated scenes: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch scenes")
+
+@router.post("/{scene_id}/process")
+async def process_scene_endpoint(
+    scene_id: str,
+    force_reprocess: bool = Query(False, description="Force reprocessing even if already processed")
+):
+    """Trigger AI processing for a specific scene"""
+    try:
+        service = SceneService()
+        
+        # Check if scene exists
+        scene = await service.get_scene(scene_id, include_objects=False)
+        if not scene:
+            raise HTTPException(status_code=404, detail="Scene not found")
+        
+        # Check if already processed (unless forcing)
+        if not force_reprocess and scene.get("status") == "processed":
+            return {
+                "message": "Scene already processed",
+                "scene_id": scene_id,
+                "status": "skipped",
+                "job_id": None
+            }
+        
+        # For now, return a mock processing response
+        # In production, this would create a real processing job
+        job_id = str(uuid.uuid4())
+        
+        logger.info(f"Mock scene processing job {job_id} for scene {scene_id}")
+        
+        return {
+            "message": "Scene processing started",
+            "scene_id": scene_id,
+            "job_id": job_id,
+            "status": "queued"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to start scene processing for {scene_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to start scene processing")
+
+@router.get("/{scene_id}/process-status")
+async def get_scene_process_status(scene_id: str):
+    """Get the current processing status for a scene"""
+    try:
+        service = SceneService()
+        
+        # Check if scene exists
+        scene = await service.get_scene(scene_id, include_objects=False)
+        if not scene:
+            raise HTTPException(status_code=404, detail="Scene not found")
+        
+        # For now, return mock status based on scene data
+        # In production, this would check actual job status
+        scene_status = scene.get("status", "unprocessed")
+        
+        if scene_status == "processed":
+            return {
+                "scene_id": scene_id,
+                "job_id": None,
+                "status": "succeeded",
+                "progress": 100,
+                "stage": "completed",
+                "description": "Scene processing completed successfully",
+                "started_at": None,
+                "finished_at": None,
+                "error": None
+            }
+        else:
+            return {
+                "scene_id": scene_id,
+                "job_id": None,
+                "status": "no_job",
+                "progress": 0,
+                "stage": "idle",
+                "description": "No processing job found for this scene",
+                "started_at": None,
+                "finished_at": None,
+                "error": None
+            }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get processing status for scene {scene_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get processing status")

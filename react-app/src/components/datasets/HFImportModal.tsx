@@ -131,7 +131,7 @@ export function HFImportModal({ open, onClose }: HFImportModalProps) {
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg">
-        <>
+        <div>
           <DialogHeader>
             <DialogTitle>Import from HuggingFace</DialogTitle>
             <DialogDescription>
@@ -231,7 +231,7 @@ export function HFImportModal({ open, onClose }: HFImportModalProps) {
               <div className="flex items-center space-x-2">
                 <AlertCircle className="h-4 w-4 text-destructive" />
                 <span className="text-sm text-destructive">
-                  {createMutation.error?.message || 'An error occurred during import'}
+                  {(createMutation.error as Error)?.message || 'An error occurred during import'}
                 </span>
               </div>
             </div>
@@ -253,7 +253,7 @@ export function HFImportModal({ open, onClose }: HFImportModalProps) {
               )}
             </Button>
           </DialogFooter>
-        </>
+        </div>
       </DialogContent>
     </Dialog>
   )

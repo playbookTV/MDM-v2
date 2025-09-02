@@ -69,10 +69,10 @@ class DatasetCreate(BaseModel):
 # Job schemas
 class Job(BaseModel):
     """Job from database"""
-    id: UUID
+    id: str
     kind: JobKind
     status: JobStatus
-    dataset_id: Optional[UUID] = None
+    dataset_id: Optional[str] = None
     started_at: Optional[datetime] = None
     finished_at: Optional[datetime] = None
     error: Optional[str] = None
@@ -82,13 +82,13 @@ class Job(BaseModel):
 class JobCreate(BaseModel):
     """Create job request"""
     kind: JobKind
-    dataset_id: Optional[UUID] = None
+    dataset_id: Optional[str] = None
     meta: Optional[Dict[str, Any]] = None
 
 class JobEvent(BaseModel):
     """Job event from database"""
-    id: UUID
-    job_id: UUID
+    id: str
+    job_id: str
     name: str
     data: Optional[Dict[str, Any]] = None
     at: datetime

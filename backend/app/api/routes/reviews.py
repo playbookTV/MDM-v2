@@ -5,13 +5,14 @@ Review workflow endpoints
 import uuid
 import logging
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.auth import get_current_user
 from app.models.dataset import Review, Scene, SceneObject
 from app.schemas.review import (
     Review as ReviewSchema,
@@ -29,6 +30,7 @@ router = APIRouter()
 @router.post("", response_model=ReviewSchema)
 async def create_review(
     review_data: ReviewCreate,
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new review/annotation"""
@@ -48,7 +50,7 @@ async def create_review(
             action=review_data.action,
             changes=review_data.changes,
             notes=review_data.notes,
-            reviewer="anonymous",  # TODO: Get from auth context
+            reviewer=get_current_user(request),
         )
         
         db.add(review)
@@ -62,8 +64,8 @@ async def create_review(
             if scene:
                 scene.review_status = review_data.action if review_data.action in ['approved', 'rejected', 'corrected'] else 'pending'
                 scene.review_notes = review_data.notes
-                scene.reviewed_by = "anonymous"  # TODO: Get from auth
-                scene.reviewed_at = datetime.utcnow()
+                scene.reviewed_by = get_current_user(request)
+                scene.reviewed_at = datetime.now(timezone.utc)
                 
                 # Apply changes if action is 'correct'
                 if review_data.action == 'correct' and review_data.changes:
@@ -102,6 +104,7 @@ async def create_review(
 @router.post("/batch", response_model=dict)
 async def create_batch_reviews(
     batch_data: BatchReviewCreate,
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """Create multiple scene reviews in a batch"""
@@ -116,7 +119,7 @@ async def create_batch_reviews(
                 action=scene_review.get('status', 'approved'),
                 changes={},
                 notes=scene_review.get('notes'),
-                reviewer="anonymous",  # TODO: Get from auth
+                reviewer=get_current_user(request),
             )
             
             db.add(review)
@@ -131,8 +134,8 @@ async def create_batch_reviews(
                 if scene:
                     scene.review_status = scene_review.get('status', 'approved')
                     scene.review_notes = scene_review.get('notes')
-                    scene.reviewed_by = "anonymous"  # TODO: Get from auth
-                    scene.reviewed_at = datetime.utcnow()
+                    scene.reviewed_by = get_current_user(request)
+                    scene.reviewed_at = datetime.now(timezone.utc)
         
         await db.commit()
         
@@ -212,7 +215,7 @@ async def start_review_session(
             "name": session_data.name or "Review Session",
             "reviewer": "anonymous",
             "scenes_reviewed": 0,
-            "started_at": datetime.utcnow(),
+            "started_at": datetime.now(timezone.utc),
             "ended_at": None
         }
         
@@ -238,8 +241,8 @@ async def end_review_session(
             "name": "Review Session",
             "reviewer": "anonymous", 
             "scenes_reviewed": 0,
-            "started_at": datetime.utcnow(),
-            "ended_at": datetime.utcnow()
+            "started_at": datetime.now(timezone.utc),
+            "ended_at": datetime.now(timezone.utc)
         }
         
         logger.info(f"Ended review session: {session_id}")

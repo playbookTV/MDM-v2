@@ -119,7 +119,7 @@ export function DatasetUploadModal({ open, onClose }: DatasetUploadModalProps) {
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <>
+        <div>
           <DialogHeader>
             <DialogTitle>Upload Dataset</DialogTitle>
             <DialogDescription>
@@ -260,7 +260,7 @@ export function DatasetUploadModal({ open, onClose }: DatasetUploadModalProps) {
               <div className="flex items-center space-x-2">
                 <AlertCircle className="h-4 w-4 text-destructive" />
                 <span className="text-sm text-destructive">
-                  {uploadMutation.error?.message || 'An error occurred during upload'}
+                  {(uploadMutation.error as Error)?.message || 'An error occurred during upload'}
                 </span>
               </div>
             </div>
@@ -275,7 +275,7 @@ export function DatasetUploadModal({ open, onClose }: DatasetUploadModalProps) {
               {isUploading ? 'Uploading...' : `Upload ${files.length} file${files.length !== 1 ? 's' : ''}`}
             </Button>
           </DialogFooter>
-        </>
+        </div>
       </DialogContent>
     </Dialog>
   )

@@ -5,16 +5,62 @@ Celery tasks for HuggingFace dataset processing
 import logging
 from typing import Dict, Any, Optional
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
+import traceback
 
 from celery import current_task
 from app.worker.celery_app import celery_app
 from app.services.huggingface import HuggingFaceService
 from app.services.datasets import DatasetService
+from app.services.jobs import JobService
 from app.schemas.dataset import SceneCreate
 from app.core.config import settings
+from app.core.supabase import init_supabase
+from app.core.redis import init_redis
 
 logger = logging.getLogger(__name__)
+
+
+async def _find_or_create_job_record(dataset_id: str, hf_url: str, celery_task_id: str) -> str:
+    """Find existing job or create a new one for tracking"""
+    try:
+        from app.models.dataset import Job
+        from app.core.supabase import get_supabase
+        from uuid import uuid4
+        
+        supabase = get_supabase()
+        
+        # Try to find existing job by celery task ID in metadata
+        result = supabase.table("jobs").select("*").eq(
+            "meta->>celery_task_id", celery_task_id
+        ).execute()
+        
+        if result.data:
+            return result.data[0]["id"]
+        
+        # Create new job record
+        job_id = str(uuid4())
+        job_data = {
+            "id": job_id,
+            "kind": "ingest", 
+            "status": "queued",
+            "dataset_id": dataset_id,
+            "meta": {
+                "celery_task_id": celery_task_id,
+                "hf_url": hf_url,
+                "processing_type": "huggingface"
+            },
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        supabase.table("jobs").insert(job_data).execute()
+        logger.info(f"Created job record {job_id} for Celery task {celery_task_id}")
+        return job_id
+        
+    except Exception as e:
+        logger.warning(f"Failed to create job record: {e}")
+        return str(uuid4())  # Fallback to random ID
+
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
 def process_huggingface_dataset(
@@ -48,14 +94,51 @@ def process_huggingface_dataset(
         >>> result.get()
         {"status": "completed", "processed_scenes": 150, "failed_scenes": 5}
     """
+    job_id = None
+    job_service = None
+    
+    async def _async_wrapper():
+        nonlocal job_id, job_service
+        
+        # Initialize async services
+        await init_supabase()
+        await init_redis()
+        job_service = JobService()
+        
+        # Find or create job record for this Celery task
+        job_id = await _find_or_create_job_record(
+            dataset_id, hf_dataset_url, self.request.id
+        )
+        
+        logger.info(
+            f"Starting HF dataset processing",
+            extra={
+                "celery_task_id": self.request.id,
+                "job_id": job_id,
+                "dataset_id": dataset_id,
+                "hf_url": hf_dataset_url,
+                "max_images": max_images
+            }
+        )
+        
+        return job_id, job_service
+    
     try:
+        # Run async initialization
+        job_id, job_service = asyncio.run(_async_wrapper())
+        
         # Update task status
         self.update_state(
             state='PROGRESS',
-            meta={'status': 'initializing', 'processed': 0, 'total': 0}
+            meta={'status': 'initializing', 'processed': 0, 'total': 0, 'job_id': job_id}
         )
         
-        logger.info(f"Starting HF dataset processing: {hf_dataset_url} for dataset {dataset_id}")
+        # Update job status to running
+        if job_service:
+            asyncio.run(job_service.update_job(job_id, {
+                "status": "running",
+                "started_at": datetime.now(timezone.utc)
+            }))
         
         # Initialize services
         hf_service = HuggingFaceService()
@@ -148,10 +231,32 @@ def process_huggingface_dataset(
         result = {
             "status": "completed",
             "processed_scenes": len(processed_scenes),
-            "failed_scenes": failed_scenes
+            "failed_scenes": failed_scenes,
+            "job_id": job_id
         }
         
-        logger.info(f"HF dataset processing completed: {result}")
+        # Update job status to completed
+        if job_service:
+            asyncio.run(job_service.update_job(job_id, {
+                "status": "succeeded",
+                "finished_at": datetime.now(timezone.utc),
+                "meta": {
+                    **result,
+                    "celery_task_id": self.request.id,
+                    "hf_url": hf_dataset_url
+                }
+            }))
+        
+        logger.info(
+            f"HF dataset processing completed",
+            extra={
+                "job_id": job_id,
+                "dataset_id": dataset_id,
+                "processed_scenes": len(processed_scenes),
+                "failed_scenes": failed_scenes,
+                "total_images": total_images
+            }
+        )
         
         self.update_state(
             state='SUCCESS',
@@ -161,18 +266,51 @@ def process_huggingface_dataset(
         return result
         
     except Exception as e:
-        logger.error(f"HF dataset processing failed: {e}")
+        error_message = str(e)
+        error_traceback = traceback.format_exc()
         
-        # Retry on certain errors
-        if self.request.retries < self.max_retries:
+        logger.error(
+            f"HF dataset processing failed: {error_message}",
+            extra={
+                "job_id": job_id,
+                "dataset_id": dataset_id,
+                "hf_url": hf_dataset_url,
+                "celery_task_id": self.request.id,
+                "retry_count": self.request.retries,
+                "traceback": error_traceback
+            }
+        )
+        
+        # Update job status to failed
+        if job_service:
+            try:
+                asyncio.run(job_service.update_job(job_id, {
+                    "status": "failed",
+                    "finished_at": datetime.now(timezone.utc),
+                    "error": error_message,
+                    "meta": {
+                        "celery_task_id": self.request.id,
+                        "hf_url": hf_dataset_url,
+                        "retry_count": self.request.retries,
+                        "error_type": type(e).__name__
+                    }
+                }))
+            except Exception as update_error:
+                logger.error(f"Failed to update job status: {update_error}")
+        
+        # Retry on certain errors (but not validation errors)
+        if (self.request.retries < self.max_retries and 
+            not isinstance(e, (ValueError, FileNotFoundError)) and
+            "not found" not in error_message.lower()):
             logger.info(f"Retrying HF processing (attempt {self.request.retries + 1})")
-            raise self.retry(exc=e)
+            raise self.retry(exc=e, countdown=60 * (self.request.retries + 1))
         
         error_result = {
             "status": "failed",
-            "error": str(e),
+            "error": error_message,
             "processed_scenes": 0,
-            "failed_scenes": 0
+            "failed_scenes": 0,
+            "job_id": job_id
         }
         
         self.update_state(

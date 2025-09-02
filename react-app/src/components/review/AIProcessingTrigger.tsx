@@ -50,64 +50,74 @@ export function AIProcessingTrigger({
     const startTime = Date.now()
 
     try {
-      // Simulate processing steps with progress updates
-      const steps = [
-        { name: 'Loading image...', duration: 200 },
-        { name: 'Scene classification...', duration: 500 },
-        { name: 'Object detection...', duration: 400 },
-        { name: 'Object segmentation...', duration: 600 },
-        { name: 'Style analysis...', duration: 300 },
-        { name: 'Material detection...', duration: 200 },
-        { name: 'Color analysis...', duration: 150 },
-        { name: 'Depth estimation...', duration: 800 },
-      ]
-
-      let totalProgress = 0
-      for (const step of steps) {
-        await new Promise(resolve => setTimeout(resolve, step.duration))
-        totalProgress += (100 / steps.length)
-        setProgress(Math.min(totalProgress, 90))
-      }
-
-      // Make actual API call to process the scene
-      const response = await fetch('/api/scenes/process', {
+      // Start the processing job
+      const processResponse = await fetch(`/api/scenes/${scene.id}/process`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          scene_id: scene.id,
           force_reprocess: true
         }),
       })
 
-      if (!response.ok) {
-        throw new Error(`Processing failed: ${response.statusText}`)
+      if (!processResponse.ok) {
+        throw new Error(`Processing failed: ${processResponse.statusText}`)
       }
 
-      const result = await response.json()
-      
-      setProgress(100)
-      const endTime = Date.now()
-      setProcessingTime((endTime - startTime) / 1000)
-      setStatus('completed')
+      const processResult = await processResponse.json()
+      const jobId = processResult.job_id
 
-      // Show success toast
-      toast({
-        title: "AI Processing Complete!",
-        description: `Scene analyzed in ${((endTime - startTime) / 1000).toFixed(1)}s`,
-        duration: 5000,
-      })
+      if (!jobId) {
+        throw new Error('No job ID returned from processing request')
+      }
 
-      // Notify parent component
-      onProcessingComplete?.(scene.id)
+      // Poll for progress updates
+      const pollProgress = async (): Promise<void> => {
+        const statusResponse = await fetch(`/api/scenes/${scene.id}/process-status`)
+        
+        if (!statusResponse.ok) {
+          throw new Error('Failed to get processing status')
+        }
 
-      // Auto-reset after 3 seconds
-      setTimeout(() => {
-        setStatus('idle')
-        setProgress(0)
-        setProcessingTime(null)
-      }, 3000)
+        const statusData = await statusResponse.json()
+        
+        // Update progress from real job status
+        setProgress(statusData.progress || 0)
+        
+        if (statusData.status === 'succeeded') {
+          setProgress(100)
+          const endTime = Date.now()
+          setProcessingTime((endTime - startTime) / 1000)
+          setStatus('completed')
+
+          // Show success toast
+          toast({
+            title: "AI Processing Complete!",
+            description: `Scene analyzed in ${((endTime - startTime) / 1000).toFixed(1)}s`,
+            duration: 5000,
+          })
+
+          // Notify parent component
+          onProcessingComplete?.(scene.id)
+
+          // Auto-reset after 3 seconds
+          setTimeout(() => {
+            setStatus('idle')
+            setProgress(0)
+            setProcessingTime(null)
+          }, 3000)
+          
+        } else if (statusData.status === 'failed') {
+          throw new Error(statusData.error || 'Processing failed')
+        } else if (statusData.status === 'running' || statusData.status === 'pending') {
+          // Continue polling
+          setTimeout(pollProgress, 1000)
+        }
+      }
+
+      // Start polling for progress
+      setTimeout(pollProgress, 1000)
 
     } catch (err) {
       setStatus('error')
