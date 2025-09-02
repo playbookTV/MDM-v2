@@ -156,7 +156,7 @@ class SceneService:
         scene_id: str, 
         image_type: str = "original"
     ) -> Optional[str]:
-        """Get presigned URL for viewing scene images"""
+        """Get public URL for viewing scene images"""
         try:
             # Get scene to find the R2 key
             result = self.supabase.table("scenes").select("*").eq("id", scene_id).execute()
@@ -177,8 +177,8 @@ class SceneService:
             if not r2_key:
                 return None
             
-            # Generate presigned URL
-            url = await self.storage.generate_presigned_download_url(r2_key, expires_in=3600)
+            # Use public URL instead of presigned URL since the bucket is public
+            url = self.storage.get_public_url(r2_key)
             return url
             
         except Exception as e:

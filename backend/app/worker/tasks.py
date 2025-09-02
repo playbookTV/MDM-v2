@@ -297,7 +297,10 @@ def process_scene(self, job_id: str, scene_id: str, options: Dict[str, Any] = No
             await job_service.update_job(job_id, {
                 "status": "succeeded", 
                 "finished_at": datetime.utcnow().isoformat(),
-                "result": processing_results
+                "meta": {
+                    "result": processing_results,
+                    "processing_type": "scene_ai"
+                }
             })
             
             await job_service.add_job_event(job_id, "completed", {

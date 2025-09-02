@@ -279,9 +279,10 @@ def segment_objects_transformers(image: Image.Image, objects: list) -> list:
             try:
                 # Get bounding box for input prompts
                 bbox = obj['bbox']
-                # Convert to input format for transformers SAM2
-                input_points = [[[int((bbox[0] + bbox[2]) / 2), int((bbox[1] + bbox[3]) / 2)]]]
-                input_labels = [[1]]  # 1 for foreground
+                # Convert to input format for transformers SAM2 (4 levels required)
+                # Format: [image level, object level, point level, point coordinates]
+                input_points = [[[[int((bbox[0] + bbox[2]) / 2), int((bbox[1] + bbox[3]) / 2)]]]]
+                input_labels = [[[1]]]  # 1 for foreground, matching the 4-level structure
                 
                 # Prepare inputs
                 inputs = models['sam2_processor'](
