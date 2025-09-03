@@ -51,7 +51,7 @@ export function AIProcessingTrigger({
 
     try {
       // Start the processing job
-      const processResponse = await fetch(`/api/scenes/${scene.id}/process`, {
+      const processResponse = await fetch(`/api/v1/scenes/${scene.id}/process`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -74,7 +74,7 @@ export function AIProcessingTrigger({
 
       // Poll for progress updates
       const pollProgress = async (): Promise<void> => {
-        const statusResponse = await fetch(`/api/scenes/${scene.id}/process-status`)
+        const statusResponse = await fetch(`/api/v1/scenes/${scene.id}/process-status`)
         
         if (!statusResponse.ok) {
           throw new Error('Failed to get processing status')

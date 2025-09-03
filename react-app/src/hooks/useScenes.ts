@@ -54,10 +54,10 @@ const fetchSceneObjects = async (sceneId: string): Promise<SceneObject[]> => {
   return response.json()
 }
 
-const getImageUrl = (r2Key: string, type: 'original' | 'thumbnail' | 'depth' = 'original') => {
-  // In production, this would use the actual R2 bucket URL
-  const baseUrl = '/api/v1/images'
-  return `${baseUrl}/${r2Key}?type=${type}`
+const getImageUrl = (sceneId: string, type: 'original' | 'thumbnail' | 'depth' = 'original') => {
+  // Use scene ID to get image via backend API
+  const baseUrl = '/api/v1/images/scenes'
+  return `${baseUrl}/${sceneId}.jpg?type=${type}`
 }
 
 // React Query hooks
@@ -142,9 +142,9 @@ export const useScenePagination = (params?: {
 // Utility hook for image URLs
 export const useSceneImages = (scene: Scene) => {
   return {
-    originalUrl: getImageUrl(scene.r2_key_original, 'original'),
-    thumbnailUrl: scene.r2_key_thumbnail ? getImageUrl(scene.r2_key_thumbnail, 'thumbnail') : getImageUrl(scene.r2_key_original, 'thumbnail'),
-    depthUrl: scene.r2_key_depth ? getImageUrl(scene.r2_key_depth, 'depth') : null,
+    originalUrl: getImageUrl(scene.id, 'original'),
+    thumbnailUrl: getImageUrl(scene.id, 'thumbnail'),
+    depthUrl: scene.has_depth ? getImageUrl(scene.id, 'depth') : null,
   }
 }
 
