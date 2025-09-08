@@ -141,9 +141,13 @@ class JobService:
                     
                 elif job.kind == "process" or job.kind == "scene_processing":
                     # Scene processing job - AI analysis pipeline
+                    scene_id = job.meta.get("scene_id") if job.meta else None
+                    # Ensure scene_id is a string for JSON serialization (but don't convert None to 'None')
+                    scene_id_str = str(scene_id) if scene_id is not None else None
+                    
                     task = process_scene.delay(
                         job_id=str(job.id),
-                        scene_id=job.meta.get("scene_id") if job.meta else None,
+                        scene_id=scene_id_str,
                         options=job.meta or {}  # Task expects 'options' parameter
                     )
                     logger.info(f"Scene processing job {job.id} queued with task ID: {task.id}")
@@ -220,11 +224,26 @@ class JobService:
     async def add_job_event(self, job_id: str, name: str, data: Dict[str, Any] = None) -> JobEvent:
         """Add an event to a job"""
         try:
+            # Recursively convert any UUID objects to strings for JSON serialization
+            def serialize_data(obj):
+                if hasattr(obj, '__dict__'):
+                    return {k: serialize_data(v) for k, v in obj.__dict__.items()}
+                elif isinstance(obj, dict):
+                    return {k: serialize_data(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [serialize_data(item) for item in obj]
+                elif hasattr(obj, '__class__') and 'UUID' in str(type(obj)):
+                    return str(obj)
+                else:
+                    return obj
+            
+            serialized_data = serialize_data(data or {})
+            
             event_data = {
                 "id": str(uuid4()),
                 "job_id": job_id,
                 "name": name,
-                "data": data or {}
+                "data": serialized_data
             }
             
             result = self.supabase.table("job_events").insert(event_data).execute()

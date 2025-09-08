@@ -19,6 +19,62 @@ class SceneService:
         self.supabase = get_supabase()
         self.storage = StorageService()
     
+    def _enrich_scene_data(self, scene_data: Dict[str, Any], objects: Optional[List[SceneObject]] = None) -> Dict[str, Any]:
+        """Add computed fields to scene data for frontend compatibility"""
+        enriched = scene_data.copy()
+        
+        # Add has_depth computed field
+        enriched["has_depth"] = bool(scene_data.get("depth_key"))
+        
+        # Add objects_count computed field
+        if objects is not None:
+            enriched["objects_count"] = len(objects)
+        elif "objects" in scene_data:
+            enriched["objects_count"] = len(scene_data["objects"])
+        else:
+            # Will be computed separately for bulk queries
+            enriched["objects_count"] = 0
+        
+        # Map status to review_status for frontend compatibility
+        status = scene_data.get("status", "unprocessed")
+        if status == "processed":
+            enriched["review_status"] = "approved"  # Default processed scenes to approved
+        elif status == "failed":
+            enriched["review_status"] = "rejected"
+        else:
+            enriched["review_status"] = "pending"
+        
+        return enriched
+    
+    async def _get_objects_count_bulk(self, scene_ids: List[str]) -> Dict[str, int]:
+        """Get object counts for multiple scenes efficiently"""
+        try:
+            # Get counts for all scenes in one query
+            result = (
+                self.supabase.table("objects")
+                .select("scene_id")
+                .in_("scene_id", scene_ids)
+                .execute()
+            )
+            
+            # Count objects per scene
+            counts = {}
+            for obj in result.data:
+                scene_id = obj["scene_id"]
+                counts[scene_id] = counts.get(scene_id, 0) + 1
+            
+            # Ensure all scene IDs have a count (even if 0)
+            for scene_id in scene_ids:
+                if scene_id not in counts:
+                    counts[scene_id] = 0
+            
+            return counts
+            
+        except Exception as e:
+            logger.error(f"Failed to get bulk object counts: {e}")
+            # Return zeros for all scenes as fallback
+            return {scene_id: 0 for scene_id in scene_ids}
+    
     async def get_scenes(
         self, 
         page: int = 1, 
@@ -60,10 +116,17 @@ class SceneService:
             # Get paginated data
             result = query.range(offset, offset + per_page - 1).order("created_at", desc=True).execute()
             
-            # If including objects, fetch them separately for now
+            # Process scenes and add computed fields
             scenes_with_details = []
+            scene_ids = [scene_data["id"] for scene_data in result.data]
+            
+            # Get object counts for all scenes in one query (more efficient)
+            if not include_objects:
+                object_counts = await self._get_objects_count_bulk(scene_ids)
+            
             for scene_data in result.data:
                 scene = Scene(**scene_data)
+                scene_dict = scene.model_dump()
                 
                 if include_objects:
                     # Get objects for this scene
@@ -74,13 +137,18 @@ class SceneService:
                         .execute()
                     )
                     objects = [SceneObject(**obj) for obj in objects_result.data]
+                    scene_dict["objects"] = [obj.model_dump() for obj in objects]
                     
-                    # Create enhanced scene with objects
-                    scene_dict = scene.model_dump()
-                    scene_dict["objects"] = objects
-                    scenes_with_details.append(scene_dict)
+                    # Enrich with computed fields (including object count)
+                    enriched_scene = self._enrich_scene_data(scene_dict, objects)
                 else:
-                    scenes_with_details.append(scene.model_dump())
+                    # Use bulk object count
+                    scene_dict["objects_count"] = object_counts.get(str(scene.id), 0)
+                    
+                    # Enrich with computed fields
+                    enriched_scene = self._enrich_scene_data(scene_dict)
+                
+                scenes_with_details.append(enriched_scene)
             
             return {
                 "data": scenes_with_details,
@@ -119,6 +187,7 @@ class SceneService:
                     scene_data["dataset_name"] = dataset_result.data[0]["name"]
             
             # Get objects if requested
+            objects = None
             if include_objects:
                 objects_result = (
                     self.supabase.table("objects")
@@ -128,8 +197,20 @@ class SceneService:
                 )
                 objects = [SceneObject(**obj) for obj in objects_result.data]
                 scene_data["objects"] = [obj.model_dump() for obj in objects]
+            else:
+                # Get object count for this scene
+                objects_count_result = (
+                    self.supabase.table("objects")
+                    .select("*", count="exact")
+                    .eq("scene_id", scene_id)
+                    .execute()
+                )
+                scene_data["objects_count"] = objects_count_result.count or 0
             
-            return scene_data
+            # Enrich with computed fields
+            enriched_scene = self._enrich_scene_data(scene_data, objects)
+            
+            return enriched_scene
             
         except Exception as e:
             logger.error(f"Failed to get scene {scene_id}: {e}")

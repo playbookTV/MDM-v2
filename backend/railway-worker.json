@@ -1,0 +1,12 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "dockerfile",
+    "dockerfilePath": "Dockerfile.worker"
+  },
+  "deploy": {
+    "startCommand": "celery -A app.worker.celery_app worker --loglevel=info --queues=celery,huggingface,dataset_processing,scene_processing,maintenance --concurrency=${CELERY_WORKER_CONCURRENCY:-2} --max-tasks-per-child=${CELERY_WORKER_MAX_TASKS:-100} --heartbeat-interval=30 --without-gossip --without-mingle",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}

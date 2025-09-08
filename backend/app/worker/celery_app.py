@@ -21,12 +21,12 @@ celery_app.conf.update(
     result_serializer='json',
     timezone='UTC',
     enable_utc=True,
-    result_expires=3600,  # 1 hour
+    result_expires=settings.CELERY_RESULT_EXPIRES,
     task_track_started=True,
     task_time_limit=settings.JOB_TIMEOUT,
     task_soft_time_limit=settings.JOB_TIMEOUT - 60,
     worker_prefetch_multiplier=1,
-    worker_max_tasks_per_child=1000,
+    worker_max_tasks_per_child=settings.CELERY_WORKER_MAX_TASKS,
     broker_connection_retry_on_startup=True
 )
 

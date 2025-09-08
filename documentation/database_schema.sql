@@ -106,6 +106,8 @@ create table if not exists scenes (
   dataset_id      uuid references datasets(id) on delete set null,
   source          text not null,              -- local path or remote URL
   r2_key_original text not null,              -- R2 key for original image
+  r2_key_thumbnail text,                      -- R2 key for thumbnail image
+  r2_key_depth    text,                       -- R2 key for depth map (new naming convention)
   width           int,
   height          int,
   phash           text,                       -- perceptual hash for dedupe
@@ -113,7 +115,7 @@ create table if not exists scenes (
   scene_conf      real,                       -- confidence for scene_type
   -- style is multi-label (use link table; see scene_styles)
   palette         jsonb,                      -- [{hex:"#aabbcc","p":0.23},...]
-  depth_key       text,                       -- R2 key for scene-level depth map (PNG)
+  depth_key       text,                       -- R2 key for scene-level depth map (legacy - use r2_key_depth)
   status          text not null default 'processed',
   created_at      timestamptz default now()
 );
@@ -159,6 +161,8 @@ create table if not exists objects (
   depth_key     text,                          -- typically same as scene.depth_key but kept for convenience
   description   text,                          -- short 1–2 sentence caption
   attrs         jsonb,                         -- extracted attributes (color, finish, legs, etc.)
+  review_status text,                          -- 'pending', 'approved', 'rejected', 'corrected'
+  review_notes  text,                          -- human review comments
   created_at    timestamptz default now()
 );
 
@@ -166,6 +170,11 @@ create index if not exists idx_objects_scene on objects(scene_id);
 create index if not exists idx_objects_category on objects(category_code);
 create index if not exists idx_objects_conf on objects(confidence);
 create index if not exists idx_objects_bbox on objects(bbox_x, bbox_y);
+create index if not exists idx_objects_review_status on objects(review_status);
+
+-- Add indexes for new scenes columns
+create index if not exists idx_scenes_r2_key_thumbnail on scenes(r2_key_thumbnail);
+create index if not exists idx_scenes_r2_key_depth on scenes(r2_key_depth);
 
 -- Object ↔ Materials (multi-label with confidences)
 create table if not exists object_materials (
@@ -260,3 +269,7 @@ insert into material_labels(code, display) values
   ('leather','Leather'),('stone','Stone'),('marble','Marble'),('rattan','Rattan'),
   ('ceramic','Ceramic'),('plastic','Plastic'),('mirror','Mirror'),('concrete','Concrete')
 on conflict do nothing;
+
+-- Add check constraints for review status
+alter table objects add constraint if not exists chk_objects_review_status 
+  check (review_status is null or review_status in ('pending', 'approved', 'rejected', 'corrected'));

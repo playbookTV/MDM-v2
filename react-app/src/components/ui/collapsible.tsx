@@ -1,25 +1,25 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
 const Collapsible = React.forwardRef<
   HTMLDivElement,
   {
-    open?: boolean
-    onOpenChange?: (open: boolean) => void
-    children: React.ReactNode
-    className?: string
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    children: React.ReactNode;
+    className?: string;
   }
 >(({ open, onOpenChange, children, className, ...props }, ref) => {
-  const [internalOpen, setInternalOpen] = React.useState(false)
-  const isOpen = open !== undefined ? open : internalOpen
-  
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const isOpen = open !== undefined ? open : internalOpen;
+
   const handleOpenChange = (newOpen: boolean) => {
     if (onOpenChange) {
-      onOpenChange(newOpen)
+      onOpenChange(newOpen);
     } else {
-      setInternalOpen(newOpen)
+      setInternalOpen(newOpen);
     }
-  }
+  };
 
   return (
     <div
@@ -27,26 +27,27 @@ const Collapsible = React.forwardRef<
       className={cn("", className)}
       data-state={isOpen ? "open" : "closed"}
       {...props}
+      data-oid="xp_kf2n"
     >
       {React.Children.map(children, (child) => {
         if (React.isValidElement(child)) {
           return React.cloneElement(child, {
             ...child.props,
-            'data-state': isOpen ? "open" : "closed",
-            onToggle: () => handleOpenChange(!isOpen)
-          } as any)
+            "data-state": isOpen ? "open" : "closed",
+            onToggle: () => handleOpenChange(!isOpen),
+          } as any);
         }
-        return child
+        return child;
       })}
     </div>
-  )
-})
-Collapsible.displayName = "Collapsible"
+  );
+});
+Collapsible.displayName = "Collapsible";
 
 const CollapsibleTrigger = React.forwardRef<
   HTMLButtonElement,
   React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    onToggle?: () => void
+    onToggle?: () => void;
   }
 >(({ className, children, onToggle, ...props }, ref) => {
   return (
@@ -54,42 +55,46 @@ const CollapsibleTrigger = React.forwardRef<
       ref={ref}
       className={cn(
         "flex w-full items-center justify-between py-4 font-medium transition-all hover:underline [&[data-state=open]>svg]:rotate-180",
-        className
+        className,
       )}
       onClick={onToggle}
       {...props}
+      data-oid="x0pipo0"
     >
       {children}
     </button>
-  )
-})
-CollapsibleTrigger.displayName = "CollapsibleTrigger"
+  );
+});
+CollapsibleTrigger.displayName = "CollapsibleTrigger";
 
 const CollapsibleContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & {
-    'data-state'?: string
+    "data-state"?: string;
   }
 >(({ className, children, ...props }, ref) => {
-  const dataState = props['data-state']
-  const isOpen = dataState === "open"
+  const dataState = props["data-state"];
+  const isOpen = dataState === "open";
 
   return (
     <div
       ref={ref}
       className={cn(
         "overflow-hidden transition-all duration-200 ease-in-out",
-        className
+        className,
       )}
       style={{
-        display: isOpen ? "block" : "none"
+        display: isOpen ? "block" : "none",
       }}
       {...props}
+      data-oid="k7w55s:"
     >
-      <div className="pb-4 pt-0">{children}</div>
+      <div className="pb-4 pt-0" data-oid="n.fpwcr">
+        {children}
+      </div>
     </div>
-  )
-})
-CollapsibleContent.displayName = "CollapsibleContent"
+  );
+});
+CollapsibleContent.displayName = "CollapsibleContent";
 
-export { Collapsible, CollapsibleTrigger, CollapsibleContent }
+export { Collapsible, CollapsibleTrigger, CollapsibleContent };

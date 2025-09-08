@@ -9,13 +9,19 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
+from typing import Optional
 
 from app.services.scenes import SceneService
-from app.schemas.database import Scene, SceneObject
+from app.services.jobs import JobService
+from app.schemas.database import Scene, SceneObject, JobCreate
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+class ProcessSceneRequest(BaseModel):
+    """Request body for scene processing"""
+    force_reprocess: Optional[bool] = False
 
 @router.get("")
 async def get_scenes(
@@ -196,19 +202,26 @@ async def get_scenes_paginated(
 @router.post("/{scene_id}/process")
 async def process_scene_endpoint(
     scene_id: str,
+    request: ProcessSceneRequest = None,
     force_reprocess: bool = Query(False, description="Force reprocessing even if already processed")
 ):
     """Trigger AI processing for a specific scene"""
     try:
-        service = SceneService()
+        scene_service = SceneService()
+        job_service = JobService()
         
         # Check if scene exists
-        scene = await service.get_scene(scene_id, include_objects=False)
+        scene = await scene_service.get_scene(scene_id, include_objects=False)
         if not scene:
             raise HTTPException(status_code=404, detail="Scene not found")
         
+        # Determine force_reprocess from request body or query param
+        should_force_reprocess = force_reprocess
+        if request and request.force_reprocess is not None:
+            should_force_reprocess = request.force_reprocess
+        
         # Check if already processed (unless forcing)
-        if not force_reprocess and scene.get("status") == "processed":
+        if not should_force_reprocess and scene.get("status") == "processed":
             return {
                 "message": "Scene already processed",
                 "scene_id": scene_id,
@@ -216,11 +229,21 @@ async def process_scene_endpoint(
                 "job_id": None
             }
         
-        # For now, return a mock processing response
-        # In production, this would create a real processing job
-        job_id = str(uuid.uuid4())
+        # Create a real processing job
+        job_data = JobCreate(
+            kind="process",
+            dataset_id=scene.get("dataset_id"),
+            meta={
+                "scene_id": scene_id,
+                "force_reprocess": should_force_reprocess,
+                "processing_type": "ai_pipeline"
+            }
+        )
         
-        logger.info(f"Mock scene processing job {job_id} for scene {scene_id}")
+        job = await job_service.create_job(job_data)
+        job_id = str(job.id)
+        
+        logger.info(f"Created scene processing job {job_id} for scene {scene_id}")
         
         return {
             "message": "Scene processing started",
@@ -239,41 +262,96 @@ async def process_scene_endpoint(
 async def get_scene_process_status(scene_id: str):
     """Get the current processing status for a scene"""
     try:
-        service = SceneService()
+        scene_service = SceneService()
+        job_service = JobService()
         
         # Check if scene exists
-        scene = await service.get_scene(scene_id, include_objects=False)
+        scene = await scene_service.get_scene(scene_id, include_objects=False)
         if not scene:
             raise HTTPException(status_code=404, detail="Scene not found")
         
-        # For now, return mock status based on scene data
-        # In production, this would check actual job status
-        scene_status = scene.get("status", "unprocessed")
+        # Find the most recent processing job for this scene
+        jobs = await job_service.get_jobs(
+            page=1, 
+            per_page=50, 
+            kind="process",
+            dataset_id=scene.get("dataset_id")
+        )
         
-        if scene_status == "processed":
-            return {
-                "scene_id": scene_id,
-                "job_id": None,
-                "status": "succeeded",
-                "progress": 100,
-                "stage": "completed",
-                "description": "Scene processing completed successfully",
-                "started_at": None,
-                "finished_at": None,
-                "error": None
-            }
-        else:
-            return {
-                "scene_id": scene_id,
-                "job_id": None,
-                "status": "no_job",
-                "progress": 0,
-                "stage": "idle",
-                "description": "No processing job found for this scene",
-                "started_at": None,
-                "finished_at": None,
-                "error": None
-            }
+        # Filter for jobs that match this scene_id in metadata
+        scene_jobs = [
+            job for job in jobs["data"] 
+            if job.get("meta", {}).get("scene_id") == scene_id
+        ]
+        
+        if not scene_jobs:
+            # Check if scene is already processed (legacy data)
+            scene_status = scene.get("status", "unprocessed")
+            if scene_status == "processed":
+                return {
+                    "scene_id": scene_id,
+                    "job_id": None,
+                    "status": "succeeded",
+                    "progress": 100,
+                    "stage": "completed",
+                    "description": "Scene processing completed successfully",
+                    "started_at": None,
+                    "finished_at": None,
+                    "error": None
+                }
+            else:
+                return {
+                    "scene_id": scene_id,
+                    "job_id": None,
+                    "status": "no_job",
+                    "progress": 0,
+                    "stage": "idle",
+                    "description": "No processing job found for this scene",
+                    "started_at": None,
+                    "finished_at": None,
+                    "error": None
+                }
+        
+        # Get the most recent job
+        job = scene_jobs[0]  # Jobs are ordered by created_at desc
+        
+        # Map job status to response
+        progress = 0
+        stage = "unknown"
+        description = ""
+        
+        if job["status"] == "queued":
+            progress = 0
+            stage = "queued"
+            description = "Job queued for processing"
+        elif job["status"] == "running":
+            progress = 50  # Approximate progress
+            stage = "processing"
+            description = "AI analysis in progress..."
+        elif job["status"] == "succeeded":
+            progress = 100
+            stage = "completed"
+            description = "Scene processing completed successfully"
+        elif job["status"] == "failed":
+            progress = 0
+            stage = "failed"
+            description = job.get("error") or "Scene processing failed"
+        elif job["status"] == "skipped":
+            progress = 0
+            stage = "skipped"
+            description = "Scene processing was skipped"
+        
+        return {
+            "scene_id": scene_id,
+            "job_id": job["id"],
+            "status": job["status"],
+            "progress": progress,
+            "stage": stage,
+            "description": description,
+            "started_at": job.get("started_at"),
+            "finished_at": job.get("finished_at"),
+            "error": job.get("error")
+        }
         
     except HTTPException:
         raise

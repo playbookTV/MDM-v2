@@ -293,11 +293,16 @@ def process_scene(self, job_id: str, scene_id: str, options: Dict[str, Any] = No
             
             await scene_service.update_scene(scene_id, processing_results)
             
+            # Get current job to preserve existing metadata
+            current_job = await job_service.get_job(job_id)
+            existing_meta = current_job.meta if current_job and current_job.meta else {}
+            
             # Complete job
             await job_service.update_job(job_id, {
                 "status": "succeeded", 
                 "finished_at": datetime.utcnow().isoformat(),
                 "meta": {
+                    **existing_meta,  # Preserve original metadata
                     "result": processing_results,
                     "processing_type": "scene_ai"
                 }

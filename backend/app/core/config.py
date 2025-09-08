@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     JOB_TIMEOUT: int = Field(default=1800, description="Job timeout in seconds (30 minutes)")
     JOB_RETRY_ATTEMPTS: int = Field(default=3, description="Max job retry attempts")
     
+    # Celery worker settings
+    CELERY_WORKER_CONCURRENCY: int = Field(default=2, description="Celery worker concurrency")
+    CELERY_WORKER_MAX_TASKS: int = Field(default=100, description="Max tasks per worker child process")
+    CELERY_RESULT_EXPIRES: int = Field(default=3600, description="Celery result expiration in seconds")
+    
     # RunPod AI processing settings
     RUNPOD_API_KEY: Optional[str] = Field(default=None, description="RunPod API key for serverless AI")
     RUNPOD_ENDPOINT_ID: Optional[str] = Field(default=None, description="RunPod serverless endpoint ID")
