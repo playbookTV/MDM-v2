@@ -85,21 +85,22 @@ export function SystemHealthCard({ className }: SystemHealthCardProps) {
     return (
       <div
         className={`bg-card border rounded-lg p-6 ${className}`}
-        data-oid="xuu6--l"
+        data-oid=":s_gcvr"
       >
-        <div className="flex items-center space-x-2 mb-4" data-oid="73c006c">
+        <div className="flex items-center space-x-2 mb-4" data-oid="crj9g81">
           <AlertTriangle
             className="h-5 w-5 text-destructive"
-            data-oid="m0dra:v"
+            data-oid="w3w82oq"
           />
-          <h3 className="text-lg font-semibold" data-oid="4zwie60">
+
+          <h3 className="text-lg font-semibold" data-oid="0vl0m45">
             System Health
           </h3>
-          <Badge variant="destructive" data-oid=".87g0k9">
+          <Badge variant="destructive" data-oid="s69qo9.">
             Error
           </Badge>
         </div>
-        <p className="text-sm text-muted-foreground" data-oid="qi_b072">
+        <p className="text-sm text-muted-foreground" data-oid="rgjthfw">
           Unable to fetch system health data
         </p>
       </div>
@@ -110,24 +111,25 @@ export function SystemHealthCard({ className }: SystemHealthCardProps) {
     return (
       <div
         className={`bg-card border rounded-lg p-6 ${className}`}
-        data-oid="cxci4mc"
+        data-oid="l35aat."
       >
-        <div className="flex items-center space-x-2 mb-4" data-oid="hmatg9h">
-          <Activity className="h-5 w-5 animate-pulse" data-oid="bkscodv" />
-          <h3 className="text-lg font-semibold" data-oid="8k96l7t">
+        <div className="flex items-center space-x-2 mb-4" data-oid="wbigh8j">
+          <Activity className="h-5 w-5 animate-pulse" data-oid="h69is8a" />
+          <h3 className="text-lg font-semibold" data-oid="_e:tdnv">
             System Health
           </h3>
         </div>
-        <div className="space-y-4" data-oid="6c3_nbn">
+        <div className="space-y-4" data-oid="3.4h33k">
           {Array.from({ length: 4 }, (_, i) => (
-            <div key={i} className="space-y-2" data-oid="zbniflb">
+            <div key={i} className="space-y-2" data-oid="9u9h3wv">
               <div
                 className="h-4 bg-muted animate-pulse rounded"
-                data-oid="nst08k4"
+                data-oid="rnciw9u"
               />
+
               <div
                 className="h-2 bg-muted animate-pulse rounded"
-                data-oid="mobjy:2"
+                data-oid="1--il99"
               />
             </div>
           ))}
@@ -139,37 +141,37 @@ export function SystemHealthCard({ className }: SystemHealthCardProps) {
   return (
     <div
       className={`bg-card border rounded-lg p-6 ${className}`}
-      data-oid="s.42g-a"
+      data-oid="6zzsm-t"
     >
       {/* Header */}
       <div
         className="flex items-center justify-between mb-6"
-        data-oid="4jk:r9l"
+        data-oid="vsro7rw"
       >
-        <div className="flex items-center space-x-2" data-oid="tyxnx1t">
-          <Activity className="h-5 w-5" data-oid="txhv1k9" />
-          <h3 className="text-lg font-semibold" data-oid="cpnsmu3">
+        <div className="flex items-center space-x-2" data-oid="3v2jmg4">
+          <Activity className="h-5 w-5" data-oid="qi5p18_" />
+          <h3 className="text-lg font-semibold" data-oid=".z230wf">
             System Health
           </h3>
         </div>
 
-        <div className="flex items-center space-x-2" data-oid="2l_tzwr">
+        <div className="flex items-center space-x-2" data-oid="3_xz76_">
           {healthStatus.status === "healthy" && (
             <CheckCircle
               className="h-4 w-4 text-green-500"
-              data-oid=".a-qpqi"
+              data-oid="e_fnrzo"
             />
           )}
           {healthStatus.status === "warning" && (
             <AlertTriangle
               className="h-4 w-4 text-yellow-500"
-              data-oid="cid8i1."
+              data-oid="_93_iki"
             />
           )}
           {healthStatus.status === "critical" && (
             <AlertTriangle
               className="h-4 w-4 text-red-500"
-              data-oid="g95csl5"
+              data-oid="bum6wz:"
             />
           )}
 
@@ -178,7 +180,7 @@ export function SystemHealthCard({ className }: SystemHealthCardProps) {
               healthStatus.status === "healthy" ? "secondary" : "destructive"
             }
             className={healthStatus.color}
-            data-oid="oiduq-e"
+            data-oid="2isy-lb"
           >
             {healthStatus.label}
           </Badge>
@@ -186,37 +188,37 @@ export function SystemHealthCard({ className }: SystemHealthCardProps) {
       </div>
 
       {/* System Metrics */}
-      <div className="space-y-6" data-oid="6_.42fs">
+      <div className="space-y-6" data-oid="4o34f3p">
         {/* CPU Usage */}
-        <div className="space-y-2" data-oid="pot4sel">
-          <div className="flex items-center justify-between" data-oid="0id-jv_">
-            <div className="flex items-center space-x-2" data-oid="j:.3udk">
-              <Cpu className="h-4 w-4 text-blue-500" data-oid="iye0p7o" />
-              <span className="text-sm font-medium" data-oid="5hqz3ma">
+        <div className="space-y-2" data-oid="q-0thc6">
+          <div className="flex items-center justify-between" data-oid="gy2xx0u">
+            <div className="flex items-center space-x-2" data-oid="9:41we.">
+              <Cpu className="h-4 w-4 text-blue-500" data-oid="bybcstj" />
+              <span className="text-sm font-medium" data-oid="ll6kinb">
                 CPU Usage
               </span>
             </div>
-            <span className="text-sm text-muted-foreground" data-oid="3iomb4f">
+            <span className="text-sm text-muted-foreground" data-oid="rgtdhyn">
               {(health.cpu_usage_percent || 0).toFixed(1)}%
             </span>
           </div>
           <Progress
             value={health.cpu_usage_percent || 0}
             className="h-2"
-            data-oid="ieng:p9"
+            data-oid="8ifkxg8"
           />
         </div>
 
         {/* Memory Usage */}
-        <div className="space-y-2" data-oid="rh.bi14">
-          <div className="flex items-center justify-between" data-oid="usu.dia">
-            <div className="flex items-center space-x-2" data-oid="l4.ogoe">
-              <Memory className="h-4 w-4 text-green-500" data-oid="26i:yej" />
-              <span className="text-sm font-medium" data-oid="v6---0y">
+        <div className="space-y-2" data-oid="qp2c.b8">
+          <div className="flex items-center justify-between" data-oid="yhz7ent">
+            <div className="flex items-center space-x-2" data-oid="ivz6ir1">
+              <Memory className="h-4 w-4 text-green-500" data-oid="tm6j369" />
+              <span className="text-sm font-medium" data-oid="xus2zav">
                 Memory Usage
               </span>
             </div>
-            <span className="text-sm text-muted-foreground" data-oid="mrufgbc">
+            <span className="text-sm text-muted-foreground" data-oid="uix2ftq">
               {(
                 health.memory_usage_percent ||
                 (health.memory_usage_mb
@@ -234,94 +236,97 @@ export function SystemHealthCard({ className }: SystemHealthCardProps) {
                 : 0)
             }
             className="h-2"
-            data-oid="cfopjuy"
+            data-oid="-zv2qxg"
           />
         </div>
 
         {/* Disk Usage */}
-        <div className="space-y-2" data-oid="z1au8oq">
-          <div className="flex items-center justify-between" data-oid=":.-7d.x">
-            <div className="flex items-center space-x-2" data-oid="f.m6ss5">
+        <div className="space-y-2" data-oid="t0yquj6">
+          <div className="flex items-center justify-between" data-oid="vp58jdc">
+            <div className="flex items-center space-x-2" data-oid="g3np_kx">
               <HardDrive
                 className="h-4 w-4 text-purple-500"
-                data-oid="dov86z8"
+                data-oid="jnbr35j"
               />
-              <span className="text-sm font-medium" data-oid="eol260t">
+
+              <span className="text-sm font-medium" data-oid="exf38gj">
                 Disk Usage
               </span>
             </div>
-            <span className="text-sm text-muted-foreground" data-oid=":jqy0a.">
+            <span className="text-sm text-muted-foreground" data-oid="3-qmhpx">
               {(health.disk_usage_percent || 0).toFixed(1)}%
             </span>
           </div>
           <Progress
             value={health.disk_usage_percent || 0}
             className="h-2"
-            data-oid="387yu8a"
+            data-oid="h0bako2"
           />
         </div>
 
         {/* Processing Stats Grid */}
         <div
           className="grid grid-cols-2 gap-4 pt-4 border-t"
-          data-oid="bky30zi"
+          data-oid="armr40t"
         >
-          <div className="text-center" data-oid="ymotb1n">
+          <div className="text-center" data-oid=".r7h47s">
             <div
               className="flex items-center justify-center space-x-1 mb-1"
-              data-oid="h9ghlt1"
+              data-oid="2-k5pfv"
             >
               <Users
                 className="h-4 w-4 text-muted-foreground"
-                data-oid="t8_--18"
+                data-oid=":3c99.g"
               />
+
               <span
                 className="text-xs text-muted-foreground"
-                data-oid="od4p4q6"
+                data-oid=":821pwe"
               >
                 Workers
               </span>
             </div>
-            <div className="text-xl font-semibold" data-oid="cr57l6r">
+            <div className="text-xl font-semibold" data-oid="zac-cpz">
               {health.active_workers || 0}
             </div>
-            <div className="text-xs text-muted-foreground" data-oid="tgj1ur6">
+            <div className="text-xs text-muted-foreground" data-oid="23srbyx">
               Queue: {health.queue_depth || 0}
             </div>
           </div>
 
-          <div className="text-center" data-oid="uosic64">
+          <div className="text-center" data-oid=":hhe0pr">
             <div
               className="flex items-center justify-center space-x-1 mb-1"
-              data-oid="r2njw80"
+              data-oid="-aneco3"
             >
               <Activity
                 className="h-4 w-4 text-muted-foreground"
-                data-oid="hyce.dt"
+                data-oid="nf31.q4"
               />
+
               <span
                 className="text-xs text-muted-foreground"
-                data-oid="oaq4fe:"
+                data-oid="-fj39qa"
               >
                 Processing Rate
               </span>
               {processingTrend.direction === "up" && (
                 <TrendingUp
                   className="h-3 w-3 text-green-500"
-                  data-oid="omtvvf."
+                  data-oid="lyl6mfn"
                 />
               )}
               {processingTrend.direction === "down" && (
                 <TrendingDown
                   className="h-3 w-3 text-red-500"
-                  data-oid="q6at1n-"
+                  data-oid=":8j8h.c"
                 />
               )}
             </div>
-            <div className="text-xl font-semibold" data-oid="iq9e22j">
+            <div className="text-xl font-semibold" data-oid="cfdz:sz">
               {(health.processing_rate_per_minute || 0).toFixed(1)}
             </div>
-            <div className="text-xs text-muted-foreground" data-oid="wumxxf0">
+            <div className="text-xs text-muted-foreground" data-oid="hs8co5z">
               scenes/min
             </div>
           </div>
@@ -330,18 +335,19 @@ export function SystemHealthCard({ className }: SystemHealthCardProps) {
         {/* Uptime */}
         <div
           className="flex items-center justify-between pt-4 border-t"
-          data-oid="_vre824"
+          data-oid="yuu40g9"
         >
-          <div className="flex items-center space-x-2" data-oid="vlsro:6">
+          <div className="flex items-center space-x-2" data-oid="85oe364">
             <Clock
               className="h-4 w-4 text-muted-foreground"
-              data-oid="_bm6pf6"
+              data-oid="xmtvnwp"
             />
-            <span className="text-sm text-muted-foreground" data-oid="ms2tbmp">
+
+            <span className="text-sm text-muted-foreground" data-oid="022g4qp">
               Uptime
             </span>
           </div>
-          <span className="text-sm font-medium" data-oid="lx4avc5">
+          <span className="text-sm font-medium" data-oid="vgmsc3u">
             {formatUptime(health.uptime_seconds)}
           </span>
         </div>
@@ -349,7 +355,7 @@ export function SystemHealthCard({ className }: SystemHealthCardProps) {
         {/* Last Updated */}
         <div
           className="text-xs text-muted-foreground text-center"
-          data-oid="r.2nkh1"
+          data-oid="n9nslrh"
         >
           Last updated:{" "}
           {health.last_updated

@@ -14,8 +14,8 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   });
 
   return (
-    <QueryClientProvider client={queryClient} data-oid="ouq389q">
-      <BrowserRouter data-oid="-:2uftl">{children}</BrowserRouter>
+    <QueryClientProvider client={queryClient} data-oid="i0y8pf1">
+      <BrowserRouter data-oid="pkrz.fg">{children}</BrowserRouter>
     </QueryClientProvider>
   );
 };

@@ -53,7 +53,7 @@ describe("SceneGallery", () => {
   });
 
   it("should render scene gallery with scenes", () => {
-    render(<SceneGallery data-oid="20.:6en" />);
+    render(<SceneGallery data-oid="0h4lqz." />);
 
     expect(screen.getByText("3 of 3 scenes")).toBeInTheDocument();
     expect(screen.getByText("scene1.jpg")).toBeInTheDocument();
@@ -62,7 +62,7 @@ describe("SceneGallery", () => {
   });
 
   it("should filter scenes by search query", async () => {
-    render(<SceneGallery data-oid=".oil1.i" />);
+    render(<SceneGallery data-oid="gf7:vdq" />);
 
     const searchInput = screen.getByPlaceholderText("Search scenes...");
     fireEvent.change(searchInput, { target: { value: "scene1" } });
@@ -73,7 +73,7 @@ describe("SceneGallery", () => {
 
   it("should handle scene selection", () => {
     const onSceneSelect = vi.fn();
-    render(<SceneGallery onSceneSelect={onSceneSelect} data-oid="7ch0e62" />);
+    render(<SceneGallery onSceneSelect={onSceneSelect} data-oid="a:eu_8:" />);
 
     const firstScene = screen.getByText("scene1.jpg");
     fireEvent.click(firstScene.closest("div")!);
@@ -83,7 +83,7 @@ describe("SceneGallery", () => {
 
   it("should handle scene toggle", () => {
     const onSceneToggle = vi.fn();
-    render(<SceneGallery onSceneToggle={onSceneToggle} data-oid="b4jcv.l" />);
+    render(<SceneGallery onSceneToggle={onSceneToggle} data-oid="1gukc8c" />);
 
     // Find the checkbox button for the first scene
     const checkboxes = screen.getAllByRole("button");
@@ -98,7 +98,7 @@ describe("SceneGallery", () => {
   });
 
   it("should switch between grid and list view", () => {
-    render(<SceneGallery data-oid="wbizil_" />);
+    render(<SceneGallery data-oid="_mo_8ea" />);
 
     const listButton = screen.getByRole("button", { name: /list/i });
     fireEvent.click(listButton);
@@ -114,7 +114,7 @@ describe("SceneGallery", () => {
       error: null,
     } as any);
 
-    render(<SceneGallery data-oid="2cpjw6r" />);
+    render(<SceneGallery data-oid="zebyenw" />);
 
     expect(
       screen.getByRole("button", { name: /loading/i }),
@@ -128,7 +128,7 @@ describe("SceneGallery", () => {
       error: new Error("Failed to load scenes"),
     } as any);
 
-    render(<SceneGallery data-oid="mtb0uv9" />);
+    render(<SceneGallery data-oid="mlta63c" />);
 
     expect(screen.getByText("Failed to load scenes")).toBeInTheDocument();
   });
@@ -146,14 +146,14 @@ describe("SceneGallery", () => {
       error: null,
     } as any);
 
-    render(<SceneGallery data-oid="iaf1wvg" />);
+    render(<SceneGallery data-oid="ojgqjr:" />);
 
     expect(screen.getByText("No scenes found")).toBeInTheDocument();
   });
 
   it("should handle select all functionality", () => {
     const onBatchSelect = vi.fn();
-    render(<SceneGallery onBatchSelect={onBatchSelect} data-oid="7zspq4h" />);
+    render(<SceneGallery onBatchSelect={onBatchSelect} data-oid="d2ygym-" />);
 
     const selectAllButton = screen.getByRole("button", { name: /select all/i });
     fireEvent.click(selectAllButton);
@@ -162,7 +162,7 @@ describe("SceneGallery", () => {
   });
 
   it("should filter by review status", async () => {
-    render(<SceneGallery data-oid="6qc:wew" />);
+    render(<SceneGallery data-oid="k.k5jz1" />);
 
     // Find and open the status filter dropdown
     const statusFilter = screen.getByDisplayValue("All Status");
@@ -182,7 +182,7 @@ describe("SceneGallery", () => {
   });
 
   it("should filter by scene type", async () => {
-    render(<SceneGallery data-oid="fsnyz62" />);
+    render(<SceneGallery data-oid="t6yqcc2" />);
 
     // Find and open the scene type filter dropdown
     const typeFilter = screen.getByDisplayValue("All Types");
@@ -226,7 +226,7 @@ describe("SceneGallery", () => {
       error: null,
     } as any);
 
-    render(<SceneGallery data-oid="_w7ps.v" />);
+    render(<SceneGallery data-oid="4y5rvzx" />);
 
     expect(screen.getByText("95%")).toBeInTheDocument();
     expect(screen.getByText("45%")).toBeInTheDocument();

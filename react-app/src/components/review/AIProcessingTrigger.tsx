@@ -143,18 +143,21 @@ export function AIProcessingTrigger({
     switch (status) {
       case "processing":
         return (
-          <RefreshCw className="h-4 w-4 animate-spin" data-oid="0x5kc18" />
+          <RefreshCw className="h-4 w-4 animate-spin" data-oid="yp4:nfg" />
         );
+
       case "completed":
         return (
-          <CheckCircle className="h-4 w-4 text-green-600" data-oid="lwenrem" />
+          <CheckCircle className="h-4 w-4 text-green-600" data-oid="vg_qjv-" />
         );
+
       case "error":
         return (
-          <AlertCircle className="h-4 w-4 text-red-600" data-oid="am.8hqy" />
+          <AlertCircle className="h-4 w-4 text-red-600" data-oid="ee3n6tr" />
         );
+
       default:
-        return <Activity className="h-4 w-4" data-oid="zbg.kv7" />;
+        return <Activity className="h-4 w-4" data-oid="dxhr9lh" />;
     }
   };
 
@@ -162,29 +165,32 @@ export function AIProcessingTrigger({
     switch (status) {
       case "processing":
         return (
-          <Badge variant="default" className="animate-pulse" data-oid="td5sbvh">
+          <Badge variant="default" className="animate-pulse" data-oid="2h65j2z">
             Processing
           </Badge>
         );
+
       case "completed":
         return (
-          <Badge variant="secondary" data-oid=".h2fw_3">
+          <Badge variant="secondary" data-oid="krzkczz">
             Completed
           </Badge>
         );
+
       case "error":
         return (
-          <Badge variant="destructive" data-oid="q0uvk5d">
+          <Badge variant="destructive" data-oid="gyb98l2">
             Failed
           </Badge>
         );
+
       default:
         return needsProcessing ? (
-          <Badge variant="outline" data-oid="y1w_6d1">
+          <Badge variant="outline" data-oid="4bx5e2o">
             Needs Processing
           </Badge>
         ) : (
-          <Badge variant="secondary" data-oid="q1c.vvd">
+          <Badge variant="secondary" data-oid="r77nv3.">
             Processed
           </Badge>
         );
@@ -192,28 +198,28 @@ export function AIProcessingTrigger({
   };
 
   return (
-    <Card className={className} data-oid="rde8d9g">
-      <CardHeader className="pb-3" data-oid="otwwnol">
+    <Card className={className} data-oid="rfo81v6">
+      <CardHeader className="pb-3" data-oid="dvryyn4">
         <CardTitle
           className="flex items-center justify-between text-base"
-          data-oid="6co82au"
+          data-oid="e9s7u6c"
         >
-          <div className="flex items-center space-x-2" data-oid="jtxwizu">
+          <div className="flex items-center space-x-2" data-oid="k9p17qh">
             {getStatusIcon()}
-            <span data-oid="s9vink9">AI Processing</span>
+            <span data-oid="l_a-8:j">AI Processing</span>
           </div>
           {getStatusBadge()}
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-4" data-oid="zfo46fl">
+      <CardContent className="space-y-4" data-oid="e25gxrp">
         {status === "idle" && (
           <>
             {needsProcessing ? (
-              <div className="space-y-3" data-oid=":6u:cxt">
-                <Alert data-oid="9.yo2nx">
-                  <Zap className="h-4 w-4" data-oid="x238s.s" />
-                  <AlertDescription data-oid="wfl9:qv">
+              <div className="space-y-3" data-oid="rka1cmw">
+                <Alert data-oid="xs:0g_x">
+                  <Zap className="h-4 w-4" data-oid="ub50wkm" />
+                  <AlertDescription data-oid="-vejpnr">
                     This scene needs AI analysis to extract comprehensive
                     metadata.
                   </AlertDescription>
@@ -223,42 +229,43 @@ export function AIProcessingTrigger({
                   onClick={triggerAIProcessing}
                   className="w-full"
                   size="sm"
-                  data-oid="vm:enhg"
+                  data-oid="yuwtaah"
                 >
-                  <Play className="h-4 w-4 mr-2" data-oid="v6o6rhs" />
+                  <Play className="h-4 w-4 mr-2" data-oid="hvl-hng" />
                   Run AI Analysis
                 </Button>
 
                 <div
                   className="text-xs text-muted-foreground"
-                  data-oid="aejibuw"
+                  data-oid="mn54cjk"
                 >
-                  <p data-oid="cl6gd_x">Will analyze:</p>
+                  <p data-oid="dvohcb7">Will analyze:</p>
                   <ul
                     className="mt-1 space-y-1 list-disc list-inside"
-                    data-oid="v9-ed49"
+                    data-oid="udtsc5f"
                   >
-                    <li data-oid="0mlqoe.">Scene type classification</li>
-                    <li data-oid="t300hw4">Object detection & segmentation</li>
-                    <li data-oid="mq4_gd6">Interior design style analysis</li>
-                    <li data-oid="7l.fzui">Material identification</li>
-                    <li data-oid="5zg3.8-">Color palette extraction</li>
-                    <li data-oid="f8ij0-5">Depth map generation</li>
+                    <li data-oid="e6ilren">Scene type classification</li>
+                    <li data-oid="66w6hfs">Object detection & segmentation</li>
+                    <li data-oid="v8uif2b">Interior design style analysis</li>
+                    <li data-oid="zi965fl">Material identification</li>
+                    <li data-oid="5ly41bf">Color palette extraction</li>
+                    <li data-oid="06bfb7s">Depth map generation</li>
                   </ul>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-4" data-oid="j.u:lua">
+              <div className="text-center py-4" data-oid="lx1v99s">
                 <CheckCircle
                   className="h-8 w-8 mx-auto mb-2 text-green-600"
-                  data-oid="hwnh8x6"
+                  data-oid="dujz_ko"
                 />
-                <p className="text-sm font-medium" data-oid="km0e5s3">
+
+                <p className="text-sm font-medium" data-oid="jen_wub">
                   Scene Already Processed
                 </p>
                 <p
                   className="text-xs text-muted-foreground mt-1"
-                  data-oid="ht0kzgd"
+                  data-oid="hi-.vjj"
                 >
                   All AI analysis completed
                 </p>
@@ -268,9 +275,9 @@ export function AIProcessingTrigger({
                   size="sm"
                   onClick={triggerAIProcessing}
                   className="mt-2"
-                  data-oid="hon9z3k"
+                  data-oid="msymh_m"
                 >
-                  <RefreshCw className="h-4 w-4 mr-2" data-oid="pqiaj2s" />
+                  <RefreshCw className="h-4 w-4 mr-2" data-oid=".vao13g" />
                   Reprocess
                 </Button>
               </div>
@@ -279,40 +286,40 @@ export function AIProcessingTrigger({
         )}
 
         {status === "processing" && (
-          <div className="space-y-3" data-oid="bt79bk7">
-            <div className="text-center" data-oid="8wn_ype">
+          <div className="space-y-3" data-oid="21a6rj8">
+            <div className="text-center" data-oid="x7o2eit">
               <div
                 className="w-12 h-12 mx-auto mb-3 relative"
-                data-oid="vm:39bd"
+                data-oid="l:2vn9h"
               >
                 <Activity
                   className="h-12 w-12 text-primary animate-pulse"
-                  data-oid="3c770uv"
+                  data-oid="deuxksr"
                 />
               </div>
-              <p className="text-sm font-medium" data-oid="c0lsp2g">
+              <p className="text-sm font-medium" data-oid="0x6ppxc">
                 Processing Scene...
               </p>
-              <p className="text-xs text-muted-foreground" data-oid="gng5ptw">
+              <p className="text-xs text-muted-foreground" data-oid="qcx:sfc">
                 Running AI models on RunPod GPU
               </p>
             </div>
 
-            <div className="space-y-2" data-oid="lhxd.5u">
-              <div className="flex justify-between text-xs" data-oid="b284xy8">
-                <span data-oid="bfgq4a.">Progress</span>
-                <span data-oid="ft:ukdv">{Math.round(progress)}%</span>
+            <div className="space-y-2" data-oid="1n:puio">
+              <div className="flex justify-between text-xs" data-oid="g7ae1z9">
+                <span data-oid="k6y7q-.">Progress</span>
+                <span data-oid="p4mkofe">{Math.round(progress)}%</span>
               </div>
               <Progress
                 value={progress}
                 className="w-full"
-                data-oid="tlpiivs"
+                data-oid="uadog2t"
               />
             </div>
 
             <div
               className="text-xs text-muted-foreground text-center"
-              data-oid="0q9dtx9"
+              data-oid="5aonzwg"
             >
               Expected time: ~2-3 seconds
             </div>
@@ -320,33 +327,34 @@ export function AIProcessingTrigger({
         )}
 
         {status === "completed" && processingTime && (
-          <div className="text-center space-y-2" data-oid="bv--g6k">
+          <div className="text-center space-y-2" data-oid="v8:g_za">
             <CheckCircle
               className="h-8 w-8 mx-auto text-green-600"
-              data-oid="t:38u1u"
+              data-oid="odfmc81"
             />
-            <div data-oid="xs6c4ph">
+
+            <div data-oid="-m-0mc:">
               <p
                 className="text-sm font-medium text-green-600"
-                data-oid="etck7-7"
+                data-oid="y4p3wa_"
               >
                 Processing Complete!
               </p>
-              <p className="text-xs text-muted-foreground" data-oid="k8yhw-n">
+              <p className="text-xs text-muted-foreground" data-oid="m_i7172">
                 Completed in {processingTime.toFixed(1)}s
               </p>
             </div>
-            <Badge variant="secondary" className="text-xs" data-oid="68h4bi:">
-              <Clock className="h-3 w-3 mr-1" data-oid="n2k05ml" />
+            <Badge variant="secondary" className="text-xs" data-oid="zv7:rs0">
+              <Clock className="h-3 w-3 mr-1" data-oid="07qb7mw" />
               Fast Processing
             </Badge>
           </div>
         )}
 
         {status === "error" && error && (
-          <Alert variant="destructive" data-oid="h45x3p6">
-            <AlertCircle className="h-4 w-4" data-oid="ltjx8li" />
-            <AlertDescription className="text-sm" data-oid="w-r8xpr">
+          <Alert variant="destructive" data-oid="sc40qof">
+            <AlertCircle className="h-4 w-4" data-oid=".o.v1v1" />
+            <AlertDescription className="text-sm" data-oid="a.k6i06">
               {error}
             </AlertDescription>
           </Alert>

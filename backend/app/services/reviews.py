@@ -25,9 +25,22 @@ class ReviewService:
             data = review_data.model_dump()
             data["id"] = str(uuid4())
             
+            # Convert UUID fields to strings for database insertion
+            if "target_id" in data and isinstance(data["target_id"], UUID):
+                data["target_id"] = str(data["target_id"])
+            
             result = self.supabase.table("reviews").insert(data).execute()
             
-            return Review(**result.data[0])
+            # Convert result back to Review, handling UUID conversion
+            review_data_dict = result.data[0]
+            
+            # Convert string UUIDs back to UUID objects for the response model
+            if "id" in review_data_dict:
+                review_data_dict["id"] = UUID(review_data_dict["id"])
+            if "target_id" in review_data_dict:
+                review_data_dict["target_id"] = UUID(review_data_dict["target_id"])
+                
+            return Review(**review_data_dict)
             
         except Exception as e:
             logger.error(f"Failed to create review: {e}")

@@ -157,6 +157,107 @@ async def get_review_stats(
         logger.error(f"Failed to get review stats: {e}")
         raise HTTPException(status_code=500, detail="Failed to get review stats")
 
+# Frontend-compatible endpoints
+@router.post("/scenes")
+async def submit_scene_review(review: Dict[str, Any]):
+    """Submit a scene review (frontend compatibility)"""
+    try:
+        service = ReviewService()
+        scene_id = review.get("scene_id")
+        status = review.get("status")
+        notes = review.get("notes")
+        
+        if not scene_id or not status:
+            raise HTTPException(status_code=400, detail="scene_id and status are required")
+        
+        # Map status to verdict
+        verdict_map = {
+            "approved": "approve",
+            "rejected": "reject", 
+            "corrected": "edit"
+        }
+        verdict = verdict_map.get(status, "approve")
+        
+        # Handle corrections
+        after_json = None
+        if status == "corrected":
+            corrections = {}
+            if "corrected_scene_type" in review:
+                corrections["scene_type"] = review["corrected_scene_type"]
+            if "corrected_styles" in review:
+                corrections["styles"] = review["corrected_styles"]
+            after_json = corrections if corrections else None
+        
+        review_data = ReviewCreate(
+            target="scene",
+            target_id=scene_id,
+            verdict=verdict,
+            after_json=after_json,
+            notes=notes
+        )
+        
+        result = await service.create_review(review_data)
+        
+        # Apply corrections if this is an edit
+        if verdict == "edit" and after_json:
+            await service.apply_scene_corrections(scene_id, after_json)
+        
+        return {"message": f"Scene {status}", "review_id": str(result.id)}
+        
+    except Exception as e:
+        logger.error(f"Failed to submit scene review: {e}")
+        raise HTTPException(status_code=500, detail="Failed to submit scene review")
+
+@router.post("/objects")
+async def submit_object_review(review: Dict[str, Any]):
+    """Submit an object review (frontend compatibility)"""
+    try:
+        service = ReviewService()
+        object_id = review.get("object_id")
+        status = review.get("status")
+        notes = review.get("notes")
+        
+        if not object_id or not status:
+            raise HTTPException(status_code=400, detail="object_id and status are required")
+        
+        # Map status to verdict
+        verdict_map = {
+            "approved": "approve",
+            "rejected": "reject",
+            "corrected": "edit"
+        }
+        verdict = verdict_map.get(status, "approve")
+        
+        # Handle corrections
+        after_json = None
+        if status == "corrected":
+            corrections = {}
+            if "corrected_label" in review:
+                corrections["category_code"] = review["corrected_label"]
+            if "corrected_material" in review:
+                corrections["material"] = review["corrected_material"]
+            after_json = corrections if corrections else None
+        
+        review_data = ReviewCreate(
+            target="object",
+            target_id=object_id,
+            verdict=verdict,
+            after_json=after_json,
+            notes=notes
+        )
+        
+        result = await service.create_review(review_data)
+        
+        # Apply corrections if this is an edit
+        if verdict == "edit" and after_json:
+            await service.apply_object_corrections(object_id, after_json)
+        
+        return {"message": f"Object {status}", "review_id": str(result.id)}
+        
+    except Exception as e:
+        logger.error(f"Failed to submit object review: {e}")
+        raise HTTPException(status_code=500, detail="Failed to submit object review")
+
 # Additional endpoints for workflow compatibility
 @router.post("/scenes/{scene_id}/approve")
 async def approve_scene(scene_id: str, notes: Optional[str] = None):

@@ -119,51 +119,51 @@ export function StartJobModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose} data-oid="po.tta7">
-      <DialogContent className="max-w-lg" data-oid="q70t1:4">
-        <DialogHeader data-oid="y9u5jo3">
-          <DialogTitle data-oid="ltv-8:m">Start Processing Job</DialogTitle>
-          <DialogDescription data-oid="do5-uxf">
+    <Dialog open={open} onOpenChange={handleClose} data-oid="ayx:_g.">
+      <DialogContent className="max-w-lg" data-oid="xnarf3w">
+        <DialogHeader data-oid="d9rj280">
+          <DialogTitle data-oid="zifv9yc">Start Processing Job</DialogTitle>
+          <DialogDescription data-oid="u.5nlj.">
             Configure and launch a dataset processing job.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6" data-oid="o2x6w62">
+        <div className="space-y-6" data-oid=":e73vod">
           {/* Dataset Selection */}
-          <div className="space-y-2" data-oid="0.hm9cd">
-            <Label htmlFor="dataset" data-oid="805ypxw">
+          <div className="space-y-2" data-oid="z5nsuj3">
+            <Label htmlFor="dataset" data-oid="0:cv.vo">
               Select Dataset *
             </Label>
             <Select
               value={selectedDatasetId}
               onValueChange={setSelectedDatasetId}
               disabled={createJobMutation.isPending}
-              data-oid="6pdjqu9"
+              data-oid="jhxx6gx"
             >
-              <SelectTrigger data-oid="gbfvia-">
+              <SelectTrigger data-oid="j6vn9di">
                 <SelectValue
                   placeholder="Choose a dataset to process"
-                  data-oid="_:5:byf"
+                  data-oid="2nuh8n:"
                 />
               </SelectTrigger>
-              <SelectContent data-oid="kd.d6fs">
+              <SelectContent data-oid="0u0dmo7">
                 {datasets.map((dataset) => (
                   <SelectItem
                     key={dataset.id}
                     value={dataset.id}
-                    data-oid="01ucb3m"
+                    data-oid="-t10xv_"
                   >
                     <div
                       className="flex items-center justify-between w-full"
-                      data-oid="wcgzbgs"
+                      data-oid="2azss72"
                     >
-                      <div data-oid="bbvh6yj">
-                        <div className="font-medium" data-oid="lcfpo94">
+                      <div data-oid="r7zo9._">
+                        <div className="font-medium" data-oid="a16w4wi">
                           {dataset.name}
                         </div>
                         <div
                           className="text-xs text-muted-foreground"
-                          data-oid="jdzy9z0"
+                          data-oid="alk6:6:"
                         >
                           {dataset.source_url ? "HuggingFace" : "Local"} •{" "}
                           {dataset.version}
@@ -176,8 +176,8 @@ export function StartJobModal({
             </Select>
 
             {selectedDataset && (
-              <div className="text-sm text-muted-foreground" data-oid="kv8nr18">
-                <Database className="inline h-3 w-3 mr-1" data-oid="xfbc0xu" />
+              <div className="text-sm text-muted-foreground" data-oid="imf-t3.">
+                <Database className="inline h-3 w-3 mr-1" data-oid="fx2dmsv" />
                 {selectedDataset.source_url
                   ? "Remote dataset"
                   : "Local dataset"}{" "}
@@ -188,9 +188,9 @@ export function StartJobModal({
           </div>
 
           {/* Job Type Selection */}
-          <div className="space-y-3" data-oid="m0.i3h.">
-            <Label data-oid="ao6_f4i">Job Type *</Label>
-            <div className="grid gap-3" data-oid="04-7i69">
+          <div className="space-y-3" data-oid="emvla14">
+            <Label data-oid="ku07j4m">Job Type *</Label>
+            <div className="grid gap-3" data-oid="811:ajv">
               {JOB_KINDS.map((kind) => {
                 const isRecommended =
                   selectedDataset &&
@@ -206,11 +206,11 @@ export function StartJobModal({
                         : "border-border hover:bg-muted/50"
                     }`}
                     onClick={() => setJobKind(kind.value)}
-                    data-oid=":954kvu"
+                    data-oid="9vjuawk"
                   >
                     <div
                       className="flex items-start space-x-3"
-                      data-oid="rx1njue"
+                      data-oid="k8c33i7"
                     >
                       <div
                         className={`mt-0.5 rounded-full w-4 h-4 border-2 flex items-center justify-center ${
@@ -218,29 +218,29 @@ export function StartJobModal({
                             ? "border-primary bg-primary"
                             : "border-border"
                         }`}
-                        data-oid="75h6hq-"
+                        data-oid="bh6q3ha"
                       >
                         {jobKind === kind.value && (
                           <div
                             className="w-2 h-2 rounded-full bg-background"
-                            data-oid="krm-op-"
+                            data-oid="7728cts"
                           />
                         )}
                       </div>
 
-                      <div className="flex-1" data-oid="ztr75zh">
+                      <div className="flex-1" data-oid="tpdkr4x">
                         <div
                           className="flex items-center space-x-2"
-                          data-oid="n_btxlk"
+                          data-oid="7cmaf_4"
                         >
-                          <span className="font-medium" data-oid="se2402t">
+                          <span className="font-medium" data-oid="5dt99ef">
                             {kind.label}
                           </span>
                           {isRecommended && (
                             <Badge
                               variant="default"
                               className="text-xs"
-                              data-oid="kxy3xyc"
+                              data-oid="2y_j0m4"
                             >
                               Recommended
                             </Badge>
@@ -248,7 +248,7 @@ export function StartJobModal({
                         </div>
                         <p
                           className="text-sm text-muted-foreground mt-1"
-                          data-oid="9qo9dfo"
+                          data-oid="_f3yatt"
                         >
                           {kind.description}
                         </p>
@@ -256,7 +256,7 @@ export function StartJobModal({
                         {isRecommended && selectedDataset && (
                           <p
                             className="text-xs text-primary mt-2"
-                            data-oid="357xj25"
+                            data-oid="bv7c82c"
                           >
                             {getJobKindRecommendation(selectedDataset).reason}
                           </p>
@@ -270,19 +270,19 @@ export function StartJobModal({
           </div>
 
           {/* Advanced Configuration */}
-          <div className="space-y-3" data-oid="x2nf1uz">
+          <div className="space-y-3" data-oid="wro03tr">
             <div
               className="flex items-center justify-between"
-              data-oid="tmwr40j"
+              data-oid="fh_iunx"
             >
-              <Label data-oid="y4kcrai">Advanced Configuration</Label>
+              <Label data-oid="84b9d1m">Advanced Configuration</Label>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowAdvanced(!showAdvanced)}
-                data-oid="ngvnlwo"
+                data-oid="lf5r4tl"
               >
-                <Settings className="h-4 w-4 mr-1" data-oid="m:1x1wy" />
+                <Settings className="h-4 w-4 mr-1" data-oid="_mq0g12" />
                 {showAdvanced ? "Hide" : "Show"} Advanced
               </Button>
             </div>
@@ -290,11 +290,11 @@ export function StartJobModal({
             {showAdvanced && jobKind === "process" && (
               <div
                 className="space-y-4 p-4 bg-muted/50 rounded-lg"
-                data-oid="wg83-6e"
+                data-oid="cf:btvj"
               >
-                <div className="grid grid-cols-2 gap-4" data-oid="u200rcz">
-                  <div className="space-y-2" data-oid="t4jo_yh">
-                    <Label className="text-sm" data-oid="4byeb_c">
+                <div className="grid grid-cols-2 gap-4" data-oid="nwharee">
+                  <div className="space-y-2" data-oid="_r2k3sl">
+                    <Label className="text-sm" data-oid="usaowa3">
                       Scene Classifier Threshold
                     </Label>
                     <Select
@@ -305,30 +305,30 @@ export function StartJobModal({
                           scene_classifier_threshold: parseFloat(value),
                         }))
                       }
-                      data-oid="fp0aruo"
+                      data-oid="dxlgug_"
                     >
-                      <SelectTrigger data-oid="s:xtf1h">
-                        <SelectValue data-oid="6ueaosp" />
+                      <SelectTrigger data-oid="gacl6ij">
+                        <SelectValue data-oid="00fjk5g" />
                       </SelectTrigger>
-                      <SelectContent data-oid="ge7q4xj">
-                        <SelectItem value="0.3" data-oid="fmrlg-v">
+                      <SelectContent data-oid="1pwixv:">
+                        <SelectItem value="0.3" data-oid="cszo8lo">
                           0.3 (Permissive)
                         </SelectItem>
-                        <SelectItem value="0.5" data-oid="ex62rwp">
+                        <SelectItem value="0.5" data-oid="2jqn4u.">
                           0.5 (Balanced)
                         </SelectItem>
-                        <SelectItem value="0.7" data-oid="x2yvu81">
+                        <SelectItem value="0.7" data-oid="4lfnveh">
                           0.7 (Conservative)
                         </SelectItem>
-                        <SelectItem value="0.9" data-oid="hgzdgt8">
+                        <SelectItem value="0.9" data-oid="odj3som">
                           0.9 (Strict)
                         </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div className="space-y-2" data-oid="4nc104p">
-                    <Label className="text-sm" data-oid="hvg8hql">
+                  <div className="space-y-2" data-oid="b7p6vgt">
+                    <Label className="text-sm" data-oid="rjy.o.l">
                       Object Detector Threshold
                     </Label>
                     <Select
@@ -339,22 +339,22 @@ export function StartJobModal({
                           object_detector_threshold: parseFloat(value),
                         }))
                       }
-                      data-oid="3wj2:ku"
+                      data-oid="bv_33.:"
                     >
-                      <SelectTrigger data-oid="la2578x">
-                        <SelectValue data-oid="f2spg8r" />
+                      <SelectTrigger data-oid="z5vxoum">
+                        <SelectValue data-oid="dquwd34" />
                       </SelectTrigger>
-                      <SelectContent data-oid="iabsfe4">
-                        <SelectItem value="0.3" data-oid="ubt8pjz">
+                      <SelectContent data-oid="c7cq7g3">
+                        <SelectItem value="0.3" data-oid="z203080">
                           0.3 (Permissive)
                         </SelectItem>
-                        <SelectItem value="0.5" data-oid="l4q:vgi">
+                        <SelectItem value="0.5" data-oid="5l:-yk9">
                           0.5 (Balanced)
                         </SelectItem>
-                        <SelectItem value="0.7" data-oid="3vc6qih">
+                        <SelectItem value="0.7" data-oid="5fx17t3">
                           0.7 (Conservative)
                         </SelectItem>
-                        <SelectItem value="0.9" data-oid="danjl07">
+                        <SelectItem value="0.9" data-oid=":8xvw4t">
                           0.9 (Strict)
                         </SelectItem>
                       </SelectContent>
@@ -362,7 +362,7 @@ export function StartJobModal({
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2" data-oid="9bud-sl">
+                <div className="flex items-center space-x-2" data-oid="u:h_qqn">
                   <input
                     type="checkbox"
                     id="force-reprocess"
@@ -374,13 +374,13 @@ export function StartJobModal({
                       }))
                     }
                     className="rounded border-border"
-                    data-oid=":-xx489"
+                    data-oid="t-xondd"
                   />
 
                   <Label
                     htmlFor="force-reprocess"
                     className="text-sm"
-                    data-oid=".c.fs.u"
+                    data-oid="aype:i3"
                   >
                     Force reprocess (override existing results)
                   </Label>
@@ -393,14 +393,15 @@ export function StartJobModal({
           {createJobMutation.error && (
             <div
               className="bg-destructive/10 border border-destructive/20 rounded-md p-3"
-              data-oid=":ztrm.5"
+              data-oid="9p6m0yx"
             >
-              <div className="flex items-center space-x-2" data-oid="_nqgw0w">
+              <div className="flex items-center space-x-2" data-oid="n-s9sup">
                 <AlertCircle
                   className="h-4 w-4 text-destructive"
-                  data-oid="y5scain"
+                  data-oid="re7lz3l"
                 />
-                <span className="text-sm text-destructive" data-oid="knr3w20">
+
+                <span className="text-sm text-destructive" data-oid="t81y82u">
                   {createJobMutation.error?.message ||
                     "An error occurred while creating job"}
                 </span>
@@ -409,31 +410,31 @@ export function StartJobModal({
           )}
         </div>
 
-        <DialogFooter data-oid="gym9f6p">
+        <DialogFooter data-oid="7rpwg..">
           <Button
             variant="outline"
             onClick={handleClose}
             disabled={createJobMutation.isPending}
-            data-oid="v6lsz._"
+            data-oid="i.tklh9"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            data-oid="3g6nx0e"
+            data-oid="e10p0bi"
           >
             {createJobMutation.isPending ? (
               <>
                 <Loader2
                   className="h-4 w-4 mr-2 animate-spin"
-                  data-oid="_ndbgqi"
+                  data-oid="62vm9ou"
                 />
                 Starting Job...
               </>
             ) : (
               <>
-                <Play className="h-4 w-4 mr-2" data-oid="a66ukpb" />
+                <Play className="h-4 w-4 mr-2" data-oid="7dt9._k" />
                 Start {JOB_KINDS.find((k) => k.value === jobKind)?.label}
               </>
             )}

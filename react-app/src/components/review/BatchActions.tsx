@@ -99,33 +99,33 @@ export function BatchActions({
     <>
       <div
         className={`bg-card border rounded-lg p-4 ${className}`}
-        data-oid="wqrsde9"
+        data-oid="k6wgpiy"
       >
-        <div className="flex items-center justify-between" data-oid="cs9euvm">
-          <div className="flex items-center space-x-3" data-oid="8:uzwfz">
-            <Users className="h-5 w-5 text-primary" data-oid="7p2tz92" />
-            <div data-oid="jy8ny_g">
-              <div className="font-medium" data-oid="877xxsz">
+        <div className="flex items-center justify-between" data-oid="xx3auy.">
+          <div className="flex items-center space-x-3" data-oid="q1:eir-">
+            <Users className="h-5 w-5 text-primary" data-oid="yt7s4k9" />
+            <div data-oid="wkaoti5">
+              <div className="font-medium" data-oid="non0:ip">
                 {selectedScenes.length} scene
                 {selectedScenes.length !== 1 ? "s" : ""} selected
               </div>
-              <div className="text-xs text-muted-foreground" data-oid="9.zm-h.">
+              <div className="text-xs text-muted-foreground" data-oid="wfs_qwy">
                 Perform bulk review actions
               </div>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2" data-oid="sbo-a31">
+          <div className="flex items-center space-x-2" data-oid="c4qj73:">
             <Button
               variant="outline"
               size="sm"
               onClick={() => handleBatchAction("approved")}
               disabled={batchReviewMutation.isPending}
-              data-oid="jzy_.dk"
+              data-oid=":wu:6yk"
             >
               <CheckCircle
                 className="h-4 w-4 mr-1 text-green-600"
-                data-oid="me0n8c5"
+                data-oid="baj3gem"
               />
               Approve All
             </Button>
@@ -135,11 +135,11 @@ export function BatchActions({
               size="sm"
               onClick={() => handleBatchAction("rejected")}
               disabled={batchReviewMutation.isPending}
-              data-oid="1c2y28u"
+              data-oid="ptsht3v"
             >
               <XCircle
                 className="h-4 w-4 mr-1 text-red-600"
-                data-oid="r-epmhh"
+                data-oid="hqfxuxw"
               />
               Reject All
             </Button>
@@ -149,11 +149,11 @@ export function BatchActions({
               size="sm"
               onClick={() => handleBatchAction("corrected")}
               disabled={batchReviewMutation.isPending}
-              data-oid=":0hebkg"
+              data-oid="z7o9_7z"
             >
               <AlertTriangle
                 className="h-4 w-4 mr-1 text-yellow-600"
-                data-oid="wbw8a.z"
+                data-oid="prhecc."
               />
               Mark Corrected
             </Button>
@@ -163,7 +163,7 @@ export function BatchActions({
               size="sm"
               onClick={onClearSelection}
               disabled={batchReviewMutation.isPending}
-              data-oid="sj.1ytx"
+              data-oid="j2pmyql"
             >
               Clear Selection
             </Button>
@@ -171,13 +171,13 @@ export function BatchActions({
         </div>
 
         {/* Selection Summary */}
-        <div className="mt-3 flex flex-wrap gap-2" data-oid="cj-ykd6">
+        <div className="mt-3 flex flex-wrap gap-2" data-oid="czx2t4n">
           {getSelectionSummary(selectedScenes).map(({ status, count }) => (
             <Badge
               key={status}
               variant="outline"
               className="text-xs"
-              data-oid="4keja1n"
+              data-oid="gena:iz"
             >
               {count} {status.replace("_", " ")}
             </Badge>
@@ -188,36 +188,36 @@ export function BatchActions({
         {batchReviewMutation.isPending && (
           <div
             className="mt-3 flex items-center space-x-2 text-sm text-muted-foreground"
-            data-oid="5aw85re"
+            data-oid="ut-te5u"
           >
-            <Loader2 className="h-4 w-4 animate-spin" data-oid="u.wbqar" />
-            <span data-oid="z.-xw-9">Processing batch review...</span>
+            <Loader2 className="h-4 w-4 animate-spin" data-oid="23qgpn8" />
+            <span data-oid="lrhk.gz">Processing batch review...</span>
           </div>
         )}
       </div>
 
       {/* Confirmation Dialog */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog} data-oid="pr9l4ow">
-        <DialogContent className="max-w-md" data-oid="hjc6vgo">
-          <DialogHeader data-oid="e_xg3vv">
-            <DialogTitle data-oid="05rc-4b">
+      <Dialog open={showDialog} onOpenChange={setShowDialog} data-oid="ydhl64a">
+        <DialogContent className="max-w-md" data-oid="kke2qqk">
+          <DialogHeader data-oid="800xgkn">
+            <DialogTitle data-oid="176qp5:">
               {actionType && getActionLabel(actionType)} {selectedScenes.length}{" "}
               Scene{selectedScenes.length !== 1 ? "s" : ""}
             </DialogTitle>
-            <DialogDescription data-oid="y_1r9xd">
+            <DialogDescription data-oid="q8cyiaq">
               {actionType && getActionDescription(actionType)}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4" data-oid="v5ifo20">
+          <div className="space-y-4" data-oid="own5dgz">
             {/* Scene List Preview */}
             <div
               className="max-h-32 overflow-y-auto border rounded p-2"
-              data-oid="_njo35z"
+              data-oid="cboaxxx"
             >
               <div
                 className="text-xs text-muted-foreground mb-2"
-                data-oid="tu7u332"
+                data-oid="pecsna9"
               >
                 Selected scenes:
               </div>
@@ -225,7 +225,7 @@ export function BatchActions({
                 <div
                   key={scene.id}
                   className="text-xs py-1 truncate"
-                  data-oid="c5j117x"
+                  data-oid="8dgyvyk"
                 >
                   {scene.source}
                 </div>
@@ -233,7 +233,7 @@ export function BatchActions({
               {selectedScenes.length > 5 && (
                 <div
                   className="text-xs text-muted-foreground"
-                  data-oid="e_-2j1s"
+                  data-oid="acakxs-"
                 >
                   and {selectedScenes.length - 5} more...
                 </div>
@@ -241,8 +241,8 @@ export function BatchActions({
             </div>
 
             {/* Notes Input */}
-            <div className="space-y-2" data-oid="b_te_v2">
-              <Label htmlFor="batch-notes" data-oid="lunegij">
+            <div className="space-y-2" data-oid="zfzx1un">
+              <Label htmlFor="batch-notes" data-oid="e15e0dp">
                 Notes (optional)
               </Label>
               <Input
@@ -251,7 +251,7 @@ export function BatchActions({
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add notes for this batch review..."
                 disabled={batchReviewMutation.isPending}
-                data-oid="9_6_:s6"
+                data-oid="_r6e8dj"
               />
             </div>
 
@@ -259,14 +259,15 @@ export function BatchActions({
             {hasMixedStatuses(selectedScenes) && (
               <div
                 className="bg-yellow-50 border border-yellow-200 rounded p-3"
-                data-oid="07.gg1d"
+                data-oid="k0.c2d:"
               >
-                <div className="flex items-center space-x-2" data-oid="58f_8c7">
+                <div className="flex items-center space-x-2" data-oid="nl602lu">
                   <AlertTriangle
                     className="h-4 w-4 text-yellow-600"
-                    data-oid="3p233e9"
+                    data-oid="t:02r92"
                   />
-                  <span className="text-sm text-yellow-800" data-oid="dfmts6g">
+
+                  <span className="text-sm text-yellow-800" data-oid="yyhxwmb">
                     Selected scenes have different review statuses. This action
                     will override all existing reviews.
                   </span>
@@ -275,25 +276,25 @@ export function BatchActions({
             )}
           </div>
 
-          <DialogFooter data-oid="y1wayt-">
+          <DialogFooter data-oid="w-n8jsr">
             <Button
               variant="outline"
               onClick={() => setShowDialog(false)}
               disabled={batchReviewMutation.isPending}
-              data-oid="gnjy:g3"
+              data-oid="0ektp01"
             >
               Cancel
             </Button>
             <Button
               onClick={confirmBatchAction}
               disabled={batchReviewMutation.isPending}
-              data-oid="xkup.aw"
+              data-oid="b8xhu3e"
             >
               {batchReviewMutation.isPending ? (
                 <>
                   <Loader2
                     className="h-4 w-4 mr-2 animate-spin"
-                    data-oid="2py3he2"
+                    data-oid="17mno0m"
                   />
                   Processing...
                 </>

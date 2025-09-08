@@ -133,25 +133,25 @@ export function HFImportModal({ open, onClose }: HFImportModalProps) {
     !createMutation.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={handleClose} data-oid="2jqb:uw">
-      <DialogContent className="max-w-lg" data-oid="8hlm-d1">
-        <div data-oid="4z0gusk">
-          <DialogHeader data-oid="2dtaf0p">
-            <DialogTitle data-oid=":8zk1:t">
+    <Dialog open={open} onOpenChange={handleClose} data-oid="1dwdrc9">
+      <DialogContent className="max-w-lg" data-oid="j4170a4">
+        <div data-oid="31c008f">
+          <DialogHeader data-oid="_udp_vx">
+            <DialogTitle data-oid="ri.9-6k">
               Import from HuggingFace
             </DialogTitle>
-            <DialogDescription data-oid="dzmyi-d">
+            <DialogDescription data-oid="eyq3p7-">
               Import a dataset directly from HuggingFace Hub.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4" data-oid="mhykkab">
+          <div className="space-y-4" data-oid="hrh9jlv">
             {/* HuggingFace URL */}
-            <div className="space-y-2" data-oid="37z9kqj">
-              <Label htmlFor="hf-url" data-oid="4w28037">
+            <div className="space-y-2" data-oid="xv2k-u4">
+              <Label htmlFor="hf-url" data-oid="3l0x8e5">
                 HuggingFace Dataset URL *
               </Label>
-              <div className="relative" data-oid="r79u0dd">
+              <div className="relative" data-oid="qd5ktgq">
                 <Input
                   id="hf-url"
                   value={formData.source_url}
@@ -159,23 +159,23 @@ export function HFImportModal({ open, onClose }: HFImportModalProps) {
                   placeholder="https://huggingface.co/datasets/username/dataset-name"
                   disabled={createMutation.isPending}
                   className={urlError ? "border-destructive" : ""}
-                  data-oid="jc6b99x"
+                  data-oid="ric5omq"
                 />
 
                 <div
                   className="absolute right-3 top-1/2 -translate-y-1/2"
-                  data-oid="vv8g10r"
+                  data-oid="l9bifpi"
                 >
                   {isValidating && (
                     <Loader2
                       className="h-4 w-4 animate-spin"
-                      data-oid="jey-f-5"
+                      data-oid="pez4kki"
                     />
                   )}
                   {!isValidating && formData.source_url && !urlError && (
                     <CheckCircle
                       className="h-4 w-4 text-green-500"
-                      data-oid="fklzg.u"
+                      data-oid="mv-4y_x"
                     />
                   )}
                 </div>
@@ -183,27 +183,27 @@ export function HFImportModal({ open, onClose }: HFImportModalProps) {
               {urlError && (
                 <div
                   className="flex items-center space-x-1 text-sm text-destructive"
-                  data-oid="ahfzzd5"
+                  data-oid="u4bsp37"
                 >
-                  <AlertCircle className="h-3 w-3" data-oid="ae5zv.m" />
-                  <span data-oid="9ab12b_">{urlError}</span>
+                  <AlertCircle className="h-3 w-3" data-oid="n9fafl3" />
+                  <span data-oid="whm2aja">{urlError}</span>
                 </div>
               )}
               <p
                 className="text-xs text-muted-foreground flex items-center space-x-1"
-                data-oid=".92sjo7"
+                data-oid="cjp0yj8"
               >
-                <ExternalLink className="h-3 w-3" data-oid="w2abcbw" />
-                <span data-oid=".79pb8o">
+                <ExternalLink className="h-3 w-3" data-oid="zci7jaw" />
+                <span data-oid="xnfw.q-">
                   Browse datasets at huggingface.co/datasets
                 </span>
               </p>
             </div>
 
             {/* Dataset Metadata */}
-            <div className="grid grid-cols-2 gap-4" data-oid=":zn9f6y">
-              <div className="space-y-2" data-oid="0xmgipv">
-                <Label htmlFor="name" data-oid="8a3o3jd">
+            <div className="grid grid-cols-2 gap-4" data-oid="_9-fl98">
+              <div className="space-y-2" data-oid="ucszgsp">
+                <Label htmlFor="name" data-oid="ctqc1gl">
                   Dataset Name *
                 </Label>
                 <Input
@@ -214,11 +214,11 @@ export function HFImportModal({ open, onClose }: HFImportModalProps) {
                   }
                   placeholder="living-rooms-hf"
                   disabled={createMutation.isPending}
-                  data-oid="fiahaja"
+                  data-oid="cwbvp1l"
                 />
               </div>
-              <div className="space-y-2" data-oid="1gnl.g.">
-                <Label htmlFor="version" data-oid="71cst92">
+              <div className="space-y-2" data-oid="lb:mjoh">
+                <Label htmlFor="version" data-oid="36.81_t">
                   Version
                 </Label>
                 <Input
@@ -232,13 +232,13 @@ export function HFImportModal({ open, onClose }: HFImportModalProps) {
                   }
                   placeholder="v1.0"
                   disabled={createMutation.isPending}
-                  data-oid="j0-a8or"
+                  data-oid="fwr_jc5"
                 />
               </div>
             </div>
 
-            <div className="space-y-2" data-oid="vi_.2m8">
-              <Label htmlFor="license" data-oid="8ysw6y1">
+            <div className="space-y-2" data-oid="am4dr_:">
+              <Label htmlFor="license" data-oid="mn3r0_2">
                 License (optional)
               </Label>
               <Input
@@ -249,12 +249,12 @@ export function HFImportModal({ open, onClose }: HFImportModalProps) {
                 }
                 placeholder="Will be auto-detected from HuggingFace"
                 disabled={createMutation.isPending}
-                data-oid="eau7o21"
+                data-oid="jv_m.p0"
               />
             </div>
 
-            <div className="space-y-2" data-oid="iqcj:r3">
-              <Label htmlFor="notes" data-oid="hjwhcty">
+            <div className="space-y-2" data-oid="1wzo7-a">
+              <Label htmlFor="notes" data-oid="9a646f0">
                 Notes (optional)
               </Label>
               <Input
@@ -265,14 +265,14 @@ export function HFImportModal({ open, onClose }: HFImportModalProps) {
                 }
                 placeholder="Imported from HuggingFace"
                 disabled={createMutation.isPending}
-                data-oid="w_n1cn-"
+                data-oid="hja3rc6"
               />
             </div>
 
             {/* Info Box */}
-            <div className="bg-muted p-3 rounded-md" data-oid="_ohajz0">
-              <p className="text-sm text-muted-foreground" data-oid="jqc--w3">
-                <strong data-oid="7pjr3k-">Note:</strong> After importing,
+            <div className="bg-muted p-3 rounded-md" data-oid="vbol__d">
+              <p className="text-sm text-muted-foreground" data-oid="66dl-z-">
+                <strong data-oid="r-io4s3">Note:</strong> After importing,
                 you'll need to run a processing job to download and analyze the
                 images from HuggingFace.
               </p>
@@ -282,14 +282,15 @@ export function HFImportModal({ open, onClose }: HFImportModalProps) {
             {createMutation.error && (
               <div
                 className="bg-destructive/10 border border-destructive/20 rounded-md p-3"
-                data-oid="43vt4ko"
+                data-oid="q3d.o4l"
               >
-                <div className="flex items-center space-x-2" data-oid=".phkiga">
+                <div className="flex items-center space-x-2" data-oid="s63qak:">
                   <AlertCircle
                     className="h-4 w-4 text-destructive"
-                    data-oid="5qjaos5"
+                    data-oid="gcgilpd"
                   />
-                  <span className="text-sm text-destructive" data-oid="kj:y6g5">
+
+                  <span className="text-sm text-destructive" data-oid="x8fejje">
                     {(createMutation.error as Error)?.message ||
                       "An error occurred during import"}
                   </span>
@@ -298,25 +299,25 @@ export function HFImportModal({ open, onClose }: HFImportModalProps) {
             )}
           </div>
 
-          <DialogFooter data-oid="lu6p:x-">
+          <DialogFooter data-oid="k2itaj5">
             <Button
               variant="outline"
               onClick={handleClose}
               disabled={createMutation.isPending}
-              data-oid="aba5-.j"
+              data-oid="lztc:f_"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={!canSubmit}
-              data-oid="byq9ay9"
+              data-oid="x-_1_-j"
             >
               {createMutation.isPending ? (
                 <>
                   <Loader2
                     className="h-4 w-4 mr-2 animate-spin"
-                    data-oid="qhwh7lb"
+                    data-oid="42nr-a:"
                   />
                   Importing...
                 </>

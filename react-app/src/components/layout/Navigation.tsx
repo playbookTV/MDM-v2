@@ -40,26 +40,26 @@ export function Navigation() {
       {/* Desktop Navigation */}
       <nav
         className="hidden md:flex border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
-        data-oid="65peida"
+        data-oid="gt-fj.y"
       >
-        <div className="container flex h-14 items-center" data-oid="wwrmy08">
-          <div className="mr-4 flex" data-oid="2:po_na">
+        <div className="container flex h-14 items-center" data-oid="uy0yh_1">
+          <div className="mr-4 flex" data-oid="og_mgep">
             <Link
               to="/"
               className="mr-6 flex items-center space-x-2"
-              data-oid="fr:al1n"
+              data-oid="ia8mp:a"
             >
-              <Home className="h-6 w-6" data-oid="xzb54e4" />
+              <Home className="h-6 w-6" data-oid="kqgfkq-" />
               <span
                 className="hidden font-bold sm:inline-block"
-                data-oid="e5am.ie"
+                data-oid="y_k5osw"
               >
                 Modomo Dataset Management
               </span>
             </Link>
             <nav
               className="flex items-center space-x-6 text-sm font-medium"
-              data-oid="wmcjmi-"
+              data-oid="lg5f.1q"
             >
               {navigationItems.map((item) => {
                 const Icon = item.icon;
@@ -73,10 +73,10 @@ export function Navigation() {
                       "flex items-center space-x-2 transition-colors hover:text-foreground/80",
                       isActive ? "text-foreground" : "text-foreground/60",
                     )}
-                    data-oid="oozcght"
+                    data-oid="8ddo:69"
                   >
-                    <Icon className="h-4 w-4" data-oid="ml.ryw2" />
-                    <span data-oid="odom52q">{item.name}</span>
+                    <Icon className="h-4 w-4" data-oid="4kijg6:" />
+                    <span data-oid="ccmuxgt">{item.name}</span>
                   </Link>
                 );
               })}
@@ -88,19 +88,19 @@ export function Navigation() {
       {/* Mobile Navigation */}
       <nav
         className="md:hidden border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
-        data-oid="mitdu5b"
+        data-oid="0oczf6_"
       >
         <div
           className="container flex h-14 items-center justify-between"
-          data-oid="14a8h59"
+          data-oid="bjd9rgv"
         >
           <Link
             to="/"
             className="flex items-center space-x-2"
-            data-oid="62tzagh"
+            data-oid="w7f_b::"
           >
-            <Home className="h-6 w-6" data-oid="x5_8vta" />
-            <span className="font-bold" data-oid="6lydiqe">
+            <Home className="h-6 w-6" data-oid="evk_8c2" />
+            <span className="font-bold" data-oid="7pk.iz6">
               MDM
             </span>
           </Link>
@@ -110,16 +110,16 @@ export function Navigation() {
             size="sm"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="px-3"
-            data-oid="ds5ilos"
+            data-oid="u1kquk1"
           >
-            <Menu className="h-4 w-4" data-oid="dcr3omd" />
+            <Menu className="h-4 w-4" data-oid=":1z.p0u" />
           </Button>
         </div>
 
         {/* Mobile Menu Dropdown */}
         {isMobileMenuOpen && (
-          <div className="border-t bg-background p-4" data-oid="-bldn55">
-            <div className="grid gap-2" data-oid="9.--6bb">
+          <div className="border-t bg-background p-4" data-oid="u:hzg09">
+            <div className="grid gap-2" data-oid="8rljmy3">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.href;
@@ -133,16 +133,16 @@ export function Navigation() {
                       "flex items-center space-x-3 rounded-md p-3 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
                       isActive && "bg-accent text-accent-foreground",
                     )}
-                    data-oid="nakziyc"
+                    data-oid="w9tjffi"
                   >
-                    <Icon className="h-4 w-4" data-oid="k12pnya" />
-                    <div className="flex flex-col" data-oid="15f73-o">
-                      <span className="font-medium" data-oid="uvww.h9">
+                    <Icon className="h-4 w-4" data-oid="_-lfiz0" />
+                    <div className="flex flex-col" data-oid="s9:onpe">
+                      <span className="font-medium" data-oid="m_1kn4y">
                         {item.name}
                       </span>
                       <span
                         className="text-xs text-muted-foreground"
-                        data-oid="c742lh:"
+                        data-oid="xa4ae4f"
                       >
                         {item.description}
                       </span>

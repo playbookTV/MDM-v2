@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Eye,
   Grid,
@@ -35,6 +36,7 @@ type ViewMode = "gallery" | "detail";
 
 export function SceneReviewPage() {
   const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<ViewMode>("gallery");
   const [selectedScenes, setSelectedScenes] = useState<Set<string>>(new Set());
   const [currentScene, setCurrentScene] = useState<Scene | null>(null);
@@ -126,6 +128,17 @@ export function SceneReviewPage() {
     setSelectedScenes(new Set());
   };
 
+  const handleProcessingComplete = () => {
+    // Invalidate React Query cache to refresh scene data after AI processing
+    queryClient.invalidateQueries({ queryKey: ["scenes"] });
+    if (currentScene) {
+      queryClient.invalidateQueries({ queryKey: ["scene", currentScene.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["sceneObjects", currentScene.id],
+      });
+    }
+  };
+
   const handleNextScene = () => {
     if (!currentScene) return;
     const nextScene = getNextScene(currentScene.id);
@@ -172,59 +185,59 @@ export function SceneReviewPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background" data-oid="2yumk3n">
+    <div className="min-h-screen bg-background" data-oid="-keqib4">
       {/* Header */}
-      <div className="border-b bg-card" data-oid="0xeeba0">
-        <div className="container mx-auto px-4 py-4" data-oid="cy60cwg">
-          <div className="flex items-center justify-between" data-oid="_2a_ks-">
-            <div className="flex items-center space-x-4" data-oid="zenm:36">
-              <div data-oid="aoftif8">
+      <div className="border-b bg-card" data-oid="rhib7r_">
+        <div className="container mx-auto px-4 py-4" data-oid="zzqt_c:">
+          <div className="flex items-center justify-between" data-oid="b6561dd">
+            <div className="flex items-center space-x-4" data-oid="imz_6f5">
+              <div data-oid="7-u:0kh">
                 <h1
                   className="text-2xl font-bold tracking-tight"
-                  data-oid="vvgd_k-"
+                  data-oid="xb6js-8"
                 >
                   Scene Review
                 </h1>
-                <p className="text-sm text-muted-foreground" data-oid="e6898or">
+                <p className="text-sm text-muted-foreground" data-oid="_u_792v">
                   Human-in-the-loop quality control for AI predictions
                 </p>
               </div>
 
               {viewMode === "detail" && currentScene && (
-                <div className="flex items-center space-x-2" data-oid="28a9a6t">
+                <div className="flex items-center space-x-2" data-oid="elcnw5l">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleCloseDetail}
-                    data-oid="n-3.03d"
+                    data-oid=".gs6l34"
                   >
-                    <ArrowLeft className="h-4 w-4 mr-2" data-oid="gg00fwi" />
+                    <ArrowLeft className="h-4 w-4 mr-2" data-oid=".6pww7n" />
                     Back to Gallery
                   </Button>
-                  <Badge variant="outline" data-oid="k-:1zjn">
+                  <Badge variant="outline" data-oid="5-k.swl">
                     Scene {getCurrentSceneIndex() + 1} of {scenes.length}
                   </Badge>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center space-x-2" data-oid="gcoi3.p">
+            <div className="flex items-center space-x-2" data-oid="fqd-tzd">
               {/* Session Control */}
               <Button
                 variant={isSessionActive ? "destructive" : "default"}
                 size="sm"
                 onClick={handleToggleSession}
                 disabled={startSession.isPending || endSession.isPending}
-                data-oid="lq-d_qv"
+                data-oid="r6y1ntl"
               >
                 {isSessionActive ? (
                   <>
-                    <Pause className="h-4 w-4 mr-2" data-oid="vq0o87o" />
+                    <Pause className="h-4 w-4 mr-2" data-oid="syc:8h_" />
                     End Session
                   </>
                 ) : (
                   <>
-                    <Play className="h-4 w-4 mr-2" data-oid="vcqv6v0" />
+                    <Play className="h-4 w-4 mr-2" data-oid="kaxcg2:" />
                     Start Session
                   </>
                 )}
@@ -234,20 +247,20 @@ export function SceneReviewPage() {
               <Select
                 value={datasetFilter}
                 onValueChange={setDatasetFilter}
-                data-oid="ji.ds37"
+                data-oid="j5zya4_"
               >
-                <SelectTrigger className="w-48" data-oid="wjpi01x">
-                  <SelectValue placeholder="All Datasets" data-oid="_:8wuwa" />
+                <SelectTrigger className="w-48" data-oid="kp85krk">
+                  <SelectValue placeholder="All Datasets" data-oid="hn-u.w_" />
                 </SelectTrigger>
-                <SelectContent data-oid="b0gc3qd">
-                  <SelectItem value="all" data-oid="eeob3lp">
+                <SelectContent data-oid="-r009i_">
+                  <SelectItem value="all" data-oid=".sv51ke">
                     All Datasets
                   </SelectItem>
                   {datasets.map((dataset) => (
                     <SelectItem
                       key={dataset.id}
                       value={dataset.id}
-                      data-oid="-lid_wh"
+                      data-oid="jqds5.7"
                     >
                       {dataset.name}
                     </SelectItem>
@@ -258,40 +271,40 @@ export function SceneReviewPage() {
               <Select
                 value={statusFilter}
                 onValueChange={setStatusFilter}
-                data-oid="7sg61j:"
+                data-oid="cq5eop2"
               >
-                <SelectTrigger className="w-40" data-oid="mmlai7h">
-                  <SelectValue placeholder="Status" data-oid="dloqhe." />
+                <SelectTrigger className="w-40" data-oid="coqenmn">
+                  <SelectValue placeholder="Status" data-oid="hv4ikt4" />
                 </SelectTrigger>
-                <SelectContent data-oid="y:qcwhe">
-                  <SelectItem value="all" data-oid="uuywk37">
+                <SelectContent data-oid="5t4n6i8">
+                  <SelectItem value="all" data-oid="t..xwvb">
                     All Status
                   </SelectItem>
-                  <SelectItem value="pending" data-oid="9sgr3-b">
+                  <SelectItem value="pending" data-oid="98z-om6">
                     Pending
                   </SelectItem>
-                  <SelectItem value="approved" data-oid="6rs07f3">
+                  <SelectItem value="approved" data-oid="zno_m9:">
                     Approved
                   </SelectItem>
-                  <SelectItem value="rejected" data-oid="a3djcpk">
+                  <SelectItem value="rejected" data-oid="-30oq7d">
                     Rejected
                   </SelectItem>
-                  <SelectItem value="corrected" data-oid="-44p-sy">
+                  <SelectItem value="corrected" data-oid="wplmrr0">
                     Corrected
                   </SelectItem>
                 </SelectContent>
               </Select>
 
               {/* View Mode */}
-              <div className="flex border rounded-md" data-oid=".ez_lxn">
+              <div className="flex border rounded-md" data-oid="-5nb4sq">
                 <Button
                   variant={viewMode === "gallery" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("gallery")}
                   className="rounded-r-none"
-                  data-oid="c83lpr3"
+                  data-oid="7tfim_5"
                 >
-                  <Grid className="h-4 w-4" data-oid="i:yi:rv" />
+                  <Grid className="h-4 w-4" data-oid="1nuvhka" />
                 </Button>
                 <Button
                   variant={viewMode === "detail" ? "default" : "ghost"}
@@ -299,9 +312,9 @@ export function SceneReviewPage() {
                   onClick={() => currentScene && setViewMode("detail")}
                   className="rounded-l-none"
                   disabled={!currentScene}
-                  data-oid="rvjyr55"
+                  data-oid="fq:1nc8"
                 >
-                  <Eye className="h-4 w-4" data-oid="n8w4:ej" />
+                  <Eye className="h-4 w-4" data-oid="5xfdk5u" />
                 </Button>
               </div>
 
@@ -309,9 +322,9 @@ export function SceneReviewPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => window.location.reload()}
-                data-oid="u5w694:"
+                data-oid="uo:5v.g"
               >
-                <RefreshCw className="h-4 w-4" data-oid="2.3rv-h" />
+                <RefreshCw className="h-4 w-4" data-oid="q4x94do" />
               </Button>
             </div>
           </div>
@@ -319,53 +332,53 @@ export function SceneReviewPage() {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-6" data-oid="2f7-l_6">
+      <div className="container mx-auto px-4 py-6" data-oid="l8gzyhp">
         {viewMode === "gallery" ? (
-          <div className="space-y-6" data-oid="q.5:do_">
+          <div className="space-y-6" data-oid="w1.u8tp">
             {/* Progress Overview */}
             <div
               className="grid grid-cols-1 lg:grid-cols-3 gap-6"
-              data-oid="z-5ykwv"
+              data-oid="o1p6kps"
             >
-              <div className="lg:col-span-2" data-oid="oou-7ru">
+              <div className="lg:col-span-2" data-oid="_.9tyf7">
                 <ReviewProgress
                   datasetId={
                     datasetFilter !== "all" ? datasetFilter : undefined
                   }
-                  data-oid="k2feiba"
+                  data-oid="46j8pdd"
                 />
               </div>
-              <div className="space-y-4" data-oid="::ji2um">
+              <div className="space-y-4" data-oid="r_0p7t6">
                 <div
                   className="bg-card border rounded-lg p-4"
-                  data-oid="6giqh8x"
+                  data-oid=".7-2ze4"
                 >
-                  <h3 className="font-medium mb-2" data-oid="oal:u:o">
+                  <h3 className="font-medium mb-2" data-oid="abymprc">
                     Quick Stats
                   </h3>
-                  <div className="space-y-2 text-sm" data-oid="9x26lru">
-                    <div className="flex justify-between" data-oid="__0ykqu">
-                      <span data-oid="dg9hnar">Total Scenes:</span>
-                      <span className="font-mono" data-oid="yc06p5b">
+                  <div className="space-y-2 text-sm" data-oid="912lrll">
+                    <div className="flex justify-between" data-oid="qqkakun">
+                      <span data-oid="c9kwrua">Total Scenes:</span>
+                      <span className="font-mono" data-oid="3h1vy1k">
                         {scenes.length}
                       </span>
                     </div>
-                    <div className="flex justify-between" data-oid="fxmeyxr">
-                      <span data-oid="bfoo_8p">Selected:</span>
-                      <span className="font-mono" data-oid="wfpq:sb">
+                    <div className="flex justify-between" data-oid="ippa._m">
+                      <span data-oid="cd9cdzo">Selected:</span>
+                      <span className="font-mono" data-oid="dhrfqzl">
                         {selectedScenes.size}
                       </span>
                     </div>
                     {isSessionActive && (
                       <div
                         className="flex justify-between text-green-600"
-                        data-oid="35dd6q8"
+                        data-oid="9z66l82"
                       >
-                        <span data-oid="kfee2y8">Session Active:</span>
+                        <span data-oid=":.1ni83">Session Active:</span>
                         <Badge
                           variant="default"
                           className="text-xs"
-                          data-oid="vae.ous"
+                          data-oid="xdkib77"
                         >
                           Recording
                         </Badge>
@@ -381,7 +394,7 @@ export function SceneReviewPage() {
               <BatchActions
                 selectedScenes={selectedScenesList}
                 onClearSelection={handleClearSelection}
-                data-oid="db-myz6"
+                data-oid="xs6hp4l"
               />
             )}
 
@@ -392,17 +405,17 @@ export function SceneReviewPage() {
               onSceneSelect={handleSceneSelect}
               onSceneToggle={handleSceneToggle}
               onBatchSelect={handleBatchSelect}
-              data-oid="qkt2qiu"
+              data-oid="tg5q946"
             />
           </div>
         ) : (
           currentScene && (
             <div
               className="grid grid-cols-1 xl:grid-cols-5 gap-6"
-              data-oid="8ug6pmg"
+              data-oid="qvlylhj"
             >
               {/* Scene Detail View */}
-              <div className="xl:col-span-3" data-oid="4y5-blm">
+              <div className="xl:col-span-3" data-oid="w4j0s9a">
                 <SceneDetailView
                   sceneId={currentScene.id}
                   onNext={handleNextScene}
@@ -413,65 +426,66 @@ export function SceneReviewPage() {
                   nextSceneId={getNextSceneId()}
                   previousSceneId={getPreviousSceneId()}
                   className="h-[calc(100vh-200px)]"
-                  data-oid="9d4zbpt"
+                  data-oid=".pz_6sm"
                 />
               </div>
 
               {/* AI Analysis Panel */}
-              <div className="xl:col-span-1" data-oid="h6jmqzm">
+              <div className="xl:col-span-1" data-oid="fbttboq">
                 <AIAnalysisPanel
                   scene={currentScene}
                   selectedObject={selectedObject}
                   onObjectSelect={setSelectedObject}
+                  onProcessingComplete={handleProcessingComplete}
                   className="max-h-[calc(100vh-200px)] overflow-y-auto"
-                  data-oid="osxo:h:"
+                  data-oid="1du34_g"
                 />
               </div>
 
               {/* Annotation Tools Sidebar */}
-              <div className="xl:col-span-1 space-y-4" data-oid="t83rjs:">
+              <div className="xl:col-span-1 space-y-4" data-oid="7jh7n:0">
                 <AnnotationTools
                   scene={currentScene}
                   selectedObject={selectedObject}
                   onObjectSelect={setSelectedObject}
-                  data-oid="lm.oi45"
+                  data-oid="bni:isx"
                 />
 
                 {/* Mini Progress */}
                 <div
                   className="bg-card border rounded-lg p-4"
-                  data-oid="n.rt98l"
+                  data-oid="beejc8h"
                 >
                   <div
                     className="flex items-center justify-between mb-2"
-                    data-oid="dypt8rp"
+                    data-oid="66hrzth"
                   >
-                    <span className="text-sm font-medium" data-oid="onj4yfk">
+                    <span className="text-sm font-medium" data-oid="ujrc06v">
                       Progress
                     </span>
                     <Badge
                       variant="outline"
                       className="text-xs"
-                      data-oid="yzprj23"
+                      data-oid="wj7q2ek"
                     >
                       {getCurrentSceneIndex() + 1} / {scenes.length}
                     </Badge>
                   </div>
                   <div
                     className="w-full bg-muted rounded-full h-2"
-                    data-oid="hknc8__"
+                    data-oid=":p:ypec"
                   >
                     <div
                       className="bg-primary h-2 rounded-full transition-all"
                       style={{
                         width: `${((getCurrentSceneIndex() + 1) / scenes.length) * 100}%`,
                       }}
-                      data-oid="w.r.:o1"
+                      data-oid="tc9foj."
                     />
                   </div>
                   <div
                     className="text-xs text-muted-foreground mt-1"
-                    data-oid="cs21weu"
+                    data-oid="t1t88mm"
                   >
                     {Math.round(
                       ((getCurrentSceneIndex() + 1) / scenes.length) * 100,
@@ -481,19 +495,19 @@ export function SceneReviewPage() {
                 </div>
 
                 {/* Navigation Help */}
-                <div className="bg-muted/50 rounded-lg p-3" data-oid="qtt.ab7">
-                  <h4 className="text-xs font-medium mb-2" data-oid="0455im6">
+                <div className="bg-muted/50 rounded-lg p-3" data-oid="15rm5ja">
+                  <h4 className="text-xs font-medium mb-2" data-oid=".e16j_g">
                     Keyboard Shortcuts
                   </h4>
                   <div
                     className="space-y-1 text-xs text-muted-foreground"
-                    data-oid="a6kjieo"
+                    data-oid="hqpfi::"
                   >
-                    <div data-oid="_fpwku3">← → Arrow keys: Navigate</div>
-                    <div data-oid="g.i.3c3">A: Approve scene</div>
-                    <div data-oid="hwmx:os">R: Reject scene</div>
-                    <div data-oid="mhy3pg9">Esc: Close detail view</div>
-                    <div data-oid="adm9eqp">Space: Next scene</div>
+                    <div data-oid="lgwpcwr">← → Arrow keys: Navigate</div>
+                    <div data-oid="s1qgulo">A: Approve scene</div>
+                    <div data-oid="fuv5m8l">R: Reject scene</div>
+                    <div data-oid="rotrz-9">Esc: Close detail view</div>
+                    <div data-oid="jkqk5h0">Space: Next scene</div>
                   </div>
                 </div>
               </div>
@@ -501,7 +515,7 @@ export function SceneReviewPage() {
           )
         )}
         {error && (
-          <p className="text-sm text-muted-foreground" data-oid="qx7:k1_">
+          <p className="text-sm text-muted-foreground" data-oid="t21k.ps">
             {error?.message || "An error occurred"}
           </p>
         )}

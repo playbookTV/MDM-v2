@@ -6,12 +6,12 @@ const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto" data-oid="80-s05b">
+  <div className="relative w-full overflow-auto" data-oid="axrcrih">
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-sm", className)}
       {...props}
-      data-oid="xkr6nm-"
+      data-oid="jg50xpf"
     />
   </div>
 ));
@@ -25,7 +25,7 @@ const TableHeader = React.forwardRef<
     ref={ref}
     className={cn("[&_tr]:border-b", className)}
     {...props}
-    data-oid="ox03dtu"
+    data-oid="2-5a_bp"
   />
 ));
 TableHeader.displayName = "TableHeader";
@@ -38,7 +38,7 @@ const TableBody = React.forwardRef<
     ref={ref}
     className={cn("[&_tr:last-child]:border-0", className)}
     {...props}
-    data-oid="1q9:ahj"
+    data-oid="2rtdrnu"
   />
 ));
 TableBody.displayName = "TableBody";
@@ -51,7 +51,7 @@ const TableFooter = React.forwardRef<
     ref={ref}
     className={cn("bg-primary font-medium text-primary-foreground", className)}
     {...props}
-    data-oid="--_bm8p"
+    data-oid="2ihj8sw"
   />
 ));
 TableFooter.displayName = "TableFooter";
@@ -67,7 +67,7 @@ const TableRow = React.forwardRef<
       className,
     )}
     {...props}
-    data-oid="730nlgk"
+    data-oid="v5.i.nk"
   />
 ));
 TableRow.displayName = "TableRow";
@@ -83,7 +83,7 @@ const TableHead = React.forwardRef<
       className,
     )}
     {...props}
-    data-oid="l9-5scr"
+    data-oid="z6ccpkd"
   />
 ));
 TableHead.displayName = "TableHead";
@@ -96,7 +96,7 @@ const TableCell = React.forwardRef<
     ref={ref}
     className={cn("p-4 align-middle [&:has([role=checkbox])]:pr-0", className)}
     {...props}
-    data-oid="qqf1ng1"
+    data-oid="0p5ypo7"
   />
 ));
 TableCell.displayName = "TableCell";
@@ -109,7 +109,7 @@ const TableCaption = React.forwardRef<
     ref={ref}
     className={cn("mt-4 text-sm text-muted-foreground", className)}
     {...props}
-    data-oid="snwhzu4"
+    data-oid="wvlx9fe"
   />
 ));
 TableCaption.displayName = "TableCaption";

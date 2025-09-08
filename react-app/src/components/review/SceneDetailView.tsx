@@ -149,6 +149,7 @@ export function SceneDetailView({
       "#06b6d4",
       "#84cc16",
     ];
+
     const index = scene?.objects?.findIndex((obj) => obj.id === objectId) || 0;
     return colors[index % colors.length];
   };
@@ -157,17 +158,18 @@ export function SceneDetailView({
     return (
       <div
         className={`flex items-center justify-center min-h-96 bg-card border rounded-lg ${className}`}
-        data-oid="x5zqld:"
+        data-oid="a08uv3r"
       >
-        <div className="text-center" data-oid="v1vbi4c">
+        <div className="text-center" data-oid="p_ia0kt">
           <AlertTriangle
             className="h-12 w-12 text-destructive mx-auto mb-4"
-            data-oid="00ln:92"
+            data-oid=":s0ungw"
           />
-          <h3 className="text-lg font-semibold mb-2" data-oid="kn9yw7r">
+
+          <h3 className="text-lg font-semibold mb-2" data-oid="pn7esmx">
             Failed to load scene
           </h3>
-          <p className="text-sm text-muted-foreground" data-oid=":vdsv_5">
+          <p className="text-sm text-muted-foreground" data-oid="m0u651w">
             {error?.message || "An error occurred"}
           </p>
         </div>
@@ -179,14 +181,15 @@ export function SceneDetailView({
     return (
       <div
         className={`flex items-center justify-center min-h-96 bg-card border rounded-lg ${className}`}
-        data-oid="fa.4x:g"
+        data-oid="4ctyfd9"
       >
-        <div className="text-center" data-oid="wg95lwh">
+        <div className="text-center" data-oid="6le0vx_">
           <div
             className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"
-            data-oid="u51t1:m"
+            data-oid="23tego0"
           />
-          <p className="text-sm text-muted-foreground" data-oid="mctmfg9">
+
+          <p className="text-sm text-muted-foreground" data-oid="7q883dm">
             Loading scene...
           </p>
         </div>
@@ -201,37 +204,37 @@ export function SceneDetailView({
   return (
     <div
       className={`relative bg-card border rounded-lg overflow-hidden ${className}`}
-      data-oid="hf4zo6w"
+      data-oid="vy.xxcj"
     >
       {/* Header */}
       <div
         className="absolute top-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-b z-20 p-4"
-        data-oid="gpc3a2g"
+        data-oid="9at:puk"
       >
-        <div className="flex items-center justify-between" data-oid="f1yacf_">
-          <div className="flex items-center space-x-3" data-oid=":rmdn08">
+        <div className="flex items-center justify-between" data-oid="k788zfr">
+          <div className="flex items-center space-x-3" data-oid="_8fs243">
             <h3
               className="font-semibold truncate max-w-64"
               title={scene.source}
-              data-oid="w.bp6.l"
+              data-oid="9nlcnc:"
             >
               {scene.source}
             </h3>
-            <div className="flex items-center space-x-1" data-oid="zqnba95">
+            <div className="flex items-center space-x-1" data-oid="37-o78_">
               {scene.scene_type && (
-                <Badge variant="outline" data-oid="qga:m7k">
+                <Badge variant="outline" data-oid="50xa1-n">
                   {scene.scene_type.replace("_", " ")}
                 </Badge>
               )}
               {scene.scene_conf && (
-                <Badge variant="secondary" data-oid=":nhm_5s">
+                <Badge variant="secondary" data-oid=".0:a_rv">
                   {(scene.scene_conf * 100).toFixed(0)}% conf
                 </Badge>
               )}
               {scene.review_status && (
                 <Badge
                   variant={getReviewStatusVariant(scene.review_status)}
-                  data-oid="n:3-yvq"
+                  data-oid="p3piq0i"
                 >
                   {scene.review_status}
                 </Badge>
@@ -239,18 +242,18 @@ export function SceneDetailView({
             </div>
           </div>
 
-          <div className="flex items-center space-x-2" data-oid="kckcgw-">
+          <div className="flex items-center space-x-2" data-oid="prdrwm_">
             {/* View Controls */}
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowObjects(!showObjects)}
-              data-oid=".m3yzt8"
+              data-oid="9l6_ksm"
             >
               {showObjects ? (
-                <Eye className="h-4 w-4" data-oid="rqovqif" />
+                <Eye className="h-4 w-4" data-oid="z35swrb" />
               ) : (
-                <EyeOff className="h-4 w-4" data-oid="31s1qmg" />
+                <EyeOff className="h-4 w-4" data-oid="1abviih" />
               )}
               Objects
             </Button>
@@ -259,28 +262,28 @@ export function SceneDetailView({
               variant="outline"
               size="sm"
               onClick={() => setShowInfo(!showInfo)}
-              data-oid="spyt4tu"
+              data-oid="j298zv5"
             >
-              <Info className="h-4 w-4" data-oid="a2q16bn" />
+              <Info className="h-4 w-4" data-oid="hyfn7kg" />
             </Button>
 
             {/* Zoom Controls */}
-            <div className="flex border rounded-md" data-oid="_vbi7sg">
+            <div className="flex border rounded-md" data-oid="x1hx3f:">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setZoom(Math.max(0.1, zoom * 0.8))}
                 className="rounded-r-none"
-                data-oid="hfddmzf"
+                data-oid="yx2lsuw"
               >
-                <ZoomOut className="h-4 w-4" data-oid="9vg3ru_" />
+                <ZoomOut className="h-4 w-4" data-oid="49nh71c" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={resetView}
                 className="rounded-none border-x text-xs px-2"
-                data-oid="yc2hwtw"
+                data-oid="3.zn1vf"
               >
                 {Math.round(zoom * 100)}%
               </Button>
@@ -289,9 +292,9 @@ export function SceneDetailView({
                 size="sm"
                 onClick={() => setZoom(Math.min(5, zoom * 1.25))}
                 className="rounded-l-none"
-                data-oid="g4gavly"
+                data-oid="o18gwy_"
               >
-                <ZoomIn className="h-4 w-4" data-oid="4yb_.e8" />
+                <ZoomIn className="h-4 w-4" data-oid="aiv1l_9" />
               </Button>
             </div>
 
@@ -299,9 +302,9 @@ export function SceneDetailView({
               variant="outline"
               size="sm"
               onClick={downloadImage}
-              data-oid="mvda3yi"
+              data-oid="elfpstz"
             >
-              <Download className="h-4 w-4" data-oid="_1d3yik" />
+              <Download className="h-4 w-4" data-oid="tw29j.p" />
             </Button>
 
             {onClose && (
@@ -309,9 +312,9 @@ export function SceneDetailView({
                 variant="outline"
                 size="sm"
                 onClick={onClose}
-                data-oid="myb4ill"
+                data-oid="z-z0atp"
               >
-                <Maximize className="h-4 w-4" data-oid="sx:43l5" />
+                <Maximize className="h-4 w-4" data-oid="pvvvy7c" />
               </Button>
             )}
           </div>
@@ -328,9 +331,9 @@ export function SceneDetailView({
               onClick={onPrevious}
               className="absolute left-4 top-1/2 -translate-y-1/2 z-10"
               disabled={!previousSceneId}
-              data-oid="zpzopll"
+              data-oid="l4eufhe"
             >
-              <ChevronLeft className="h-4 w-4" data-oid="f7am8iu" />
+              <ChevronLeft className="h-4 w-4" data-oid=".:9.fb5" />
             </Button>
           )}
 
@@ -341,9 +344,9 @@ export function SceneDetailView({
               onClick={onNext}
               className="absolute right-4 top-1/2 -translate-y-1/2 z-10"
               disabled={!nextSceneId}
-              data-oid="7pp7osy"
+              data-oid="q:dn3o8"
             >
-              <ChevronRight className="h-4 w-4" data-oid="nagpjsc" />
+              <ChevronRight className="h-4 w-4" data-oid="xx53:dc" />
             </Button>
           )}
         </>
@@ -357,7 +360,7 @@ export function SceneDetailView({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        data-oid="a55z09."
+        data-oid="ugw-j2j"
       >
         <div
           className="relative transition-transform origin-center"
@@ -367,7 +370,7 @@ export function SceneDetailView({
             height: "100%",
             paddingTop: "80px", // Account for header
           }}
-          data-oid="0p2fh3k"
+          data-oid="uuxx_e-"
         >
           {/* Main Image */}
           <img
@@ -381,7 +384,7 @@ export function SceneDetailView({
               objectFit: "contain",
             }}
             draggable={false}
-            data-oid="az3:ork"
+            data-oid="f..vnk6"
           />
 
           {/* Object Overlays */}
@@ -396,7 +399,7 @@ export function SceneDetailView({
                 onClick={(e) => handleObjectClick(object, e)}
                 imageWidth={scene.width}
                 imageHeight={scene.height}
-                data-oid="vdq-u1i"
+                data-oid="lyruzec"
               />
             ))}
         </div>
@@ -406,25 +409,25 @@ export function SceneDetailView({
       {showInfo && (
         <div
           className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4 z-20"
-          data-oid="uibqfo7"
+          data-oid="-2xpgjp"
         >
           <div
             className="flex items-center justify-between text-sm"
-            data-oid="f.ys74d"
+            data-oid="62wcr0u"
           >
-            <div className="flex items-center space-x-4" data-oid="613apj.">
-              <span data-oid="fq.15y6">
+            <div className="flex items-center space-x-4" data-oid="ei1had0">
+              <span data-oid="7lvcnk7">
                 {scene.width} × {scene.height}px
               </span>
-              <span data-oid=":4kaxu8">
+              <span data-oid="wef5v92">
                 {scene.objects?.length || 0} objects
               </span>
               {scene.dataset_name && (
-                <span data-oid="b2amuck">Dataset: {scene.dataset_name}</span>
+                <span data-oid="vms9ok3">Dataset: {scene.dataset_name}</span>
               )}
             </div>
 
-            <div className="text-xs text-muted-foreground" data-oid="tuidghp">
+            <div className="text-xs text-muted-foreground" data-oid="e60ie3v">
               Use mouse wheel to zoom, drag to pan, arrow keys to navigate
             </div>
           </div>
@@ -435,29 +438,29 @@ export function SceneDetailView({
       {selectedObject && (
         <div
           className="absolute top-20 right-4 bg-background/95 backdrop-blur-sm border rounded-lg p-3 z-20 max-w-64"
-          data-oid="n17vz-v"
+          data-oid="tkoc:ux"
         >
-          <div className="space-y-2" data-oid="bxh:cij">
+          <div className="space-y-2" data-oid="sc:247s">
             <div
               className="flex items-center justify-between"
-              data-oid="8tw_mhy"
+              data-oid=":jie40c"
             >
-              <Badge variant="secondary" data-oid="rf02ss7">
+              <Badge variant="secondary" data-oid="qu0gngl">
                 {selectedObject.label}
               </Badge>
-              <span className="text-xs font-mono" data-oid="ik71t6j">
+              <span className="text-xs font-mono" data-oid="5_5ypka">
                 {(selectedObject.confidence * 100).toFixed(0)}%
               </span>
             </div>
 
             {selectedObject.material && (
-              <div className="text-xs" data-oid="sb5_z.1">
+              <div className="text-xs" data-oid="qg3pl96">
                 Material: {selectedObject.material} (
                 {(selectedObject.material_conf || 0) * 100}%)
               </div>
             )}
 
-            <div className="text-xs text-muted-foreground" data-oid="5nf1or:">
+            <div className="text-xs text-muted-foreground" data-oid=".ojmm.v">
               {Math.round(selectedObject.bbox.width)}×
               {Math.round(selectedObject.bbox.height)} at (
               {Math.round(selectedObject.bbox.x)},{" "}
@@ -465,7 +468,7 @@ export function SceneDetailView({
             </div>
 
             {selectedObject.review_status && (
-              <Badge variant="outline" className="text-xs" data-oid="7y46anm">
+              <Badge variant="outline" className="text-xs" data-oid="98_3l0a">
                 {selectedObject.review_status}
               </Badge>
             )}
@@ -515,13 +518,13 @@ function ObjectOverlay({
         borderColor: isSelected ? color : "rgba(255, 255, 255, 0.6)",
       }}
       onClick={onClick}
-      data-oid="ea_ehkh"
+      data-oid="heq5ywk"
     >
       {/* Label */}
       <div
         className="absolute -top-6 left-0 px-1 py-0.5 text-xs font-medium rounded text-white"
         style={{ backgroundColor: color }}
-        data-oid="n3zwlwr"
+        data-oid="4zw6-.s"
       >
         {object.label} ({(object.confidence * 100).toFixed(0)}%)
       </div>

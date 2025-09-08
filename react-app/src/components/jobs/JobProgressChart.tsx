@@ -44,18 +44,18 @@ export function JobProgressChart({
   }, [progress.avg_conf]);
 
   return (
-    <div className={className} data-oid="0hnc2ji">
+    <div className={className} data-oid="3cbwl9a">
       {/* Main Progress Bar */}
-      <div className="space-y-2" data-oid="yp2nn_u">
+      <div className="space-y-2" data-oid="5uxpnys">
         <div
           className="flex items-center justify-between text-sm"
-          data-oid="eta90.z"
+          data-oid="a1:clh2"
         >
-          <span className="font-medium" data-oid="21vb:4m">
+          <span className="font-medium" data-oid="sms8uh0">
             {progress.scenes_done.toLocaleString()} /{" "}
             {progress.scenes_total.toLocaleString()} scenes
           </span>
-          <span className="text-muted-foreground" data-oid="gur4-0o">
+          <span className="text-muted-foreground" data-oid="zd.btqt">
             {progressPercentage}%
           </span>
         </div>
@@ -63,13 +63,13 @@ export function JobProgressChart({
         <Progress
           value={progressPercentage}
           className="h-3"
-          data-oid="_tnzj_x"
+          data-oid="0mnb4op"
         />
 
         {progress.current_scene && (
           <p
             className="text-xs text-muted-foreground truncate"
-            data-oid="868h54_"
+            data-oid="5i-2ac8"
           >
             Processing: {progress.current_scene}
           </p>
@@ -79,55 +79,55 @@ export function JobProgressChart({
       {/* Progress Stats Grid */}
       <div
         className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4"
-        data-oid="lqn_w.:"
+        data-oid="1ry6r-m"
       >
-        <div className="bg-muted/50 rounded-md p-3" data-oid="7pp_iy3">
+        <div className="bg-muted/50 rounded-md p-3" data-oid="9q7s4jd">
           <div
             className="text-xs text-muted-foreground mb-1"
-            data-oid="10x17bj"
+            data-oid=".93a0vl"
           >
             Objects Detected
           </div>
-          <div className="text-lg font-semibold" data-oid="vogsq3n">
+          <div className="text-lg font-semibold" data-oid="d39wr6g">
             {progress.objects_detected.toLocaleString()}
           </div>
         </div>
 
-        <div className="bg-muted/50 rounded-md p-3" data-oid="3vq94lp">
+        <div className="bg-muted/50 rounded-md p-3" data-oid="e2q3k2u">
           <div
             className="text-xs text-muted-foreground mb-1"
-            data-oid="di_pc6x"
+            data-oid="shpj1xt"
           >
             Avg Confidence
           </div>
-          <div className="text-lg font-semibold" data-oid="9zu87ud">
+          <div className="text-lg font-semibold" data-oid="yqnqsb0">
             {averageConfidence}%
           </div>
         </div>
 
-        <div className="bg-muted/50 rounded-md p-3" data-oid=":4f:lwc">
+        <div className="bg-muted/50 rounded-md p-3" data-oid="jj888go">
           <div
             className="text-xs text-muted-foreground mb-1"
-            data-oid="rp0y6a2"
+            data-oid="a-xrjjp"
           >
             Processing Rate
           </div>
-          <div className="text-lg font-semibold" data-oid="o0_8dtx">
+          <div className="text-lg font-semibold" data-oid="3q3cx27">
             {processingRate}{" "}
-            <span className="text-sm font-normal" data-oid="-jrq::4">
+            <span className="text-sm font-normal" data-oid="f6_l5b2">
               scenes/min
             </span>
           </div>
         </div>
 
-        <div className="bg-muted/50 rounded-md p-3" data-oid="dubcv-y">
+        <div className="bg-muted/50 rounded-md p-3" data-oid="bq17:hg">
           <div
             className="text-xs text-muted-foreground mb-1"
-            data-oid="_ssarym"
+            data-oid=".bunmd."
           >
             ETA
           </div>
-          <div className="text-lg font-semibold" data-oid="1jrdjb2">
+          <div className="text-lg font-semibold" data-oid="awdt714">
             {etaDisplay}
           </div>
         </div>
@@ -135,11 +135,11 @@ export function JobProgressChart({
 
       {/* Failure Badge */}
       {progress.failures > 0 && (
-        <div className="mt-3 flex items-center space-x-2" data-oid="tv5khv3">
-          <Badge variant="destructive" data-oid="4793sbz">
+        <div className="mt-3 flex items-center space-x-2" data-oid="tu-qacc">
+          <Badge variant="destructive" data-oid="p5pxi95">
             {progress.failures} failure{progress.failures !== 1 ? "s" : ""}
           </Badge>
-          <span className="text-xs text-muted-foreground" data-oid="ylvkwbt">
+          <span className="text-xs text-muted-foreground" data-oid="h6krxqa">
             {((progress.failures / (progress.scenes_done || 1)) * 100).toFixed(
               1,
             )}

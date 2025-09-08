@@ -45,43 +45,44 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div
           className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center"
-          data-oid="u:xxuei"
+          data-oid="_xjcbu5"
         >
           <AlertTriangle
             className="h-12 w-12 text-destructive mb-4"
-            data-oid="mux5pno"
+            data-oid="75dxlup"
           />
-          <h2 className="text-xl font-semibold mb-2" data-oid=".k78a6y">
+
+          <h2 className="text-xl font-semibold mb-2" data-oid="96qhuyt">
             Something went wrong
           </h2>
-          <p className="text-muted-foreground mb-6 max-w-md" data-oid="n6:kbnd">
+          <p className="text-muted-foreground mb-6 max-w-md" data-oid="5z1l0nj">
             An unexpected error occurred. Please try refreshing the page or
             contact support if the problem persists.
           </p>
-          <div className="flex gap-2" data-oid=":glc51x">
+          <div className="flex gap-2" data-oid="471rhv3">
             <Button
               onClick={this.handleReset}
               variant="outline"
-              data-oid="9eatqd9"
+              data-oid="p:x7m1m"
             >
-              <RotateCcw className="h-4 w-4 mr-2" data-oid="z4y1y3h" />
+              <RotateCcw className="h-4 w-4 mr-2" data-oid="2eiiw8h" />
               Try Again
             </Button>
-            <Button onClick={() => window.location.reload()} data-oid="fho91o6">
+            <Button onClick={() => window.location.reload()} data-oid="rv0n_ay">
               Refresh Page
             </Button>
           </div>
           {process.env.NODE_ENV === "development" && this.state.error && (
-            <details className="mt-6 w-full max-w-2xl" data-oid="wi5dc9p">
+            <details className="mt-6 w-full max-w-2xl" data-oid="d3l.ltd">
               <summary
                 className="cursor-pointer text-sm text-muted-foreground"
-                data-oid="km_xog5"
+                data-oid="05ggep2"
               >
                 Error Details (Development Only)
               </summary>
               <pre
                 className="mt-2 p-4 bg-muted rounded text-left text-xs overflow-auto"
-                data-oid="m.vmqu3"
+                data-oid="ar-07ht"
               >
                 {this.state.error.stack}
               </pre>

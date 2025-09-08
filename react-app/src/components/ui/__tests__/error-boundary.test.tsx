@@ -14,7 +14,7 @@ const ThrowError = ({ shouldThrow = false }: { shouldThrow?: boolean }) => {
   if (shouldThrow) {
     throw new Error("Test error");
   }
-  return <div data-oid="c23--55">No error</div>;
+  return <div data-oid="g58yrar">No error</div>;
 };
 
 describe("ErrorBoundary", () => {
@@ -26,8 +26,8 @@ describe("ErrorBoundary", () => {
 
   it("should render children when there is no error", () => {
     render(
-      <ErrorBoundary data-oid="qo:u_vd">
-        <ThrowError data-oid="ryaw1i-" />
+      <ErrorBoundary data-oid="y-xdhs1">
+        <ThrowError data-oid="bslmoq:" />
       </ErrorBoundary>,
     );
 
@@ -36,8 +36,8 @@ describe("ErrorBoundary", () => {
 
   it("should render error UI when child throws error", () => {
     render(
-      <ErrorBoundary data-oid="1f-le0g">
-        <ThrowError shouldThrow data-oid="076vmvf" />
+      <ErrorBoundary data-oid="aeofgp-">
+        <ThrowError shouldThrow data-oid=".k2l2lx" />
       </ErrorBoundary>,
     );
 
@@ -55,8 +55,8 @@ describe("ErrorBoundary", () => {
 
   it("should log error when child throws", () => {
     render(
-      <ErrorBoundary data-oid="4sz2t4k">
-        <ThrowError shouldThrow data-oid="d0:ddp:" />
+      <ErrorBoundary data-oid="bj4p6an">
+        <ThrowError shouldThrow data-oid=":bm_4z9" />
       </ErrorBoundary>,
     );
 
@@ -73,8 +73,8 @@ describe("ErrorBoundary", () => {
     const onError = vi.fn();
 
     render(
-      <ErrorBoundary onError={onError} data-oid=".0v-617">
-        <ThrowError shouldThrow data-oid="wd6e3vr" />
+      <ErrorBoundary onError={onError} data-oid="tppi383">
+        <ThrowError shouldThrow data-oid="mh8q_e4" />
       </ErrorBoundary>,
     );
 
@@ -87,11 +87,11 @@ describe("ErrorBoundary", () => {
   });
 
   it("should render custom fallback when provided", () => {
-    const fallback = <div data-oid="uig9.s-">Custom error message</div>;
+    const fallback = <div data-oid=".k.hbtr">Custom error message</div>;
 
     render(
-      <ErrorBoundary fallback={fallback} data-oid="._4a8k1">
-        <ThrowError shouldThrow data-oid="6a017tx" />
+      <ErrorBoundary fallback={fallback} data-oid="kj_9f.d">
+        <ThrowError shouldThrow data-oid="kd9450." />
       </ErrorBoundary>,
     );
 
@@ -101,8 +101,8 @@ describe("ErrorBoundary", () => {
 
   it("should reset error state when try again is clicked", () => {
     const { rerender } = render(
-      <ErrorBoundary data-oid="50lb5s1">
-        <ThrowError shouldThrow data-oid=".hipgfj" />
+      <ErrorBoundary data-oid=".dj41bz">
+        <ThrowError shouldThrow data-oid="la-o2rk" />
       </ErrorBoundary>,
     );
 
@@ -113,8 +113,8 @@ describe("ErrorBoundary", () => {
 
     // Re-render with non-throwing component
     rerender(
-      <ErrorBoundary data-oid="wb3hlfj">
-        <ThrowError shouldThrow={false} data-oid="4aa8r1p" />
+      <ErrorBoundary data-oid="_ft36uk">
+        <ThrowError shouldThrow={false} data-oid=":rxgq36" />
       </ErrorBoundary>,
     );
 
@@ -127,8 +127,8 @@ describe("ErrorBoundary", () => {
     process.env.NODE_ENV = "development";
 
     render(
-      <ErrorBoundary data-oid="yzkgsg.">
-        <ThrowError shouldThrow data-oid="zzddoxb" />
+      <ErrorBoundary data-oid="tbndb-:">
+        <ThrowError shouldThrow data-oid="ga28atg" />
       </ErrorBoundary>,
     );
 
@@ -144,8 +144,8 @@ describe("ErrorBoundary", () => {
     process.env.NODE_ENV = "production";
 
     render(
-      <ErrorBoundary data-oid="icaxv0t">
-        <ThrowError shouldThrow data-oid="9f.wmdi" />
+      <ErrorBoundary data-oid="ms179gb">
+        <ThrowError shouldThrow data-oid=".sdvcsw" />
       </ErrorBoundary>,
     );
 
@@ -165,8 +165,8 @@ describe("ErrorBoundary", () => {
     });
 
     render(
-      <ErrorBoundary data-oid="6hp6_04">
-        <ThrowError shouldThrow data-oid="fhxh5f6" />
+      <ErrorBoundary data-oid="o-bk13:">
+        <ThrowError shouldThrow data-oid="pvczw1-" />
       </ErrorBoundary>,
     );
 

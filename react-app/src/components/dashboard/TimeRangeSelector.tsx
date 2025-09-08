@@ -95,30 +95,30 @@ export function TimeRangeSelector({
     <>
       <div
         className={`flex items-center space-x-3 ${className}`}
-        data-oid="ovxjkom"
+        data-oid="shg97dm"
       >
         {/* Time Range Selector */}
-        <div className="flex items-center space-x-2" data-oid="7.n8:b-">
-          <Clock className="h-4 w-4 text-muted-foreground" data-oid="hm56hle" />
+        <div className="flex items-center space-x-2" data-oid="fwwyqgj">
+          <Clock className="h-4 w-4 text-muted-foreground" data-oid="e30442t" />
           <Select
             value={currentTimeRange}
             onValueChange={handleTimeRangeChange}
-            data-oid="k214jet"
+            data-oid="1m3jxce"
           >
-            <SelectTrigger className="w-40" data-oid="0x7wn8i">
-              <SelectValue data-oid="44i5:30" />
+            <SelectTrigger className="w-40" data-oid="avcvekt">
+              <SelectValue data-oid="iaecz74" />
             </SelectTrigger>
-            <SelectContent data-oid="80_g:0x">
+            <SelectContent data-oid="pvlkkfh">
               {TIME_RANGES.map((range) => (
                 <SelectItem
                   key={range.value}
                   value={range.value}
-                  data-oid="::xqi4p"
+                  data-oid="77d:7z:"
                 >
                   {range.label}
                 </SelectItem>
               ))}
-              <SelectItem value="custom" data-oid="553gwh:">
+              <SelectItem value="custom" data-oid="urj8qn2">
                 Custom Range
               </SelectItem>
             </SelectContent>
@@ -126,8 +126,8 @@ export function TimeRangeSelector({
         </div>
 
         {/* Current Range Display */}
-        <div className="flex items-center space-x-2" data-oid="yb_0ijf">
-          <Badge variant="outline" className="text-xs" data-oid="b9z1xab">
+        <div className="flex items-center space-x-2" data-oid="lk62d9m">
+          <Badge variant="outline" className="text-xs" data-oid="i99l-o6">
             {getCurrentRangeLabel()}
           </Badge>
 
@@ -136,15 +136,15 @@ export function TimeRangeSelector({
               variant="ghost"
               size="sm"
               onClick={() => setShowCustomDialog(true)}
-              data-oid="nqfjc7p"
+              data-oid="n_5sj0w"
             >
-              <Calendar className="h-4 w-4" data-oid="65z3lfs" />
+              <Calendar className="h-4 w-4" data-oid="0em_kgs" />
             </Button>
           )}
         </div>
 
         {/* Data Freshness Indicator */}
-        <div className="text-xs text-muted-foreground" data-oid="ued60tr">
+        <div className="text-xs text-muted-foreground" data-oid="xw28_0s">
           Updated {getDataFreshness()}
         </div>
       </div>
@@ -153,17 +153,17 @@ export function TimeRangeSelector({
       <Dialog
         open={showCustomDialog}
         onOpenChange={setShowCustomDialog}
-        data-oid="5rtf1-t"
+        data-oid="_1.6_yi"
       >
-        <DialogContent className="max-w-md" data-oid="5vw5wla">
-          <DialogHeader data-oid="51lv22q">
-            <DialogTitle data-oid="y1tm8.o">Custom Date Range</DialogTitle>
+        <DialogContent className="max-w-md" data-oid="t:z.wv8">
+          <DialogHeader data-oid="73_th1o">
+            <DialogTitle data-oid="sdy813m">Custom Date Range</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4" data-oid="x3742m:">
-            <div className="grid grid-cols-2 gap-4" data-oid="4ftd_ea">
-              <div className="space-y-2" data-oid="eedwvht">
-                <Label htmlFor="start-date" data-oid="yf-616c">
+          <div className="space-y-4" data-oid="9wewg7o">
+            <div className="grid grid-cols-2 gap-4" data-oid="mwtsx6.">
+              <div className="space-y-2" data-oid="n0:m-.-">
+                <Label htmlFor="start-date" data-oid="2yfv6p5">
                   Start Date
                 </Label>
                 <Input
@@ -171,12 +171,12 @@ export function TimeRangeSelector({
                   type="datetime-local"
                   value={customStart}
                   onChange={(e) => setCustomStart(e.target.value)}
-                  data-oid="g1z4583"
+                  data-oid="sb75jp7"
                 />
               </div>
 
-              <div className="space-y-2" data-oid="i61o17.">
-                <Label htmlFor="end-date" data-oid="wrhvmtn">
+              <div className="space-y-2" data-oid="1yk052e">
+                <Label htmlFor="end-date" data-oid="u7epb1q">
                   End Date
                 </Label>
                 <Input
@@ -184,17 +184,17 @@ export function TimeRangeSelector({
                   type="datetime-local"
                   value={customEnd}
                   onChange={(e) => setCustomEnd(e.target.value)}
-                  data-oid="s76dpif"
+                  data-oid="fsbqnvm"
                 />
               </div>
             </div>
 
             {/* Quick Presets */}
-            <div className="space-y-2" data-oid="l2b_kx7">
-              <Label className="text-sm" data-oid="59_yyiv">
+            <div className="space-y-2" data-oid="688:n5c">
+              <Label className="text-sm" data-oid="30vy-jh">
                 Quick Presets
               </Label>
-              <div className="flex flex-wrap gap-2" data-oid="qth:rf3">
+              <div className="flex flex-wrap gap-2" data-oid="vv1.8id">
                 {[
                   { label: "Today", hours: 24 },
                   { label: "Yesterday", hours: 24, offset: 1 },
@@ -219,7 +219,7 @@ export function TimeRangeSelector({
                       setCustomStart(start.toISOString().slice(0, 16));
                       setCustomEnd(end.toISOString().slice(0, 16));
                     }}
-                    data-oid=".3-xt5t"
+                    data-oid="2ryjz8h"
                   >
                     {preset.label}
                   </Button>
@@ -228,18 +228,18 @@ export function TimeRangeSelector({
             </div>
           </div>
 
-          <DialogFooter data-oid="ighg78m">
+          <DialogFooter data-oid="roea23r">
             <Button
               variant="outline"
               onClick={() => setShowCustomDialog(false)}
-              data-oid="_8-7zx4"
+              data-oid="u56:bmt"
             >
               Cancel
             </Button>
             <Button
               onClick={handleCustomRangeSubmit}
               disabled={!customStart || !customEnd}
-              data-oid="7hu-m7k"
+              data-oid="r:r6ks2"
             >
               Apply Range
             </Button>

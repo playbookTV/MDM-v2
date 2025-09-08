@@ -27,7 +27,7 @@ const Collapsible = React.forwardRef<
       className={cn("", className)}
       data-state={isOpen ? "open" : "closed"}
       {...props}
-      data-oid="xp_kf2n"
+      data-oid="2a-genv"
     >
       {React.Children.map(children, (child) => {
         if (React.isValidElement(child)) {
@@ -59,7 +59,7 @@ const CollapsibleTrigger = React.forwardRef<
       )}
       onClick={onToggle}
       {...props}
-      data-oid="x0pipo0"
+      data-oid="3tm_f62"
     >
       {children}
     </button>
@@ -87,9 +87,9 @@ const CollapsibleContent = React.forwardRef<
         display: isOpen ? "block" : "none",
       }}
       {...props}
-      data-oid="k7w55s:"
+      data-oid="p3eetyb"
     >
-      <div className="pb-4 pt-0" data-oid="n.fpwcr">
+      <div className="pb-4 pt-0" data-oid="mmu5squ">
         {children}
       </div>
     </div>

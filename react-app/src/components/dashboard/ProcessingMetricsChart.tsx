@@ -118,18 +118,18 @@ export function ProcessingMetricsChart({
     return (
       <div
         className={`bg-card border rounded-lg p-6 ${className}`}
-        data-oid="ctacjaj"
+        data-oid="_yyzxbh"
       >
-        <div className="flex items-center space-x-2 mb-4" data-oid="h6o_amt">
-          <Activity className="h-5 w-5 text-destructive" data-oid="u6dsw:x" />
-          <h3 className="text-lg font-semibold" data-oid="57nhn46">
+        <div className="flex items-center space-x-2 mb-4" data-oid="9x-m:i-">
+          <Activity className="h-5 w-5 text-destructive" data-oid="x_de038" />
+          <h3 className="text-lg font-semibold" data-oid="x5q7-5q">
             Processing Metrics
           </h3>
-          <Badge variant="destructive" data-oid="pki68qb">
+          <Badge variant="destructive" data-oid="_-ko-1:">
             Error
           </Badge>
         </div>
-        <p className="text-sm text-muted-foreground" data-oid="i4z7jqv">
+        <p className="text-sm text-muted-foreground" data-oid="qyftth.">
           Unable to load processing metrics
         </p>
       </div>
@@ -140,17 +140,17 @@ export function ProcessingMetricsChart({
     return (
       <div
         className={`bg-card border rounded-lg p-6 ${className}`}
-        data-oid="1rswyt."
+        data-oid="kbjk-77"
       >
-        <div className="flex items-center space-x-2 mb-4" data-oid="x3._266">
-          <Activity className="h-5 w-5 animate-pulse" data-oid="y-7ytzv" />
-          <h3 className="text-lg font-semibold" data-oid="rgec-8_">
+        <div className="flex items-center space-x-2 mb-4" data-oid=".hu6_op">
+          <Activity className="h-5 w-5 animate-pulse" data-oid="z0ly482" />
+          <h3 className="text-lg font-semibold" data-oid="xbs2mjh">
             Processing Metrics
           </h3>
         </div>
         <div
           className="h-80 bg-muted animate-pulse rounded"
-          data-oid="pvrc16p"
+          data-oid=":.abuuw"
         />
       </div>
     );
@@ -159,44 +159,44 @@ export function ProcessingMetricsChart({
   return (
     <div
       className={`bg-card border rounded-lg p-6 ${className}`}
-      data-oid="lkrl1fv"
+      data-oid=".bdlm_6"
     >
       {/* Header */}
       <div
         className="flex items-center justify-between mb-6"
-        data-oid="oskqb6n"
+        data-oid="61a:hwp"
       >
-        <div className="flex items-center space-x-2" data-oid="a83b-30">
-          <Activity className="h-5 w-5" data-oid="eocatka" />
-          <h3 className="text-lg font-semibold" data-oid="mpl8wnk">
+        <div className="flex items-center space-x-2" data-oid="jolzfq:">
+          <Activity className="h-5 w-5" data-oid="qx5-ont" />
+          <h3 className="text-lg font-semibold" data-oid="b1_6rwg">
             Processing Metrics
           </h3>
         </div>
 
-        <div className="flex items-center space-x-2" data-oid="fj-8z5o">
+        <div className="flex items-center space-x-2" data-oid="o-68k09">
           <Button
             variant={chartType === "line" ? "default" : "outline"}
             size="sm"
             onClick={() => setChartType("line")}
-            data-oid="bg1ttr_"
+            data-oid="z24osy3"
           >
-            <TrendingUp className="h-4 w-4" data-oid="t7uuaj7" />
+            <TrendingUp className="h-4 w-4" data-oid="mgpdjw0" />
           </Button>
           <Button
             variant={chartType === "bar" ? "default" : "outline"}
             size="sm"
             onClick={() => setChartType("bar")}
-            data-oid="n6o9_7e"
+            data-oid="7dymroh"
           >
-            <BarChart3 className="h-4 w-4" data-oid="stz6-:5" />
+            <BarChart3 className="h-4 w-4" data-oid="d9p2qmk" />
           </Button>
           <Button
             variant={chartType === "pie" ? "default" : "outline"}
             size="sm"
             onClick={() => setChartType("pie")}
-            data-oid="ug00myy"
+            data-oid="4yc-0d:"
           >
-            <PieChartIcon className="h-4 w-4" data-oid="uu_4aeh" />
+            <PieChartIcon className="h-4 w-4" data-oid="_.uaejm" />
           </Button>
         </div>
       </div>
@@ -205,61 +205,61 @@ export function ProcessingMetricsChart({
       {summaryStats && (
         <div
           className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
-          data-oid="tv5rp-9"
+          data-oid="xkah_9k"
         >
           <div
             className="text-center p-3 bg-muted/50 rounded-md"
-            data-oid="45x4:xz"
+            data-oid="1gixsa4"
           >
             <div
               className="text-2xl font-bold text-green-600"
-              data-oid="w7k33fm"
+              data-oid="p1obsjt"
             >
               {summaryStats.totalCompleted.toLocaleString()}
             </div>
-            <div className="text-xs text-muted-foreground" data-oid="j7ado7v">
+            <div className="text-xs text-muted-foreground" data-oid="zvlhuy1">
               Jobs Completed
             </div>
           </div>
 
           <div
             className="text-center p-3 bg-muted/50 rounded-md"
-            data-oid=".lgo36v"
+            data-oid="1z03-56"
           >
-            <div className="text-2xl font-bold text-red-600" data-oid="af4.h96">
+            <div className="text-2xl font-bold text-red-600" data-oid="jhq-cyh">
               {summaryStats.totalFailed.toLocaleString()}
             </div>
-            <div className="text-xs text-muted-foreground" data-oid="drd-eee">
+            <div className="text-xs text-muted-foreground" data-oid="7ndpl7-">
               Jobs Failed
             </div>
           </div>
 
           <div
             className="text-center p-3 bg-muted/50 rounded-md"
-            data-oid="46j_qq2"
+            data-oid="ayb0hyi"
           >
             <div
               className="text-2xl font-bold text-blue-600"
-              data-oid="pmz8ygc"
+              data-oid="liny.0z"
             >
               {summaryStats.avgSuccessRate.toFixed(1)}%
             </div>
-            <div className="text-xs text-muted-foreground" data-oid="5zeebqw">
+            <div className="text-xs text-muted-foreground" data-oid="uz4h:ul">
               Avg Success Rate
             </div>
           </div>
 
           <div
             className="text-center p-3 bg-muted/50 rounded-md"
-            data-oid="r801k2o"
+            data-oid="sryf1__"
           >
             <div
               className="text-2xl font-bold text-purple-600"
-              data-oid="ur-colg"
+              data-oid=".byi2ea"
             >
               {summaryStats.avgProcessingRate.toFixed(1)}
             </div>
-            <div className="text-xs text-muted-foreground" data-oid="xdy.caj">
+            <div className="text-xs text-muted-foreground" data-oid="p.l58z8">
               Scenes/min
             </div>
           </div>
@@ -267,36 +267,38 @@ export function ProcessingMetricsChart({
       )}
 
       {/* Chart Area */}
-      <div className="h-80" data-oid="izm8gw_">
+      <div className="h-80" data-oid="o_mh2d2">
         {chartData.length === 0 ? (
           <div
             className="flex items-center justify-center h-full text-muted-foreground"
-            data-oid="80jlc4q"
+            data-oid="0so6iyj"
           >
             No data available for the selected time range
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%" data-oid="3hba9an">
+          <ResponsiveContainer width="100%" height="100%" data-oid="8out7c9">
             {chartType === "line" && (
-              <LineChart data={chartData} data-oid="kr_m2nk">
+              <LineChart data={chartData} data-oid="at_9io:">
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="#374151"
                   opacity={0.3}
-                  data-oid="48.24:4"
+                  data-oid="cdjobp3"
                 />
+
                 <XAxis
                   dataKey="dateFormatted"
                   tick={{ fontSize: 12 }}
                   stroke="#6b7280"
-                  data-oid="hbzqtgj"
+                  data-oid="m99_mxi"
                 />
 
                 <YAxis
                   tick={{ fontSize: 12 }}
                   stroke="#6b7280"
-                  data-oid=".:kth9s"
+                  data-oid="v73rkrl"
                 />
+
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "#1f2937",
@@ -304,10 +306,10 @@ export function ProcessingMetricsChart({
                     borderRadius: "8px",
                   }}
                   labelStyle={{ color: "#f9fafb" }}
-                  data-oid="5s_m:eb"
+                  data-oid=".q-twxd"
                 />
 
-                <Legend data-oid="2c57kew" />
+                <Legend data-oid="jzf5m68" />
 
                 <Line
                   type="monotone"
@@ -316,7 +318,7 @@ export function ProcessingMetricsChart({
                   strokeWidth={2}
                   name="Completed Jobs"
                   dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
-                  data-oid="9tqfr.e"
+                  data-oid="tah4-kl"
                 />
 
                 <Line
@@ -326,7 +328,7 @@ export function ProcessingMetricsChart({
                   strokeWidth={2}
                   name="Failed Jobs"
                   dot={{ fill: "#ef4444", strokeWidth: 2, r: 4 }}
-                  data-oid="2cfj2:7"
+                  data-oid="koo:dlq"
                 />
 
                 <Line
@@ -336,59 +338,62 @@ export function ProcessingMetricsChart({
                   strokeWidth={2}
                   name="Success Rate (%)"
                   dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
-                  data-oid="ff.x3s3"
+                  data-oid="9m15plz"
                 />
               </LineChart>
             )}
 
             {chartType === "bar" && (
-              <BarChart data={chartData} data-oid="7gmmpc7">
+              <BarChart data={chartData} data-oid="ciyudc4">
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="#374151"
                   opacity={0.3}
-                  data-oid="zvpxnsi"
+                  data-oid="dk9mo8l"
                 />
+
                 <XAxis
                   dataKey="dateFormatted"
                   tick={{ fontSize: 12 }}
                   stroke="#6b7280"
-                  data-oid="-7sx2ow"
+                  data-oid="m.a_d1u"
                 />
 
                 <YAxis
                   tick={{ fontSize: 12 }}
                   stroke="#6b7280"
-                  data-oid="eex_2ve"
+                  data-oid="y2b-gu."
                 />
+
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "#1f2937",
                     border: "1px solid #374151",
                     borderRadius: "8px",
                   }}
-                  data-oid="_up96su"
+                  data-oid="s.uc.t7"
                 />
 
-                <Legend data-oid=".q0-8p0" />
+                <Legend data-oid="j667v2l" />
 
                 <Bar
                   dataKey="jobsCompleted"
                   fill="#10b981"
                   name="Completed"
-                  data-oid="7km4_p_"
+                  data-oid="syaah:t"
                 />
+
                 <Bar
                   dataKey="jobsFailed"
                   fill="#ef4444"
                   name="Failed"
-                  data-oid="ync490f"
+                  data-oid="69xptuv"
                 />
               </BarChart>
             )}
 
             {chartType === "pie" && (
-              <PieChart data-oid="rxnv99.">
+              <PieChart data-oid="isjqti4">
                 <Pie
                   data={pieData}
                   cx="50%"
@@ -398,13 +403,13 @@ export function ProcessingMetricsChart({
                   paddingAngle={5}
                   dataKey="value"
                   label={(entry) => `${entry.name}: ${entry.value}`}
-                  data-oid="ww9m41z"
+                  data-oid="9-tnfq5"
                 >
                   {pieData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={entry.color}
-                      data-oid="w3t1cq_"
+                      data-oid="g4ijqy-"
                     />
                   ))}
                 </Pie>
@@ -414,10 +419,10 @@ export function ProcessingMetricsChart({
                     border: "1px solid #374151",
                     borderRadius: "8px",
                   }}
-                  data-oid="6qz7yaz"
+                  data-oid="-.uezv:"
                 />
 
-                <Legend data-oid="zqcgggo" />
+                <Legend data-oid="e7kojcs" />
               </PieChart>
             )}
           </ResponsiveContainer>

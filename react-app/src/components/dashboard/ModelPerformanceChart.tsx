@@ -136,18 +136,18 @@ export function ModelPerformanceChart({
     return (
       <div
         className={`bg-card border rounded-lg p-6 ${className}`}
-        data-oid="jb_6cx7"
+        data-oid="qq9o7sq"
       >
-        <div className="flex items-center space-x-2 mb-4" data-oid="04v56pl">
-          <Activity className="h-5 w-5 text-destructive" data-oid="5eht_ld" />
-          <h3 className="text-lg font-semibold" data-oid="vwyom2g">
+        <div className="flex items-center space-x-2 mb-4" data-oid="biss2m9">
+          <Activity className="h-5 w-5 text-destructive" data-oid="7hyeq0h" />
+          <h3 className="text-lg font-semibold" data-oid="uu8e68q">
             Model Performance
           </h3>
-          <Badge variant="destructive" data-oid="2i.kdtd">
+          <Badge variant="destructive" data-oid="b2i0ka5">
             Error
           </Badge>
         </div>
-        <p className="text-sm text-muted-foreground" data-oid="82rflrz">
+        <p className="text-sm text-muted-foreground" data-oid="l62brp2">
           Unable to load model performance data
         </p>
       </div>
@@ -158,17 +158,17 @@ export function ModelPerformanceChart({
     return (
       <div
         className={`bg-card border rounded-lg p-6 ${className}`}
-        data-oid="5q5.ete"
+        data-oid="zy05.1x"
       >
-        <div className="flex items-center space-x-2 mb-4" data-oid="nz8sgrr">
-          <Activity className="h-5 w-5 animate-pulse" data-oid="69lkxoa" />
-          <h3 className="text-lg font-semibold" data-oid="mu.h_d:">
+        <div className="flex items-center space-x-2 mb-4" data-oid="qj42_lv">
+          <Activity className="h-5 w-5 animate-pulse" data-oid="6-y_bfo" />
+          <h3 className="text-lg font-semibold" data-oid="b7hnds0">
             Model Performance
           </h3>
         </div>
         <div
           className="h-80 bg-muted animate-pulse rounded"
-          data-oid="h320_fu"
+          data-oid="6bfdlyr"
         />
       </div>
     );
@@ -177,72 +177,72 @@ export function ModelPerformanceChart({
   return (
     <div
       className={`bg-card border rounded-lg p-6 ${className}`}
-      data-oid="t0b60al"
+      data-oid="3kyakxe"
     >
       {/* Header */}
       <div
         className="flex items-center justify-between mb-6"
-        data-oid="5avv6:q"
+        data-oid="l:_jsuk"
       >
-        <div className="flex items-center space-x-2" data-oid="6_ixnk3">
-          <Activity className="h-5 w-5" data-oid="djo5:86" />
-          <h3 className="text-lg font-semibold" data-oid="8tsruo_">
+        <div className="flex items-center space-x-2" data-oid="uaalpuy">
+          <Activity className="h-5 w-5" data-oid="jjg-_if" />
+          <h3 className="text-lg font-semibold" data-oid=".gbn2_6">
             Model Performance
           </h3>
         </div>
 
-        <div className="flex items-center space-x-2" data-oid="dda4ym5">
+        <div className="flex items-center space-x-2" data-oid="ipzwvre">
           <Select
             value={selectedModel}
             onValueChange={setSelectedModel}
-            data-oid="si.eyc4"
+            data-oid="3iq-b9f"
           >
-            <SelectTrigger className="w-40" data-oid="0eikwcw">
-              <SelectValue data-oid="357wdgt" />
+            <SelectTrigger className="w-40" data-oid="tk.5h8d">
+              <SelectValue data-oid="vhihk-o" />
             </SelectTrigger>
-            <SelectContent data-oid="d3i_7bb">
-              <SelectItem value="all" data-oid="tuw9drm">
+            <SelectContent data-oid="6sdz-zo">
+              <SelectItem value="all" data-oid="_tf:_kv">
                 All Models
               </SelectItem>
-              <SelectItem value="scene_classifier" data-oid="f79deo7">
+              <SelectItem value="scene_classifier" data-oid="vkxk2gt">
                 Scene Classifier
               </SelectItem>
-              <SelectItem value="style_classifier" data-oid="zhscg2p">
+              <SelectItem value="style_classifier" data-oid="visfq42">
                 Style Classifier
               </SelectItem>
-              <SelectItem value="object_detector" data-oid="oqjq:d3">
+              <SelectItem value="object_detector" data-oid="7wbsg2m">
                 Object Detector
               </SelectItem>
-              <SelectItem value="material_detector" data-oid=".w9ov33">
+              <SelectItem value="material_detector" data-oid="kttefrt">
                 Material Detector
               </SelectItem>
             </SelectContent>
           </Select>
 
-          <div className="flex space-x-1" data-oid="2t4lykt">
+          <div className="flex space-x-1" data-oid="qfog::n">
             <Button
               variant={chartType === "confidence" ? "default" : "outline"}
               size="sm"
               onClick={() => setChartType("confidence")}
-              data-oid="33:-g8b"
+              data-oid="trhnhc4"
             >
-              <TrendingUp className="h-4 w-4" data-oid="q4p58st" />
+              <TrendingUp className="h-4 w-4" data-oid="kvfsa3p" />
             </Button>
             <Button
               variant={chartType === "accuracy" ? "default" : "outline"}
               size="sm"
               onClick={() => setChartType("accuracy")}
-              data-oid=".a5j8x2"
+              data-oid="kjkr6z3"
             >
-              <Target className="h-4 w-4" data-oid="e3nxzej" />
+              <Target className="h-4 w-4" data-oid="bk49cyi" />
             </Button>
             <Button
               variant={chartType === "radar" ? "default" : "outline"}
               size="sm"
               onClick={() => setChartType("radar")}
-              data-oid="lpt9-zn"
+              data-oid="cpw7ym3"
             >
-              <Eye className="h-4 w-4" data-oid="u.557wj" />
+              <Eye className="h-4 w-4" data-oid="ymuei82" />
             </Button>
           </div>
         </div>
@@ -250,48 +250,48 @@ export function ModelPerformanceChart({
 
       {/* Summary Stats */}
       {summary && (
-        <div className="grid grid-cols-3 gap-4 mb-6" data-oid="vwz2e5t">
+        <div className="grid grid-cols-3 gap-4 mb-6" data-oid="1w.555w">
           <div
             className="text-center p-3 bg-muted/50 rounded-md"
-            data-oid="-2ezn87"
+            data-oid="eisr6mw"
           >
             <div
               className="text-2xl font-bold text-blue-600"
-              data-oid="rd:pk82"
+              data-oid="bru9.:i"
             >
               {summary.totalModels}
             </div>
-            <div className="text-xs text-muted-foreground" data-oid="3mn3_u7">
+            <div className="text-xs text-muted-foreground" data-oid="y4f4-vu">
               Active Models
             </div>
           </div>
 
           <div
             className="text-center p-3 bg-muted/50 rounded-md"
-            data-oid="od7hztj"
+            data-oid="bd0:p.n"
           >
             <div
               className="text-2xl font-bold text-green-600"
-              data-oid="kpd2od."
+              data-oid="snz6m3d"
             >
               {summary.totalPredictions.toLocaleString()}
             </div>
-            <div className="text-xs text-muted-foreground" data-oid="84nxnl9">
+            <div className="text-xs text-muted-foreground" data-oid="v-x62xi">
               Total Predictions
             </div>
           </div>
 
           <div
             className="text-center p-3 bg-muted/50 rounded-md"
-            data-oid="7my_xd3"
+            data-oid="6rtdmpm"
           >
             <div
               className="text-2xl font-bold text-purple-600"
-              data-oid="1b9hqc5"
+              data-oid="wz9anud"
             >
               {summary.avgConfidence.toFixed(1)}%
             </div>
-            <div className="text-xs text-muted-foreground" data-oid="b-3sm8z">
+            <div className="text-xs text-muted-foreground" data-oid="j-cu3.7">
               Avg Confidence
             </div>
           </div>
@@ -299,26 +299,27 @@ export function ModelPerformanceChart({
       )}
 
       {/* Chart Area */}
-      <div className="h-80" data-oid="mssx2s8">
+      <div className="h-80" data-oid="mkeve4m">
         {!modelPerformance || modelPerformance.length === 0 ? (
           <div
             className="flex items-center justify-center h-full text-muted-foreground"
-            data-oid="9mj_mqz"
+            data-oid="8mry.a:"
           >
             No model performance data available
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%" data-oid="tcbuga7">
+          <ResponsiveContainer width="100%" height="100%" data-oid=":nkhm.l">
             {(() => {
               if (chartType === "confidence") {
                 return (
-                  <BarChart data={confidenceData} data-oid="0g6m8:v">
+                  <BarChart data={confidenceData} data-oid="wbxtogp">
                     <CartesianGrid
                       strokeDasharray="3 3"
                       stroke="#374151"
                       opacity={0.3}
-                      data-oid="zc0li.6"
+                      data-oid="rxkp04g"
                     />
+
                     <XAxis
                       dataKey="name"
                       tick={{ fontSize: 12 }}
@@ -326,7 +327,7 @@ export function ModelPerformanceChart({
                       angle={-45}
                       textAnchor="end"
                       height={60}
-                      data-oid="9cq5pv3"
+                      data-oid="4zow5yz"
                     />
 
                     <YAxis
@@ -338,7 +339,7 @@ export function ModelPerformanceChart({
                         angle: -90,
                         position: "insideLeft",
                       }}
-                      data-oid="4d-i:br"
+                      data-oid="igp3g.5"
                     />
 
                     <Tooltip
@@ -352,7 +353,7 @@ export function ModelPerformanceChart({
                         `${value.toFixed(1)}%`,
                         "Avg Confidence",
                       ]}
-                      data-oid="3_dpar9"
+                      data-oid="5qe9r5z"
                     />
 
                     <Bar
@@ -360,7 +361,7 @@ export function ModelPerformanceChart({
                       fill="#3b82f6"
                       name="Average Confidence"
                       radius={[4, 4, 0, 0]}
-                      data-oid="zy7wlc_"
+                      data-oid="aukkzzd"
                     />
                   </BarChart>
                 );
@@ -368,13 +369,14 @@ export function ModelPerformanceChart({
 
               if (chartType === "accuracy" && accuracyData.length > 0) {
                 return (
-                  <BarChart data={accuracyData.slice(0, 10)} data-oid="2vua4f7">
+                  <BarChart data={accuracyData.slice(0, 10)} data-oid="hfv4-uh">
                     <CartesianGrid
                       strokeDasharray="3 3"
                       stroke="#374151"
                       opacity={0.3}
-                      data-oid="jrr7c_v"
+                      data-oid="noyrtja"
                     />
+
                     <XAxis
                       dataKey="className"
                       tick={{ fontSize: 12 }}
@@ -382,7 +384,7 @@ export function ModelPerformanceChart({
                       angle={-45}
                       textAnchor="end"
                       height={80}
-                      data-oid="sh1z47w"
+                      data-oid="tasn7.."
                     />
 
                     <YAxis
@@ -394,7 +396,7 @@ export function ModelPerformanceChart({
                         angle: -90,
                         position: "insideLeft",
                       }}
-                      data-oid="9h7qw1p"
+                      data-oid="7dhdmd1"
                     />
 
                     <Tooltip
@@ -404,28 +406,30 @@ export function ModelPerformanceChart({
                         borderRadius: "8px",
                       }}
                       formatter={(value: number) => [`${value.toFixed(1)}%`]}
-                      data-oid="b:bg-jc"
+                      data-oid="nco_y07"
                     />
 
-                    <Legend data-oid="15csx5b" />
+                    <Legend data-oid="z3v99u3" />
 
                     <Bar
                       dataKey="precision"
                       fill="#10b981"
                       name="Precision"
-                      data-oid="ac.yz-:"
+                      data-oid="u.0.4se"
                     />
+
                     <Bar
                       dataKey="recall"
                       fill="#f59e0b"
                       name="Recall"
-                      data-oid="k77bz48"
+                      data-oid="kxrh3g2"
                     />
+
                     <Bar
                       dataKey="f1Score"
                       fill="#8b5cf6"
                       name="F1 Score"
-                      data-oid="m7mm-z5"
+                      data-oid="ne0u_cp"
                     />
                   </BarChart>
                 );
@@ -433,8 +437,8 @@ export function ModelPerformanceChart({
 
               if (chartType === "radar") {
                 return (
-                  <RadarChart data={radarData} data-oid="3klkz8e">
-                    <PolarGrid stroke="#374151" data-oid="js10bcn" />
+                  <RadarChart data={radarData} data-oid="vz0eo1.">
+                    <PolarGrid stroke="#374151" data-oid="hsy-tti" />
                     <PolarAngleAxis
                       tick={{ fontSize: 12, fill: "#6b7280" }}
                       tickFormatter={(value) => {
@@ -445,14 +449,14 @@ export function ModelPerformanceChart({
                         };
                         return labels[value as keyof typeof labels] || value;
                       }}
-                      data-oid="2z.tsuk"
+                      data-oid="buxqr64"
                     />
 
                     <PolarRadiusAxis
                       tick={{ fontSize: 10, fill: "#6b7280" }}
                       domain={[0, 100]}
                       tickCount={5}
-                      data-oid="cl9f09y"
+                      data-oid="4n0ibtu"
                     />
 
                     <Tooltip
@@ -461,7 +465,7 @@ export function ModelPerformanceChart({
                         border: "1px solid #374151",
                         borderRadius: "8px",
                       }}
-                      data-oid="v_o5969"
+                      data-oid="e0dsf0."
                     />
 
                     {radarData.map((entry, index) => (
@@ -473,10 +477,10 @@ export function ModelPerformanceChart({
                         fill={COLORS[index % COLORS.length]}
                         fillOpacity={0.1}
                         strokeWidth={2}
-                        data-oid="xfhjw8g"
+                        data-oid="m3b-9ha"
                       />
                     ))}
-                    <Legend data-oid="sd9anl9" />
+                    <Legend data-oid="janv615" />
                   </RadarChart>
                 );
               }
@@ -489,29 +493,29 @@ export function ModelPerformanceChart({
 
       {/* Model Details */}
       {selectedModel !== "all" && modelPerformance && (
-        <div className="mt-4 pt-4 border-t" data-oid="pt-ge.f">
+        <div className="mt-4 pt-4 border-t" data-oid="cmneto8">
           {modelPerformance
             .filter((model) => model.model_type === selectedModel)
             .map((model) => (
               <div
                 key={model.model_name}
                 className="text-sm"
-                data-oid="c_.868c"
+                data-oid="hv-5-3k"
               >
                 <div
                   className="flex justify-between items-center"
-                  data-oid="6cvrv4z"
+                  data-oid="rt1sflk"
                 >
-                  <span className="font-medium" data-oid="-v.v532">
+                  <span className="font-medium" data-oid="ohz5z:-">
                     {model.model_name}
                   </span>
-                  <Badge variant="outline" data-oid="z8h:-ki">
+                  <Badge variant="outline" data-oid="2nywc7e">
                     {model.total_predictions.toLocaleString()} predictions
                   </Badge>
                 </div>
                 <div
                   className="text-xs text-muted-foreground mt-1"
-                  data-oid="upz.sbv"
+                  data-oid="lisek8:"
                 >
                   Last updated: {new Date(model.last_updated).toLocaleString()}
                 </div>

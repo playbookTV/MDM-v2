@@ -8,10 +8,10 @@ import "./index.css";
 const queryClient = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode data-oid="dy0-96.">
-    <QueryClientProvider client={queryClient} data-oid="5sr03-0">
-      <BrowserRouter data-oid="wbkaxgl">
-        <App data-oid="coa2wd6" />
+  <React.StrictMode data-oid="6inq6i9">
+    <QueryClientProvider client={queryClient} data-oid=".f9jelr">
+      <BrowserRouter data-oid="y5wrn29">
+        <App data-oid="xv8t0u7" />
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>,

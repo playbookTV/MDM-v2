@@ -149,12 +149,12 @@ export function DatasetStatsTable({
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) {
-      return <ArrowUpDown className="h-4 w-4 opacity-50" data-oid="ihm3v3c" />;
+      return <ArrowUpDown className="h-4 w-4 opacity-50" data-oid="z7toggi" />;
     }
     return sortDirection === "asc" ? (
-      <ArrowUp className="h-4 w-4" data-oid="gr8cpd0" />
+      <ArrowUp className="h-4 w-4" data-oid="tvl:1j0" />
     ) : (
-      <ArrowDown className="h-4 w-4" data-oid="ur:qxmm" />
+      <ArrowDown className="h-4 w-4" data-oid=":xm62p0" />
     );
   };
 
@@ -164,18 +164,18 @@ export function DatasetStatsTable({
     return (
       <div
         className={`bg-card border rounded-lg p-6 ${className}`}
-        data-oid="eorpe_4"
+        data-oid="2isp5rv"
       >
-        <div className="flex items-center space-x-2 mb-4" data-oid="0mo0ged">
-          <Database className="h-5 w-5 text-destructive" data-oid="rgegb8l" />
-          <h3 className="text-lg font-semibold" data-oid="t_h_xz9">
+        <div className="flex items-center space-x-2 mb-4" data-oid="uudf.c7">
+          <Database className="h-5 w-5 text-destructive" data-oid="fxnwgn2" />
+          <h3 className="text-lg font-semibold" data-oid="5_bx4ua">
             Dataset Statistics
           </h3>
-          <Badge variant="destructive" data-oid="uudhwy4">
+          <Badge variant="destructive" data-oid="mtwhztp">
             Error
           </Badge>
         </div>
-        <p className="text-sm text-muted-foreground" data-oid="s9_v1s2">
+        <p className="text-sm text-muted-foreground" data-oid="y.wx4wx">
           Unable to load dataset statistics
         </p>
       </div>
@@ -185,161 +185,163 @@ export function DatasetStatsTable({
   return (
     <div
       className={`bg-card border rounded-lg p-6 ${className}`}
-      data-oid="5x8:ou:"
+      data-oid="e:fk5jk"
     >
       {/* Header */}
       <div
         className="flex items-center justify-between mb-6"
-        data-oid=".fhm_mp"
+        data-oid="b_7f-3r"
       >
-        <div className="flex items-center space-x-2" data-oid="psqpc07">
-          <Database className="h-5 w-5" data-oid="pfbu-4v" />
-          <h3 className="text-lg font-semibold" data-oid="ci1i5x0">
+        <div className="flex items-center space-x-2" data-oid="wskpkpn">
+          <Database className="h-5 w-5" data-oid="zp6.b:8" />
+          <h3 className="text-lg font-semibold" data-oid="_ssk9ss">
             Dataset Statistics
           </h3>
           {datasetStats && (
-            <Badge variant="outline" data-oid="x:vc0im">
+            <Badge variant="outline" data-oid="y:b7k18">
               {filteredData.length} of {datasetStats.length}
             </Badge>
           )}
         </div>
 
         {/* Search */}
-        <div className="relative w-64" data-oid="b_owfu-">
+        <div className="relative w-64" data-oid="h5abh3i">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
-            data-oid="depppnf"
+            data-oid="k5zhs9g"
           />
+
           <Input
             placeholder="Search datasets..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
-            data-oid="6y1p3qf"
+            data-oid="o4:uj79"
           />
         </div>
       </div>
 
       {/* Table */}
       {isLoading ? (
-        <div className="space-y-3" data-oid="sze2:2h">
+        <div className="space-y-3" data-oid="xrvotu8">
           {Array.from({ length: 5 }, (_, i) => (
             <div
               key={i}
               className="h-16 bg-muted animate-pulse rounded"
-              data-oid="g1wuqwj"
+              data-oid="7khfp48"
             />
           ))}
         </div>
       ) : filteredData.length === 0 ? (
-        <div className="text-center py-12" data-oid="4neiska">
+        <div className="text-center py-12" data-oid="15wxp_s">
           <Database
             className="mx-auto h-12 w-12 text-muted-foreground mb-4"
-            data-oid="kz1i55r"
+            data-oid="j7kj6p3"
           />
-          <h3 className="text-lg font-semibold mb-2" data-oid="f9k8_bd">
+
+          <h3 className="text-lg font-semibold mb-2" data-oid="w54nyty">
             No datasets found
           </h3>
-          <p className="text-sm text-muted-foreground" data-oid="yc:gpj-">
+          <p className="text-sm text-muted-foreground" data-oid="4g5il3r">
             {searchQuery
               ? "No datasets match your search criteria."
               : "No datasets available."}
           </p>
         </div>
       ) : (
-        <div className="rounded-md border" data-oid="hf5b_.8">
-          <Table data-oid="8ix0cub">
-            <TableHeader data-oid="_3lxnv:">
-              <TableRow data-oid="-7xttbc">
-                <TableHead data-oid="vb7752s">
+        <div className="rounded-md border" data-oid="w1:9_g3">
+          <Table data-oid="oqjbjc7">
+            <TableHeader data-oid="bl7vqws">
+              <TableRow data-oid="fa.6nra">
+                <TableHead data-oid="_v9ymba">
                   <Button
                     variant="ghost"
                     className="h-auto p-0 font-medium"
                     onClick={() => handleSort("name")}
-                    data-oid="ay9.9ik"
+                    data-oid="av5-:1p"
                   >
-                    Dataset <SortIcon field="name" data-oid="ziuw98o" />
+                    Dataset <SortIcon field="name" data-oid="iw2vhiq" />
                   </Button>
                 </TableHead>
-                <TableHead data-oid="d7jhnj5">
+                <TableHead data-oid="eknk7w3">
                   <Button
                     variant="ghost"
                     className="h-auto p-0 font-medium"
                     onClick={() => handleSort("scenes")}
-                    data-oid="adi:e7t"
+                    data-oid="vxrrivh"
                   >
-                    Scenes <SortIcon field="scenes" data-oid="-.5wu.m" />
+                    Scenes <SortIcon field="scenes" data-oid="hx.ym9-" />
                   </Button>
                 </TableHead>
-                <TableHead data-oid="9m8zs1p">
+                <TableHead data-oid="kaz7jiy">
                   <Button
                     variant="ghost"
                     className="h-auto p-0 font-medium"
                     onClick={() => handleSort("progress")}
-                    data-oid="ga_x8hm"
+                    data-oid="t6.e4mh"
                   >
-                    Progress <SortIcon field="progress" data-oid="9w0z_0a" />
+                    Progress <SortIcon field="progress" data-oid="1:b9ctk" />
                   </Button>
                 </TableHead>
-                <TableHead data-oid="aq7e_wx">
+                <TableHead data-oid="q3wco5f">
                   <Button
                     variant="ghost"
                     className="h-auto p-0 font-medium"
                     onClick={() => handleSort("objects")}
-                    data-oid="-t.7dqm"
+                    data-oid=".a36z8x"
                   >
-                    Objects <SortIcon field="objects" data-oid="pog21-." />
+                    Objects <SortIcon field="objects" data-oid="ql8zu1t" />
                   </Button>
                 </TableHead>
-                <TableHead data-oid="l4qi7z:">
+                <TableHead data-oid="qtwtelw">
                   <Button
                     variant="ghost"
                     className="h-auto p-0 font-medium"
                     onClick={() => handleSort("confidence")}
-                    data-oid="efxbp0m"
+                    data-oid="qovz6ct"
                   >
                     Confidence{" "}
-                    <SortIcon field="confidence" data-oid="jxe7g61" />
+                    <SortIcon field="confidence" data-oid="r8hkeyd" />
                   </Button>
                 </TableHead>
-                <TableHead data-oid="-qws8iv">
+                <TableHead data-oid="0bxh.0a">
                   <Button
                     variant="ghost"
                     className="h-auto p-0 font-medium"
                     onClick={() => handleSort("last_processed")}
-                    data-oid="d95hi.8"
+                    data-oid="32d246f"
                   >
                     Last Processed{" "}
-                    <SortIcon field="last_processed" data-oid="upq1lps" />
+                    <SortIcon field="last_processed" data-oid="6uikszp" />
                   </Button>
                 </TableHead>
-                <TableHead className="w-32" data-oid="e.6xg7g">
+                <TableHead className="w-32" data-oid="ookgu1v">
                   Actions
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody data-oid=".q5v692">
+            <TableBody data-oid=".b1xtbr">
               {filteredData.map((dataset) => {
                 const status = getProcessingStatus(dataset);
                 const StatusIcon = status.icon;
 
                 return (
-                  <TableRow key={dataset.dataset_id} data-oid="58wc.j9">
-                    <TableCell data-oid="_rmhfv3">
-                      <div data-oid="eaiyop0">
-                        <div className="font-medium" data-oid="7c3.t84">
+                  <TableRow key={dataset.dataset_id} data-oid="ipspmxa">
+                    <TableCell data-oid="ybgqr.x">
+                      <div data-oid="87jt7-a">
+                        <div className="font-medium" data-oid="v8yhp5f">
                           {dataset.dataset_name}
                         </div>
                         <div
                           className="text-xs text-muted-foreground"
-                          data-oid="rjz33.m"
+                          data-oid="9jh5_7l"
                         >
                           {dataset.unique_object_types || 0} object types
                         </div>
                         {/* Scene Types */}
                         <div
                           className="flex flex-wrap gap-1 mt-1"
-                          data-oid="9qtyzwe"
+                          data-oid="tv5nz3-"
                         >
                           {(dataset.scene_types || [])
                             .slice(0, 3)
@@ -348,7 +350,7 @@ export function DatasetStatsTable({
                                 key={sceneType.scene_type}
                                 variant="outline"
                                 className="text-xs"
-                                data-oid="cy2tr1j"
+                                data-oid="vfy.x9-"
                               >
                                 {sceneType.scene_type} ({sceneType.count})
                               </Badge>
@@ -357,7 +359,7 @@ export function DatasetStatsTable({
                             <Badge
                               variant="outline"
                               className="text-xs"
-                              data-oid="8bylo5z"
+                              data-oid="sta-1xo"
                             >
                               +{(dataset.scene_types || []).length - 3} more
                             </Badge>
@@ -366,24 +368,24 @@ export function DatasetStatsTable({
                       </div>
                     </TableCell>
 
-                    <TableCell data-oid="0-bke.4">
-                      <div className="text-center" data-oid="9phgg-f">
+                    <TableCell data-oid="udph4_g">
+                      <div className="text-center" data-oid="gd45f3e">
                         <div
                           className="text-lg font-semibold"
-                          data-oid="x_2legt"
+                          data-oid="0-s5e6z"
                         >
                           {dataset.total_scenes.toLocaleString()}
                         </div>
                         <div
                           className="text-xs text-muted-foreground"
-                          data-oid="grumlee"
+                          data-oid="7thn1-d"
                         >
                           {dataset.processed_scenes} processed
                         </div>
                         {(dataset.failed_scenes || 0) > 0 && (
                           <div
                             className="text-xs text-red-500"
-                            data-oid="wqz.w0i"
+                            data-oid="cetyceg"
                           >
                             {dataset.failed_scenes || 0} failed
                           </div>
@@ -391,17 +393,18 @@ export function DatasetStatsTable({
                       </div>
                     </TableCell>
 
-                    <TableCell data-oid="mzty5np">
-                      <div className="space-y-2" data-oid=".ewplp7">
+                    <TableCell data-oid="mo6aokz">
+                      <div className="space-y-2" data-oid="lngqvcm">
                         <div
                           className="flex items-center justify-between"
-                          data-oid="49uio0d"
+                          data-oid="cydqo_x"
                         >
                           <StatusIcon
                             className={`h-4 w-4 ${status.color}`}
-                            data-oid="4sc9qwe"
+                            data-oid="0as4fm8"
                           />
-                          <span className="text-sm" data-oid="gd2-v4j">
+
+                          <span className="text-sm" data-oid="ca3i2mq">
                             {(
                               dataset.processing_progress ||
                               dataset.completion_rate ||
@@ -417,16 +420,16 @@ export function DatasetStatsTable({
                             0
                           }
                           className="h-2"
-                          data-oid="y32vloe"
+                          data-oid="fsy_iw7"
                         />
                       </div>
                     </TableCell>
 
-                    <TableCell data-oid="59t0zr1">
-                      <div className="text-center" data-oid="lyow.cr">
+                    <TableCell data-oid="ce:ra7.">
+                      <div className="text-center" data-oid="ccf9ma6">
                         <div
                           className="text-lg font-semibold"
-                          data-oid="jhmj3g:"
+                          data-oid="2ja429w"
                         >
                           {(
                             dataset.objects_detected ||
@@ -436,18 +439,18 @@ export function DatasetStatsTable({
                         </div>
                         <div
                           className="text-xs text-muted-foreground"
-                          data-oid="m:w2ix."
+                          data-oid="qnf:_ko"
                         >
                           {dataset.unique_object_types || 0} types
                         </div>
                       </div>
                     </TableCell>
 
-                    <TableCell data-oid="s._wjxz">
-                      <div className="text-center" data-oid="dy-ey2-">
+                    <TableCell data-oid="q2d:9cn">
+                      <div className="text-center" data-oid="s2d92xz">
                         <div
                           className="text-lg font-semibold"
-                          data-oid="g3l47ke"
+                          data-oid="av4-e0x"
                         >
                           {((dataset.average_confidence || 0.85) * 100).toFixed(
                             1,
@@ -456,31 +459,31 @@ export function DatasetStatsTable({
                         </div>
                         <div
                           className="text-xs text-muted-foreground"
-                          data-oid="rjbme5j"
+                          data-oid="dn2_y70"
                         >
                           avg confidence
                         </div>
                       </div>
                     </TableCell>
 
-                    <TableCell data-oid="2i4n6ps">
-                      <div className="text-sm" data-oid="tsiwh:o">
+                    <TableCell data-oid=":ypx64q">
+                      <div className="text-sm" data-oid=":vq1chb">
                         {formatLastProcessed(dataset.last_processed)}
                       </div>
                     </TableCell>
 
-                    <TableCell data-oid="pd8:acx">
+                    <TableCell data-oid="vqz96_4">
                       <div
                         className="flex items-center space-x-1"
-                        data-oid="n6bb26_"
+                        data-oid="nukt.mq"
                       >
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => onViewDataset?.(dataset.dataset_id)}
-                          data-oid="pw7:9of"
+                          data-oid="nz0r8lv"
                         >
-                          <Eye className="h-3 w-3" data-oid="kmr.u:h" />
+                          <Eye className="h-3 w-3" data-oid="1vjv6bm" />
                         </Button>
                         {(dataset.processing_progress ||
                           dataset.completion_rate ||
@@ -491,9 +494,9 @@ export function DatasetStatsTable({
                             onClick={() =>
                               onProcessDataset?.(dataset.dataset_id)
                             }
-                            data-oid="jj6732e"
+                            data-oid="14x7l-o"
                           >
-                            <Play className="h-3 w-3" data-oid="h_gx5zy" />
+                            <Play className="h-3 w-3" data-oid="smw3o3g" />
                           </Button>
                         )}
                       </div>

@@ -102,24 +102,25 @@ export function JobsPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8" data-oid="_is4a:r">
+      <div className="container mx-auto px-4 py-8" data-oid="yhupvmx">
         <div
           className="flex items-center justify-center min-h-[400px]"
-          data-oid="m5uqizc"
+          data-oid="6ipksl4"
         >
           {error && (
-            <div className="text-center py-8" data-oid="52w8bql">
+            <div className="text-center py-8" data-oid="a3u-7w9">
               <AlertCircle
                 className="h-12 w-12 text-destructive mx-auto mb-4"
-                data-oid="a_9udz:"
+                data-oid="p-pqvjx"
               />
+
               <p
                 className="text-lg font-medium text-destructive mb-2"
-                data-oid="abe3iu8"
+                data-oid="--fxnhw"
               >
                 Failed to load jobs
               </p>
-              <p className="text-muted-foreground" data-oid=".7j3od4">
+              <p className="text-muted-foreground" data-oid="q6jjzk9">
                 {error?.message || "An error occurred while loading jobs"}
               </p>
             </div>
@@ -130,28 +131,28 @@ export function JobsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8" data-oid="ye0:osk">
+    <div className="container mx-auto px-4 py-8" data-oid="1_j4rym">
       {/* Header */}
       <div
         className="flex items-center justify-between mb-8"
-        data-oid="xxa3978"
+        data-oid="pxnyiqs"
       >
-        <div data-oid="ae9e_.8">
-          <h1 className="text-3xl font-bold tracking-tight" data-oid="_pu-hpj">
+        <div data-oid="swjo8aa">
+          <h1 className="text-3xl font-bold tracking-tight" data-oid="7.tomrd">
             Processing Jobs
           </h1>
-          <p className="text-muted-foreground mt-1" data-oid="m7zao61">
+          <p className="text-muted-foreground mt-1" data-oid=":sc7wi5">
             Monitor and manage dataset processing jobs
           </p>
         </div>
 
-        <div className="flex items-center space-x-2" data-oid="a_uih_c">
-          <Button variant="outline" onClick={refreshJobs} data-oid="u_t7tny">
-            <RefreshCw className="h-4 w-4 mr-2" data-oid="v0-0pph" />
+        <div className="flex items-center space-x-2" data-oid=":xeg-_k">
+          <Button variant="outline" onClick={refreshJobs} data-oid="i-2l5e1">
+            <RefreshCw className="h-4 w-4 mr-2" data-oid="6ujquz7" />
             Refresh
           </Button>
-          <Button onClick={() => setShowStartJobModal(true)} data-oid="3f-whpx">
-            <Play className="h-4 w-4 mr-2" data-oid="vzbec0a" />
+          <Button onClick={() => setShowStartJobModal(true)} data-oid="z_lmbp-">
+            <Play className="h-4 w-4 mr-2" data-oid="m-:at.7" />
             Start Job
           </Button>
         </div>
@@ -161,30 +162,30 @@ export function JobsPage() {
       {statusStats && (
         <div
           className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
-          data-oid="-5k8ti:"
+          data-oid="07fc6--"
         >
           {statusStats.map(({ status, count, label, icon: Icon, color }) => (
             <div
               key={status}
               className="bg-card border rounded-lg p-4"
-              data-oid="75z_:lk"
+              data-oid="z3l:2u:"
             >
-              <div className="flex items-center space-x-2" data-oid="hf9e35v">
-                <Icon className={`h-5 w-5 ${color}`} data-oid="t..n2w5" />
+              <div className="flex items-center space-x-2" data-oid="z45t36z">
+                <Icon className={`h-5 w-5 ${color}`} data-oid="2sur89x" />
                 <span
                   className="text-sm font-medium text-muted-foreground"
-                  data-oid="_51gv3m"
+                  data-oid="vr69o75"
                 >
                   {label}
                 </span>
               </div>
-              <div className="text-2xl font-bold mt-2" data-oid="v0_n_tv">
+              <div className="text-2xl font-bold mt-2" data-oid="9bjipju">
                 {count.toLocaleString()}
               </div>
               {status === "succeeded" && jobStats && (
                 <div
                   className="text-xs text-muted-foreground mt-1"
-                  data-oid="1y_fxw7"
+                  data-oid="xtx0yk1"
                 >
                   {jobStats.success_rate.toFixed(1)}% success rate
                 </div>
@@ -195,13 +196,14 @@ export function JobsPage() {
       )}
 
       {/* Filters */}
-      <div className="flex items-center space-x-4 mb-6" data-oid="1_yjpk4">
-        <div className="flex items-center space-x-2" data-oid="_w:03_w">
+      <div className="flex items-center space-x-4 mb-6" data-oid="6m-qzsn">
+        <div className="flex items-center space-x-2" data-oid="e70yjon">
           <Filter
             className="h-4 w-4 text-muted-foreground"
-            data-oid="s84hy.7"
+            data-oid="433l266"
           />
-          <span className="text-sm font-medium" data-oid="qu.6ezv">
+
+          <span className="text-sm font-medium" data-oid="9u2.oxx">
             Filters:
           </span>
         </div>
@@ -209,25 +211,25 @@ export function JobsPage() {
         <Select
           value={statusFilter}
           onValueChange={setStatusFilter}
-          data-oid="1q.2vzu"
+          data-oid="1xa-:sb"
         >
-          <SelectTrigger className="w-40" data-oid="h5h_t6t">
-            <SelectValue placeholder="Status" data-oid="l7g3ue_" />
+          <SelectTrigger className="w-40" data-oid="e3e3z3i">
+            <SelectValue placeholder="Status" data-oid="s1ra699" />
           </SelectTrigger>
-          <SelectContent data-oid="1dfk3ev">
-            <SelectItem value="all" data-oid="g5ftun2">
+          <SelectContent data-oid="8kgzwqq">
+            <SelectItem value="all" data-oid="drpw942">
               All Status
             </SelectItem>
-            <SelectItem value="queued" data-oid="c34145d">
+            <SelectItem value="queued" data-oid="4k5:veq">
               Queued
             </SelectItem>
-            <SelectItem value="running" data-oid="mv3xe_3">
+            <SelectItem value="running" data-oid="h5_6d8i">
               Running
             </SelectItem>
-            <SelectItem value="succeeded" data-oid="li.zxyq">
+            <SelectItem value="succeeded" data-oid="xd:2v15">
               Completed
             </SelectItem>
-            <SelectItem value="failed" data-oid="nlb5qxu">
+            <SelectItem value="failed" data-oid="h.dg1f_">
               Failed
             </SelectItem>
           </SelectContent>
@@ -236,26 +238,26 @@ export function JobsPage() {
         <Select
           value={kindFilter}
           onValueChange={setKindFilter}
-          data-oid="9jx.0ad"
+          data-oid="iz4wfia"
         >
-          <SelectTrigger className="w-40" data-oid="9v25-:.">
-            <SelectValue placeholder="Type" data-oid="pbxfiy1" />
+          <SelectTrigger className="w-40" data-oid="m.7-x0f">
+            <SelectValue placeholder="Type" data-oid="8j87j7p" />
           </SelectTrigger>
-          <SelectContent data-oid="23d55y5">
-            <SelectItem value="all" data-oid="xg6u91b">
+          <SelectContent data-oid=".-wg2y7">
+            <SelectItem value="all" data-oid="f19_u69">
               All Types
             </SelectItem>
-            <SelectItem value="ingest" data-oid="b_y37pt">
+            <SelectItem value="ingest" data-oid="wau3qrq">
               Data Ingestion
             </SelectItem>
-            <SelectItem value="process" data-oid="651-i1f">
+            <SelectItem value="process" data-oid="sqxrpw7">
               AI Processing
             </SelectItem>
           </SelectContent>
         </Select>
 
         {jobsPage && (
-          <div className="text-sm text-muted-foreground" data-oid="65f5z4y">
+          <div className="text-sm text-muted-foreground" data-oid="-8dc86a">
             Showing {jobs.length} of {jobsPage.total} job
             {jobsPage.total !== 1 ? "s" : ""}
           </div>
@@ -263,41 +265,42 @@ export function JobsPage() {
       </div>
 
       {/* Jobs List */}
-      <div className="space-y-4" data-oid="dy4fu0j">
+      <div className="space-y-4" data-oid="s:fjmo6">
         {isLoading && (
-          <div className="space-y-4" data-oid="rvm8lve">
+          <div className="space-y-4" data-oid="j7ywj.1">
             {Array.from({ length: 3 }, (_, i) => (
               <div
                 key={i}
                 className="h-32 bg-muted animate-pulse rounded-lg"
-                data-oid="mrdszs2"
+                data-oid=":_18scz"
               />
             ))}
           </div>
         )}
 
         {!isLoading && jobs.length === 0 && (
-          <div className="text-center py-12" data-oid="1_ric46">
+          <div className="text-center py-12" data-oid="bou22zw">
             <Play
               className="mx-auto h-12 w-12 text-muted-foreground mb-4"
-              data-oid="jv.zp.j"
+              data-oid="00e:0g3"
             />
+
             <h3
               className="text-lg font-semibold text-gray-900 mb-2"
-              data-oid="yxfjhnh"
+              data-oid="km:tty1"
             >
               No jobs found
             </h3>
-            <p className="text-sm text-gray-500 mb-4" data-oid="p061owc">
+            <p className="text-sm text-gray-500 mb-4" data-oid="1eadtps">
               {statusFilter !== "all" || kindFilter !== "all"
                 ? "No jobs match your current filters."
                 : "Start processing your datasets to see jobs here."}
             </p>
             <Button
               onClick={() => setShowStartJobModal(true)}
-              data-oid="2ryvade"
+              data-oid="i-q_gfm"
             >
-              <Play className="h-4 w-4 mr-2" data-oid="wwbwtmr" />
+              <Play className="h-4 w-4 mr-2" data-oid="m6py1y3" />
               Start Your First Job
             </Button>
           </div>
@@ -310,7 +313,7 @@ export function JobsPage() {
               job={job}
               onViewLogs={handleViewLogs}
               onViewDataset={handleViewDataset}
-              data-oid="xbdwvz8"
+              data-oid="d_:kc8m"
             />
           ))}
       </div>
@@ -319,19 +322,19 @@ export function JobsPage() {
       {totalPages > 1 && (
         <div
           className="flex items-center justify-between mt-8"
-          data-oid="qvo743v"
+          data-oid="s369n2k"
         >
-          <div className="text-sm text-muted-foreground" data-oid="ov:upkc">
+          <div className="text-sm text-muted-foreground" data-oid="mpjswhx">
             Page {currentPage} of {totalPages}
           </div>
 
-          <div className="flex items-center space-x-2" data-oid="hiq5x9o">
+          <div className="flex items-center space-x-2" data-oid="x-83q5z">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage <= 1 || isLoading}
-              data-oid="qng-uzk"
+              data-oid="fg22.69"
             >
               Previous
             </Button>
@@ -341,7 +344,7 @@ export function JobsPage() {
               size="sm"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages || isLoading}
-              data-oid="9w._8yf"
+              data-oid="-kzh27x"
             >
               Next
             </Button>
@@ -355,15 +358,15 @@ export function JobsPage() {
           (s) =>
             s.count > 0 && (s.status === "running" || s.status === "queued"),
         ) && (
-          <div className="fixed bottom-4 right-4" data-oid=".r8__j5">
+          <div className="fixed bottom-4 right-4" data-oid="19_nwb8">
             <Badge
               variant="default"
               className="animate-pulse"
-              data-oid="q0_.m5."
+              data-oid="6_u1s0l"
             >
               <Loader2
                 className="h-3 w-3 mr-1 animate-spin"
-                data-oid="-t454gn"
+                data-oid="4f0bctg"
               />
               Jobs Running
             </Badge>
@@ -378,13 +381,13 @@ export function JobsPage() {
           setShowLogsModal(false);
           setSelectedJob(null);
         }}
-        data-oid="gv9jr:v"
+        data-oid="earm385"
       />
 
       <StartJobModal
         open={showStartJobModal}
         onClose={() => setShowStartJobModal(false)}
-        data-oid="42uk1z1"
+        data-oid="yf5h570"
       />
     </div>
   );

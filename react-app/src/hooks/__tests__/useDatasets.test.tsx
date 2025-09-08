@@ -42,7 +42,7 @@ describe("useDatasets hook", () => {
   let queryClient: QueryClient;
 
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient} data-oid="7bd829y">
+    <QueryClientProvider client={queryClient} data-oid="g6h-3k-">
       {children}
     </QueryClientProvider>
   );

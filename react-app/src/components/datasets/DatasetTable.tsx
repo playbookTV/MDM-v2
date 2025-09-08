@@ -31,12 +31,12 @@ export function DatasetTable({
 }: DatasetTableProps) {
   if (loading) {
     return (
-      <div className="space-y-3" data-oid="jnxla1m">
+      <div className="space-y-3" data-oid="7y1sc.1">
         {Array.from({ length: 3 }, (_, i) => (
           <div
             key={i}
             className="h-16 bg-muted animate-pulse rounded-md"
-            data-oid="s1d9km9"
+            data-oid="6k_1fql"
           />
         ))}
       </div>
@@ -45,18 +45,19 @@ export function DatasetTable({
 
   if (datasets.length === 0) {
     return (
-      <div className="text-center py-12" data-oid="f1qm8pj">
+      <div className="text-center py-12" data-oid="f:yg_ro">
         <Package
           className="mx-auto h-12 w-12 text-muted-foreground"
-          data-oid="j3cawpx"
+          data-oid="7wxwvti"
         />
+
         <h3
           className="mt-2 text-sm font-semibold text-gray-900"
-          data-oid="eigyoef"
+          data-oid="32274hy"
         >
           No datasets
         </h3>
-        <p className="mt-1 text-sm text-gray-500" data-oid="zx1v8h3">
+        <p className="mt-1 text-sm text-gray-500" data-oid="9li6bc_">
           Get started by uploading your first dataset.
         </p>
       </div>
@@ -64,21 +65,21 @@ export function DatasetTable({
   }
 
   return (
-    <div className="rounded-md border" data-oid="o3rls_u">
-      <Table data-oid="v.9mv4.">
-        <TableHeader data-oid="e73x8gx">
-          <TableRow data-oid="hwdow6t">
-            <TableHead data-oid="ah4dt61">Name</TableHead>
-            <TableHead data-oid="me:26qb">Version</TableHead>
-            <TableHead data-oid="5mfiexa">Source</TableHead>
-            <TableHead data-oid="44tx.m6">License</TableHead>
-            <TableHead data-oid="hlmnaj2">Created</TableHead>
-            <TableHead className="w-32" data-oid="ntggw::">
+    <div className="rounded-md border" data-oid="6rh4oll">
+      <Table data-oid="crfrifi">
+        <TableHeader data-oid="9d:o8-w">
+          <TableRow data-oid="-53jrzh">
+            <TableHead data-oid="d3uyoai">Name</TableHead>
+            <TableHead data-oid="euh.iu1">Version</TableHead>
+            <TableHead data-oid="0afq6fc">Source</TableHead>
+            <TableHead data-oid="r-1d19g">License</TableHead>
+            <TableHead data-oid="c99c_k2">Created</TableHead>
+            <TableHead className="w-32" data-oid="ryu1pp9">
               Actions
             </TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody data-oid="e:uqw7i">
+        <TableBody data-oid="18jelu7">
           {datasets.map((dataset) => {
             const isHighlighted = highlightId === dataset.id;
             return (
@@ -90,48 +91,48 @@ export function DatasetTable({
                     : "hover:bg-muted/50"
                 }`}
                 onClick={() => onSelectDataset?.(dataset)}
-                data-oid="i681xa_"
+                data-oid="vw3ye39"
               >
-                <TableCell className="font-medium" data-oid="pgjypc-">
+                <TableCell className="font-medium" data-oid="-bxolvk">
                   <div
                     className="flex items-center space-x-2"
-                    data-oid="y9x31xg"
+                    data-oid="35.0c3_"
                   >
-                    <span data-oid=":oa2fx:">{dataset.name}</span>
+                    <span data-oid="yw2-g2g">{dataset.name}</span>
                     {dataset.source_url && (
                       <ExternalLink
                         className="h-3 w-3 text-muted-foreground"
-                        data-oid="7cy-b34"
+                        data-oid="m6wp_f9"
                       />
                     )}
                   </div>
                   {dataset.notes && (
                     <p
                       className="text-xs text-muted-foreground mt-1 truncate"
-                      data-oid=".-urqah"
+                      data-oid="wp9_j5e"
                     >
                       {dataset.notes}
                     </p>
                   )}
                 </TableCell>
-                <TableCell data-oid="uuhdnga">
-                  <Badge variant="outline" data-oid="-x1dl7f">
+                <TableCell data-oid="ny_oxow">
+                  <Badge variant="outline" data-oid="0wppg7o">
                     {dataset.version}
                   </Badge>
                 </TableCell>
-                <TableCell data-oid="xo_.0jf">
+                <TableCell data-oid="7ak_u6l">
                   {dataset.source_url ? (
                     <div
                       className="flex items-center space-x-1"
-                      data-oid="0q79qnv"
+                      data-oid="_p0jg4w"
                     >
-                      <span className="text-xs" data-oid="_..980q">
+                      <span className="text-xs" data-oid="12504sr">
                         HuggingFace
                       </span>
                       <Badge
                         variant="secondary"
                         className="text-xs"
-                        data-oid="e47-dpo"
+                        data-oid="-y0msp9"
                       >
                         Remote
                       </Badge>
@@ -140,46 +141,47 @@ export function DatasetTable({
                     <Badge
                       variant="outline"
                       className="text-xs"
-                      data-oid="gjrdd9n"
+                      data-oid="wkfml._"
                     >
                       Local
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell data-oid="mkl8m:z">
+                <TableCell data-oid="896r2-5">
                   {dataset.license ? (
-                    <span className="text-sm" data-oid="75-oidl">
+                    <span className="text-sm" data-oid="3srcv19">
                       {dataset.license}
                     </span>
                   ) : (
                     <span
                       className="text-sm text-muted-foreground"
-                      data-oid="i1rnejw"
+                      data-oid="e-1sos5"
                     >
                       —
                     </span>
                   )}
                 </TableCell>
-                <TableCell data-oid="_r09m6w">
+                <TableCell data-oid="219-6e7">
                   <div
                     className="flex items-center space-x-1"
-                    data-oid="4hbcd-l"
+                    data-oid="-hm9ufy"
                   >
                     <Calendar
                       className="h-3 w-3 text-muted-foreground"
-                      data-oid="b0806zc"
+                      data-oid="e3mc5nx"
                     />
-                    <span className="text-xs" data-oid="umps-c.">
+
+                    <span className="text-xs" data-oid="gy_c391">
                       {formatDistanceToNow(new Date(dataset.created_at), {
                         addSuffix: true,
                       })}
                     </span>
                   </div>
                 </TableCell>
-                <TableCell data-oid="out2vlk">
+                <TableCell data-oid="barjzt8">
                   <div
                     className="flex items-center space-x-1"
-                    data-oid="d60q5sx"
+                    data-oid="7-mzjy6"
                   >
                     <Button
                       variant="outline"
@@ -188,7 +190,7 @@ export function DatasetTable({
                         e.stopPropagation();
                         onViewScenes?.(dataset);
                       }}
-                      data-oid="iustz1w"
+                      data-oid="afqagq."
                     >
                       View
                     </Button>
@@ -199,7 +201,7 @@ export function DatasetTable({
                         e.stopPropagation();
                         onProcessDataset?.(dataset);
                       }}
-                      data-oid="qq4tudx"
+                      data-oid="upt._dq"
                     >
                       Process
                     </Button>

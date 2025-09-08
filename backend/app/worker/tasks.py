@@ -28,6 +28,158 @@ def run_async(coro):
     
     return loop.run_until_complete(coro)
 
+async def _create_scene_objects(scene_id: str, objects_data: list):
+    """Create object records in database from RunPod object detection results"""
+    from app.core.supabase import get_supabase
+    import uuid
+    
+    if not objects_data:
+        return
+    
+    supabase = get_supabase()
+    
+    # Convert RunPod objects to database format
+    db_objects = []
+    for i, obj in enumerate(objects_data):
+        # Handle different RunPod object formats
+        # Format 1: {category, confidence, bbox: {x, y, width, height}, ...}
+        # Format 2: {label, confidence, bbox: [x1, y1, x2, y2], ...}
+        bbox_data = obj.get("bbox", {})
+        
+        # Handle bbox as list [x1, y1, x2, y2] (RunPod format)
+        if isinstance(bbox_data, list) and len(bbox_data) == 4:
+            x1, y1, x2, y2 = bbox_data
+            bbox = {
+                'x': x1,
+                'y': y1, 
+                'width': x2 - x1,
+                'height': y2 - y1
+            }
+        # Handle bbox as dict {x, y, width, height}
+        elif isinstance(bbox_data, dict):
+            bbox = bbox_data
+        else:
+            # Default fallback
+            bbox = {'x': 0, 'y': 0, 'width': 0, 'height': 0}
+        
+        # Normalize category to match database schema
+        category = obj.get("category", obj.get("label", "furniture"))  # Default fallback
+        # Convert RunPod categories to our canonical categories
+        category_mapping = {
+            "sofa": "sofa",
+            "chair": "chair", 
+            "table": "table",
+            "bed": "bed",
+            "cabinet": "cabinet",
+            "shelf": "shelf",
+            "lamp": "lamp",
+            "plant": "plant",
+            "artwork": "artwork",
+            "mirror": "mirror",
+            "cushion": "cushion",
+            "rug": "rug",
+            "curtain": "curtain"
+        }
+        normalized_category = category_mapping.get(category.lower(), "furniture")  # Default to "furniture"
+
+        db_object = {
+            "id": str(uuid.uuid4()),
+            "scene_id": scene_id,
+            "category_code": normalized_category,
+            "confidence": float(obj.get("confidence", 0.0)),
+            "bbox_x": bbox.get("x", 0),
+            "bbox_y": bbox.get("y", 0), 
+            "bbox_w": bbox.get("width", 0),  # Fixed: bbox_w instead of bbox_width
+            "bbox_h": bbox.get("height", 0),  # Fixed: bbox_h instead of bbox_height  
+            "mask_key": obj.get("mask_key", obj.get("r2_mask_key")),  # Try both field names
+            "thumb_key": obj.get("thumb_key", obj.get("r2_thumb_key")),  # R2 thumbnail key
+            "depth_key": obj.get("depth_key", obj.get("r2_depth_key")),  # R2 depth key
+            "subcategory": obj.get("subcategory"),
+            "description": obj.get("description", obj.get("caption")),  # Try description or caption
+            "attrs": obj.get("attrs", obj.get("attributes"))  # Additional object attributes
+        }
+        
+        # Add RunPod-specific attributes to attrs if not already present
+        if not db_object.get("attrs"):
+            attrs = {}
+            if obj.get("area"):
+                attrs["area"] = obj.get("area")
+            if obj.get("has_mask") is not None:
+                attrs["has_mask"] = obj.get("has_mask")
+            if obj.get("mask_area"):
+                attrs["mask_area"] = obj.get("mask_area")
+            if obj.get("mask_coverage"):
+                attrs["mask_coverage"] = obj.get("mask_coverage")
+            if obj.get("segmentation_confidence"):
+                attrs["segmentation_confidence"] = obj.get("segmentation_confidence")
+            if obj.get("color"):
+                attrs["color"] = obj.get("color")
+            if obj.get("material"):
+                attrs["material"] = obj.get("material")
+            if obj.get("style"):
+                attrs["style"] = obj.get("style")
+            
+            if attrs:  # Only set attrs if we have any attributes
+                db_object["attrs"] = attrs
+        
+        # Filter out None values
+        db_object = {k: v for k, v in db_object.items() if v is not None}
+        db_objects.append(db_object)
+    
+    try:
+        # Insert objects in batch
+        result = supabase.table("objects").insert(db_objects).execute()
+        created_objects = result.data
+        logger.info(f"Created {len(created_objects)} object records for scene {scene_id}")
+        
+        # Extract materials from RunPod response and create object_materials records
+        materials_to_insert = []
+        
+        for i, obj in enumerate(objects_data):
+            if i < len(created_objects):
+                object_id = created_objects[i]["id"]
+                
+                # Extract materials from object data
+                materials = obj.get("materials", [])
+                if isinstance(materials, list):
+                    for material_info in materials:
+                        if isinstance(material_info, dict):
+                            material_code = material_info.get("material", material_info.get("name"))
+                            confidence = material_info.get("confidence", 0.5)
+                        elif isinstance(material_info, str):
+                            material_code = material_info
+                            confidence = 0.5  # Default confidence
+                        else:
+                            continue
+                            
+                        if material_code:
+                            materials_to_insert.append({
+                                "object_id": object_id,
+                                "material_code": material_code.lower(),
+                                "conf": float(confidence)
+                            })
+                
+                # Also check if material is stored as a single field
+                single_material = obj.get("material")
+                if single_material and isinstance(single_material, str):
+                    materials_to_insert.append({
+                        "object_id": object_id,
+                        "material_code": single_material.lower(),
+                        "conf": float(obj.get("material_confidence", 0.5))
+                    })
+        
+        # Insert materials if any were found
+        if materials_to_insert:
+            try:
+                materials_result = supabase.table("object_materials").insert(materials_to_insert).execute()
+                logger.info(f"Created {len(materials_result.data)} material records for scene {scene_id}")
+            except Exception as e:
+                logger.warning(f"Failed to insert materials for scene {scene_id}: {e}")
+        
+    except Exception as e:
+        logger.error(f"Failed to create objects for scene {scene_id}: {e}")
+        raise
+
 @celery_app.task(bind=True, name='process_dataset', max_retries=3, default_retry_delay=60)
 def process_dataset(self, job_id: str, dataset_id: str, options: Dict[str, Any] = None):
     """
@@ -285,6 +437,7 @@ def process_scene(self, job_id: str, scene_id: str, options: Dict[str, Any] = No
                 "primary_style": ai_results.get("primary_style", "contemporary"),
                 "style_confidence": ai_results.get("style_confidence", 0.0),
                 "objects_detected": ai_results.get("objects_detected", 0),
+                "objects": ai_results.get("objects", []),  # Include actual objects array
                 "color_analysis": ai_results.get("dominant_color", {}),
                 "depth_available": ai_results.get("depth_available", False),
                 "processing_success": ai_results.get("success", False),
@@ -292,6 +445,12 @@ def process_scene(self, job_id: str, scene_id: str, options: Dict[str, Any] = No
             }
             
             await scene_service.update_scene(scene_id, processing_results)
+            
+            # Create object records from RunPod results
+            objects_data = ai_results.get("objects", [])
+            if objects_data:
+                logger.info(f"Creating {len(objects_data)} object records for scene {scene_id}")
+                await _create_scene_objects(scene_id, objects_data)
             
             # Get current job to preserve existing metadata
             current_job = await job_service.get_job(job_id)

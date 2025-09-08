@@ -8,35 +8,39 @@ import ErrorBoundary from "@/components/ui/error-boundary";
 
 function App() {
   return (
-    <ErrorBoundary data-oid="vzr1c5b">
-      <div className="min-h-screen bg-background" data-oid="5-5i_mu">
-        <Navigation data-oid="-6:.2aa" />
-        <main className="container mx-auto px-4 py-6" data-oid="9-.fc-n">
-          <Routes data-oid="2.lepe-">
+    <ErrorBoundary data-oid="_3src4z">
+      <div className="min-h-screen bg-background" data-oid="sq0xkee">
+        <Navigation data-oid="6a5wku6" />
+        <main className="container mx-auto px-4 py-6" data-oid="fsfe9i7">
+          <Routes data-oid="mn5grb:">
             <Route
               path="/"
-              element={<Navigate to="/datasets" replace data-oid="v3-un8x" />}
-              data-oid="7sz9.35"
+              element={<Navigate to="/datasets" replace data-oid="6itf:.b" />}
+              data-oid="a7t1.hs"
             />
+
             <Route
               path="/datasets"
-              element={<DatasetExplorerPage data-oid="emrpcj0" />}
-              data-oid="2v78cit"
+              element={<DatasetExplorerPage data-oid="_5q00ks" />}
+              data-oid="6icihg-"
             />
+
             <Route
               path="/jobs"
-              element={<JobsPage data-oid="dypek92" />}
-              data-oid="0m23taa"
+              element={<JobsPage data-oid="yoyojot" />}
+              data-oid="3nxsyu3"
             />
+
             <Route
               path="/dashboard"
-              element={<StatsDashboardPage data-oid="j7kwyb9" />}
-              data-oid="iarywta"
+              element={<StatsDashboardPage data-oid="3rx4-rn" />}
+              data-oid="gqc8.0:"
             />
+
             <Route
               path="/review"
-              element={<SceneReviewPage data-oid="r.4:s1g" />}
-              data-oid="m.gfu5s"
+              element={<SceneReviewPage data-oid="_tuv7z3" />}
+              data-oid="phtg5hf"
             />
           </Routes>
         </main>

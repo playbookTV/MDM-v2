@@ -123,53 +123,53 @@ export function JobCard({
   return (
     <div
       className={`border rounded-lg p-6 ${statusConfig.bgColor} ${className}`}
-      data-oid="1hte36x"
+      data-oid="h744z.e"
     >
       {/* Header */}
-      <div className="flex items-start justify-between mb-4" data-oid="n3vu3k5">
-        <div className="flex items-center space-x-3" data-oid="3ulk6ob">
-          <div className={`p-2 rounded-full bg-background`} data-oid="kuyc4.u">
+      <div className="flex items-start justify-between mb-4" data-oid="xi86f4m">
+        <div className="flex items-center space-x-3" data-oid="9bwjmut">
+          <div className={`p-2 rounded-full bg-background`} data-oid="w_ku:0.">
             <StatusIcon
               className={`h-5 w-5 ${statusConfig.color} ${
                 job.status === "running" ? "animate-spin" : ""
               }`}
-              data-oid="c7jv5-l"
+              data-oid="fp-4:i3"
             />
           </div>
 
-          <div data-oid="l0x0gky">
-            <div className="flex items-center space-x-2" data-oid="6gvipkw">
-              <h3 className="font-semibold text-lg" data-oid="58.ox2b">
+          <div data-oid="p-7ux3p">
+            <div className="flex items-center space-x-2" data-oid=":zh6clf">
+              <h3 className="font-semibold text-lg" data-oid="sbu8p_v">
                 {KIND_LABELS[job.kind]}
               </h3>
-              <Badge variant={statusConfig.badge} data-oid="2e3n-r0">
+              <Badge variant={statusConfig.badge} data-oid="gzsq32e">
                 {statusConfig.label}
               </Badge>
             </div>
 
             <div
               className="flex items-center space-x-2 mt-1 text-sm text-muted-foreground"
-              data-oid="6:fj9_g"
+              data-oid="gn1ynfl"
             >
-              <Database className="h-3 w-3" data-oid="o2t4suy" />
-              <span data-oid="c7ll4:6">
+              <Database className="h-3 w-3" data-oid="mnbilaf" />
+              <span data-oid="0s2bi47">
                 {job.dataset_name || job.dataset_id}
               </span>
-              <span data-oid="58towdx">•</span>
-              <span data-oid="6v-5q2g">Job #{job.id.slice(-8)}</span>
+              <span data-oid="m79mo_r">•</span>
+              <span data-oid="jx-8u5j">Job #{job.id.slice(-8)}</span>
             </div>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center space-x-2" data-oid="0:131gy">
+        <div className="flex items-center space-x-2" data-oid="fbhuerr">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onViewLogs?.(job)}
-            data-oid="q2uvsmn"
+            data-oid="2f:-yoe"
           >
-            <FileText className="h-4 w-4 mr-1" data-oid="nzforj_" />
+            <FileText className="h-4 w-4 mr-1" data-oid="ums21vt" />
             Logs
           </Button>
 
@@ -177,9 +177,9 @@ export function JobCard({
             variant="outline"
             size="sm"
             onClick={() => onViewDataset?.(job)}
-            data-oid="-w5sxfq"
+            data-oid="5:kejba"
           >
-            <Database className="h-4 w-4 mr-1" data-oid="qozp2gi" />
+            <Database className="h-4 w-4 mr-1" data-oid="ac.bgan" />
             Dataset
           </Button>
 
@@ -189,9 +189,9 @@ export function JobCard({
               size="sm"
               onClick={handleCancel}
               disabled={cancelMutation.isPending}
-              data-oid="9ihb40y"
+              data-oid=":8nbsxm"
             >
-              <Square className="h-4 w-4 mr-1" data-oid="drgj8bb" />
+              <Square className="h-4 w-4 mr-1" data-oid="zqmnq-m" />
               Cancel
             </Button>
           )}
@@ -202,9 +202,9 @@ export function JobCard({
               size="sm"
               onClick={handleRetry}
               disabled={retryMutation.isPending}
-              data-oid="m8:odsd"
+              data-oid="s_2yo_d"
             >
-              <RotateCcw className="h-4 w-4 mr-1" data-oid="t_49f0f" />
+              <RotateCcw className="h-4 w-4 mr-1" data-oid="2249ypy" />
               Retry
             </Button>
           )}
@@ -213,8 +213,8 @@ export function JobCard({
 
       {/* Progress Section */}
       {job.progress && (
-        <div className="mb-4" data-oid="ekg2hts">
-          <JobProgressChart progress={job.progress} data-oid="u_pjaxs" />
+        <div className="mb-4" data-oid="q9l845o">
+          <JobProgressChart progress={job.progress} data-oid="6oe6qoh" />
         </div>
       )}
 
@@ -222,18 +222,19 @@ export function JobCard({
       {job.status === "failed" && job.error_message && (
         <div
           className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md"
-          data-oid="2x-eroa"
+          data-oid="qe1zsp0"
         >
-          <div className="flex items-center space-x-2 mb-2" data-oid="wrv2o6.">
+          <div className="flex items-center space-x-2 mb-2" data-oid="l01gv22">
             <AlertTriangle
               className="h-4 w-4 text-destructive"
-              data-oid="bikixb9"
+              data-oid="smfgfgv"
             />
-            <span className="font-medium text-destructive" data-oid="8bcjndr">
+
+            <span className="font-medium text-destructive" data-oid="m44ok8l">
               Error Details
             </span>
           </div>
-          <p className="text-sm text-destructive/80" data-oid="jg2ml:q">
+          <p className="text-sm text-destructive/80" data-oid="y5fdbrv">
             {job.error_message}
           </p>
         </div>
@@ -242,16 +243,16 @@ export function JobCard({
       {/* Footer with Timestamps */}
       <div
         className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-background"
-        data-oid="f_wqjeq"
+        data-oid="wjx93gb"
       >
-        <div className="flex items-center space-x-4" data-oid="fwsa8n4">
-          <span data-oid="8r4n_v0">
+        <div className="flex items-center space-x-4" data-oid="c:0_rbm">
+          <span data-oid="xsd2zql">
             Created{" "}
             {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
           </span>
 
           {job.started_at && (
-            <span data-oid="yv8:pac">
+            <span data-oid="wge-8m4">
               Started{" "}
               {formatDistanceToNow(new Date(job.started_at), {
                 addSuffix: true,
@@ -260,7 +261,7 @@ export function JobCard({
           )}
 
           {job.finished_at && (
-            <span data-oid="8g_72so">
+            <span data-oid="m7q4kmq">
               Finished{" "}
               {formatDistanceToNow(new Date(job.finished_at), {
                 addSuffix: true,
@@ -270,9 +271,9 @@ export function JobCard({
         </div>
 
         {getDuration() && (
-          <div className="flex items-center space-x-1" data-oid="8m-vx_b">
-            <Clock className="h-3 w-3" data-oid="ztlgsvw" />
-            <span data-oid="9.dt3oq">Duration: {getDuration()}</span>
+          <div className="flex items-center space-x-1" data-oid="zrtux_z">
+            <Clock className="h-3 w-3" data-oid="i_9b8cs" />
+            <span data-oid="edru07c">Duration: {getDuration()}</span>
           </div>
         )}
       </div>

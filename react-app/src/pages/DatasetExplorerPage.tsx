@@ -120,22 +120,22 @@ export function DatasetExplorerPage() {
     return (
       <div
         className="flex items-center justify-center min-h-[400px]"
-        data-oid="15vs6ma"
+        data-oid="3q3bt2k"
       >
         {error && (
-          <div className="text-center py-8" data-oid="u8x2ys8">
+          <div className="text-center py-8" data-oid=".23rtrv">
             <AlertCircle
               className="h-12 w-12 text-destructive mx-auto mb-4"
-              data-oid="g7sx4uf"
+              data-oid="fnqe-ff"
             />
 
             <p
               className="text-lg font-medium text-destructive mb-2"
-              data-oid="wyx:-pb"
+              data-oid="i01rwld"
             >
               Failed to load datasets
             </p>
-            <p className="text-muted-foreground" data-oid="-2_hccx">
+            <p className="text-muted-foreground" data-oid="jb6s.di">
               {error?.message || "An error occurred while loading datasets"}
             </p>
           </div>
@@ -145,35 +145,35 @@ export function DatasetExplorerPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 pl-0 pr-0" data-oid="afg60hy">
+    <div className="container mx-auto px-4 py-8 pl-0 pr-0" data-oid="f3dzi2o">
       {/* Header */}
       <div
         className="flex justify-between mb-8 gap-[24px] flex-row items-end"
-        data-oid="5hgiq1j"
+        data-oid="8lbjuyj"
       >
-        <div data-oid="drstftz">
-          <h1 className="text-3xl font-bold tracking-tight" data-oid="m9xk.2t">
+        <div data-oid="ypbbsqz">
+          <h1 className="text-3xl font-bold tracking-tight" data-oid="9cd1i9o">
             Dataset Explorer
           </h1>
-          <p className="text-muted-foreground mt-1" data-oid="z-m:5:e">
+          <p className="text-muted-foreground mt-1" data-oid="fghp2zu">
             Manage and process your interior scene datasets
           </p>
         </div>
 
         <div
           className="flex items-center space-x-2 flex-row w-[fit-content]"
-          data-oid="p3c7xar"
+          data-oid="sfwq0v4"
         >
           <Button
             variant="outline"
             onClick={() => setShowImportModal(true)}
-            data-oid="-elo-a5"
+            data-oid="s5mfu.l"
           >
-            <Download className="h-4 w-4 mr-2" data-oid="xn_53ne" />
+            <Download className="h-4 w-4 mr-2" data-oid="avjxlpj" />
             Import from HF
           </Button>
-          <Button onClick={() => setShowUploadModal(true)} data-oid="c9767vi">
-            <Plus className="h-4 w-4 mr-2" data-oid="9m83csr" />
+          <Button onClick={() => setShowUploadModal(true)} data-oid="83v-rll">
+            <Plus className="h-4 w-4 mr-2" data-oid="_1swiby" />
             Upload Dataset
           </Button>
         </div>
@@ -182,12 +182,12 @@ export function DatasetExplorerPage() {
       {/* Search and Filters */}
       <div
         className="flex items-center space-x-4 mb-6 flex-col"
-        data-oid="be0flc2"
+        data-oid="z97eut7"
       >
-        <div className="relative flex-1 max-w-sm" data-oid="9e:tny:">
+        <div className="relative flex-1 max-w-sm" data-oid="4cj1ci:">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
-            data-oid="0fm23od"
+            data-oid="_lhmnn9"
           />
 
           <Input
@@ -195,12 +195,12 @@ export function DatasetExplorerPage() {
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             className="pl-9"
-            data-oid="amn049e"
+            data-oid="ha26-po"
           />
         </div>
 
         {data && (
-          <div className="text-sm text-muted-foreground" data-oid="anaqcqq">
+          <div className="text-sm text-muted-foreground" data-oid="1o-x.av">
             Showing {data.items.length} of {data.total} dataset
             {data.total !== 1 ? "s" : ""}
           </div>
@@ -215,26 +215,26 @@ export function DatasetExplorerPage() {
         onSelectDataset={handleSelectDataset}
         onViewScenes={handleViewScenes}
         onProcessDataset={handleProcessDataset}
-        data-oid=".bv36rh"
+        data-oid="xln3pew"
       />
 
       {/* Pagination */}
       {totalPages > 1 && (
         <div
           className="flex items-center justify-between mt-6"
-          data-oid="44df9yv"
+          data-oid="a-2h3z0"
         >
-          <div className="text-sm text-muted-foreground" data-oid="a2qe4br">
+          <div className="text-sm text-muted-foreground" data-oid="k59_tj3">
             Page {currentPage} of {totalPages}
           </div>
 
-          <div className="flex items-center space-x-2" data-oid=":52ff5o">
+          <div className="flex items-center space-x-2" data-oid="gns_f4z">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage <= 1 || isLoading}
-              data-oid="o35io6m"
+              data-oid="eibxt.1"
             >
               Previous
             </Button>
@@ -244,7 +244,7 @@ export function DatasetExplorerPage() {
               size="sm"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages || isLoading}
-              data-oid="5t_6ytm"
+              data-oid="zxwkkvn"
             >
               Next
             </Button>
@@ -256,13 +256,13 @@ export function DatasetExplorerPage() {
       <DatasetUploadModal
         open={showUploadModal}
         onClose={() => setShowUploadModal(false)}
-        data-oid="ddkniig"
+        data-oid="9d:nvn8"
       />
 
       <HFImportModal
         open={showImportModal}
         onClose={() => setShowImportModal(false)}
-        data-oid="_x8b8_a"
+        data-oid="9un19th"
       />
     </div>
   );

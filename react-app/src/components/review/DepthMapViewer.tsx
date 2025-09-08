@@ -40,20 +40,21 @@ export function DepthMapViewer({
 
   if (!scene.has_depth) {
     return (
-      <Card className={className} data-oid="dv8okvq">
-        <CardContent className="pt-6" data-oid="bc4-8hp">
+      <Card className={className} data-oid="los6rpz">
+        <CardContent className="pt-6" data-oid="le_cwcx">
           <div
             className="text-center py-8 text-muted-foreground"
-            data-oid="u:bl_nv"
+            data-oid="y3tk1i4"
           >
             <Mountain
               className="h-12 w-12 mx-auto mb-4 opacity-50"
-              data-oid="3jye.47"
+              data-oid="w160l2x"
             />
-            <h3 className="text-lg font-semibold mb-2" data-oid="_-..r2w">
+
+            <h3 className="text-lg font-semibold mb-2" data-oid="4p5hx0n">
               No Depth Data
             </h3>
-            <p className="text-sm" data-oid="nw5-q-v">
+            <p className="text-sm" data-oid="d7n6e92">
               This scene doesn't have depth map data available.
             </p>
           </div>
@@ -69,52 +70,52 @@ export function DepthMapViewer({
   };
 
   return (
-    <Card className={className} data-oid="1scj0xd">
-      <CardHeader data-oid="k4bn:qz">
+    <Card className={className} data-oid="09575-0">
+      <CardHeader data-oid="_-tn7kn">
         <CardTitle
           className="flex items-center justify-between"
-          data-oid="dw1yp5i"
+          data-oid="9bqb:t-"
         >
-          <div className="flex items-center space-x-2" data-oid="63kpyk8">
-            <Mountain className="h-5 w-5" data-oid="gnk4adm" />
-            <span data-oid="-cmnfzh">Depth Map Analysis</span>
+          <div className="flex items-center space-x-2" data-oid="exng.vy">
+            <Mountain className="h-5 w-5" data-oid="u5871ji" />
+            <span data-oid="__f-pyd">Depth Map Analysis</span>
           </div>
-          <div className="flex items-center space-x-2" data-oid="h37rmzy">
-            <Badge variant="secondary" className="text-xs" data-oid="zbz9-zq">
+          <div className="flex items-center space-x-2" data-oid="z7in5fq">
+            <Badge variant="secondary" className="text-xs" data-oid="uheu0wo">
               3D Spatial
             </Badge>
             <Button
               variant="ghost"
               size="sm"
               onClick={onToggle}
-              data-oid="b.jlij5"
+              data-oid="w.q6jpx"
             >
               {isVisible ? (
-                <EyeOff className="h-4 w-4" data-oid="zq:1372" />
+                <EyeOff className="h-4 w-4" data-oid="pv2pm0u" />
               ) : (
-                <Eye className="h-4 w-4" data-oid="q7tlw6r" />
+                <Eye className="h-4 w-4" data-oid="7cbes:s" />
               )}
             </Button>
           </div>
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-4" data-oid="zfi-3xn">
+      <CardContent className="space-y-4" data-oid="zf1m_r8">
         {isVisible && (
           <>
             {/* Depth Map Display */}
             <div
               className="relative rounded-lg overflow-hidden border"
-              data-oid="egkxni1"
+              data-oid="nppor07"
             >
-              <div className="relative" data-oid="8i9anq6">
+              <div className="relative" data-oid="ljr5p5t">
                 {/* Original Image (Background) */}
                 {showOriginal && (
                   <img
                     src={originalUrl}
                     alt="Original scene"
                     className="w-full h-auto"
-                    data-oid="vvj4jjh"
+                    data-oid="em02sky"
                   />
                 )}
 
@@ -132,41 +133,43 @@ export function DepthMapViewer({
                       opacity: opacity[0],
                       mixBlendMode: showOriginal ? "multiply" : "normal",
                     }}
-                    data-oid="thyqye7"
+                    data-oid="0qsatov"
                   />
                 )}
 
                 {/* Depth Legend */}
                 <div
                   className="absolute top-2 right-2 bg-background/90 backdrop-blur-sm rounded-lg p-2"
-                  data-oid="_h6p40i"
+                  data-oid="::-lm6p"
                 >
-                  <div className="text-xs font-medium mb-1" data-oid="f3f41nn">
+                  <div className="text-xs font-medium mb-1" data-oid="s3-hueu">
                     Depth
                   </div>
                   <div
                     className="flex items-center space-x-2 text-xs"
-                    data-oid="h8t1f43"
+                    data-oid="-tg9izc"
                   >
                     <div
                       className="flex items-center space-x-1"
-                      data-oid="awtcxlh"
+                      data-oid="6mcmf_2"
                     >
                       <div
                         className="w-3 h-3 bg-blue-600 rounded-sm"
-                        data-oid="69fyb_h"
+                        data-oid="rhqanny"
                       />
-                      <span data-oid="z6rj1j2">Near</span>
+
+                      <span data-oid="ug5a_kj">Near</span>
                     </div>
                     <div
                       className="flex items-center space-x-1"
-                      data-oid="08qtc5w"
+                      data-oid="-c2o8lu"
                     >
                       <div
                         className="w-3 h-3 bg-red-600 rounded-sm"
-                        data-oid="rqsrhlm"
+                        data-oid="bu6oulo"
                       />
-                      <span data-oid="gwr08w6">Far</span>
+
+                      <span data-oid="hr3ohok">Far</span>
                     </div>
                   </div>
                 </div>
@@ -174,14 +177,14 @@ export function DepthMapViewer({
             </div>
 
             {/* Controls */}
-            <div className="space-y-4" data-oid="bw5fp-p">
+            <div className="space-y-4" data-oid="9leoi1a">
               {/* Opacity Control */}
-              <div className="space-y-2" data-oid="fbapdsw">
+              <div className="space-y-2" data-oid="no9r-qu">
                 <Label
                   className="text-xs font-medium flex items-center"
-                  data-oid="e0wpkn1"
+                  data-oid="-xntoi."
                 >
-                  <Layers className="h-3 w-3 mr-1" data-oid="cxd9knh" />
+                  <Layers className="h-3 w-3 mr-1" data-oid="o8ltbfm" />
                   Depth Map Opacity
                 </Label>
                 <Slider
@@ -191,35 +194,35 @@ export function DepthMapViewer({
                   min={0}
                   step={0.1}
                   className="w-full"
-                  data-oid="gmb_i7y"
+                  data-oid="sv553:j"
                 />
 
                 <div
                   className="flex justify-between text-xs text-muted-foreground"
-                  data-oid="4pf5ig4"
+                  data-oid="znu3.1d"
                 >
-                  <span data-oid="v_5h70j">Transparent</span>
-                  <span data-oid="1ty512y">
+                  <span data-oid="-b5i8ss">Transparent</span>
+                  <span data-oid="34j.25c">
                     {Math.round(opacity[0] * 100)}%
                   </span>
-                  <span data-oid="q4sbl86">Opaque</span>
+                  <span data-oid="xwe2fz7">Opaque</span>
                 </div>
               </div>
 
               {/* Display Options */}
-              <div className="grid grid-cols-2 gap-3" data-oid="o327_3.">
-                <div className="flex items-center space-x-2" data-oid="8ljfqmc">
+              <div className="grid grid-cols-2 gap-3" data-oid="f6d:2e8">
+                <div className="flex items-center space-x-2" data-oid="on:duat">
                   <Switch
                     id="show-original"
                     checked={showOriginal}
                     onCheckedChange={setShowOriginal}
-                    data-oid="kp_75as"
+                    data-oid="i1l00l4"
                   />
 
                   <Label
                     htmlFor="show-original"
                     className="text-xs"
-                    data-oid="ns._a5y"
+                    data-oid="s0x093x"
                   >
                     Show Original
                   </Label>
@@ -230,9 +233,9 @@ export function DepthMapViewer({
                   size="sm"
                   onClick={toggleColorMode}
                   className="text-xs"
-                  data-oid="a49ag:a"
+                  data-oid="4:d22li"
                 >
-                  <RotateCw className="h-3 w-3 mr-1" data-oid="t-i8x14" />
+                  <RotateCw className="h-3 w-3 mr-1" data-oid="f5i4hxn" />
                   {colorMode === "heatmap" ? "Heatmap" : "Grayscale"}
                 </Button>
               </div>
@@ -241,38 +244,39 @@ export function DepthMapViewer({
             {/* Depth Statistics */}
             <div
               className="bg-muted/50 rounded-lg p-3 space-y-2"
-              data-oid="xo1k6xk"
+              data-oid="pim2shp"
             >
               <div
                 className="flex items-center space-x-2 mb-2"
-                data-oid="wqnhhv."
+                data-oid="nmi-ypd"
               >
                 <Info
                   className="h-4 w-4 text-muted-foreground"
-                  data-oid="4vvqrzb"
+                  data-oid="d19aegs"
                 />
-                <span className="text-xs font-medium" data-oid="b1tun.z">
+
+                <span className="text-xs font-medium" data-oid=".mvfov0">
                   Depth Analysis
                 </span>
               </div>
 
               <div
                 className="grid grid-cols-2 gap-2 text-xs"
-                data-oid="aek8qw3"
+                data-oid="4y9psi1"
               >
-                <div className="flex justify-between" data-oid="hzw7.h.">
-                  <span className="text-muted-foreground" data-oid="jc7ixex">
+                <div className="flex justify-between" data-oid="g5tgs2f">
+                  <span className="text-muted-foreground" data-oid="pj_o._x">
                     Resolution:
                   </span>
-                  <span className="font-mono" data-oid="j3_3k54">
+                  <span className="font-mono" data-oid="rwzj_yc">
                     {scene.width}×{scene.height}
                   </span>
                 </div>
-                <div className="flex justify-between" data-oid="c7l4ot2">
-                  <span className="text-muted-foreground" data-oid="1jbi-88">
+                <div className="flex justify-between" data-oid="ef_wgm9">
+                  <span className="text-muted-foreground" data-oid="lzeuntt">
                     Model:
                   </span>
-                  <span className="font-mono" data-oid="-z6px8x">
+                  <span className="font-mono" data-oid="6m2kigr">
                     Depth Anything V2
                   </span>
                 </div>
@@ -280,7 +284,7 @@ export function DepthMapViewer({
 
               <div
                 className="text-xs text-muted-foreground mt-2"
-                data-oid="wefykff"
+                data-oid="gukgp71"
               >
                 Depth maps provide spatial understanding for object
                 relationships, occlusion analysis, and 3D scene reconstruction.
@@ -292,13 +296,14 @@ export function DepthMapViewer({
         {!isVisible && (
           <div
             className="text-center py-6 text-muted-foreground"
-            data-oid="viwo9k3"
+            data-oid="o_-c9mc"
           >
             <Mountain
               className="h-8 w-8 mx-auto mb-2 opacity-50"
-              data-oid="tn7cqri"
+              data-oid="o:p7jar"
             />
-            <p className="text-sm" data-oid="ltxhfas">
+
+            <p className="text-sm" data-oid="lfvm4nr">
               Click the eye icon to view depth analysis
             </p>
           </div>
@@ -306,7 +311,7 @@ export function DepthMapViewer({
       </CardContent>
 
       {/* CSS for depth map styling */}
-      <style jsx data-oid="z.vjvg8">{`
+      <style jsx data-oid="-jjqnr5">{`
         .depth-heatmap {
           filter: hue-rotate(240deg) saturate(1.5) contrast(1.2);
         }

@@ -38,21 +38,22 @@ export function ReviewProgress({
     return (
       <div
         className={`bg-card border rounded-lg p-6 ${className}`}
-        data-oid="6dgdzfe"
+        data-oid="00ne36n"
       >
-        <div className="flex items-center space-x-2 mb-4" data-oid="u2hqlvq">
+        <div className="flex items-center space-x-2 mb-4" data-oid="32gpknu">
           <AlertTriangle
             className="h-5 w-5 text-destructive"
-            data-oid="gzcewhj"
+            data-oid="9vezy8i"
           />
-          <h3 className="text-lg font-semibold" data-oid="534_4ir">
+
+          <h3 className="text-lg font-semibold" data-oid="pry9nce">
             Review Progress
           </h3>
-          <Badge variant="destructive" data-oid="pjrogx0">
+          <Badge variant="destructive" data-oid="jzlteu_">
             Error
           </Badge>
         </div>
-        <p className="text-sm text-muted-foreground" data-oid="n:7:cmc">
+        <p className="text-sm text-muted-foreground" data-oid="l9j6i_6">
           Unable to load review progress
         </p>
       </div>
@@ -63,24 +64,25 @@ export function ReviewProgress({
     return (
       <div
         className={`bg-card border rounded-lg p-6 ${className}`}
-        data-oid="uj2fgz:"
+        data-oid="xme4itm"
       >
-        <div className="flex items-center space-x-2 mb-4" data-oid="s05.i4j">
-          <Target className="h-5 w-5 animate-pulse" data-oid="74qwciu" />
-          <h3 className="text-lg font-semibold" data-oid="az1v7f7">
+        <div className="flex items-center space-x-2 mb-4" data-oid="aaspirp">
+          <Target className="h-5 w-5 animate-pulse" data-oid="cf0_ako" />
+          <h3 className="text-lg font-semibold" data-oid="dydf8bm">
             Review Progress
           </h3>
         </div>
-        <div className="space-y-4" data-oid=":--1yq-">
+        <div className="space-y-4" data-oid="37.c:vb">
           {Array.from({ length: 4 }, (_, i) => (
-            <div key={i} className="space-y-2" data-oid="61cjyta">
+            <div key={i} className="space-y-2" data-oid="jxennga">
               <div
                 className="h-4 bg-muted animate-pulse rounded"
-                data-oid="g41e8h:"
+                data-oid="-zugxo2"
               />
+
               <div
                 className="h-2 bg-muted animate-pulse rounded"
-                data-oid="-t8l-m2"
+                data-oid="h1halx."
               />
             </div>
           ))}
@@ -112,35 +114,36 @@ export function ReviewProgress({
   return (
     <div
       className={`bg-card border rounded-lg p-6 ${className}`}
-      data-oid="fd.pxya"
+      data-oid="asue_v2"
     >
       {/* Header */}
-      <div className="flex items-center space-x-2 mb-6" data-oid="bzhlq51">
-        <Target className="h-5 w-5" data-oid="4s3xtvp" />
-        <h3 className="text-lg font-semibold" data-oid="epiqw50">
+      <div className="flex items-center space-x-2 mb-6" data-oid="dr:f6qu">
+        <Target className="h-5 w-5" data-oid="924yc7h" />
+        <h3 className="text-lg font-semibold" data-oid=".bbml4r">
           Review Progress
         </h3>
-        <Badge variant="outline" data-oid="h4as-7t">
+        <Badge variant="outline" data-oid="lccgf5y">
           {stats.reviewed_scenes} / {stats.total_scenes} scenes
         </Badge>
       </div>
 
       {/* Overall Progress Bar */}
-      <div className="space-y-2 mb-6" data-oid="d_fnmo.">
-        <div className="flex items-center justify-between" data-oid="1wg4kcp">
-          <span className="text-sm font-medium" data-oid="sv1uprr">
+      <div className="space-y-2 mb-6" data-oid="lv0__6e">
+        <div className="flex items-center justify-between" data-oid="0ng:y_t">
+          <span className="text-sm font-medium" data-oid="_823ja9">
             Completion Progress
           </span>
-          <span className="text-sm text-muted-foreground" data-oid="7vt096e">
+          <span className="text-sm text-muted-foreground" data-oid="k72-imy">
             {completionPercentage.toFixed(1)}%
           </span>
         </div>
         <Progress
           value={completionPercentage}
           className="h-3"
-          data-oid="01hvpr."
+          data-oid="zsuqrju"
         />
-        <div className="text-xs text-muted-foreground" data-oid="1tdmh6k">
+
+        <div className="text-xs text-muted-foreground" data-oid="z2._39h">
           {stats.reviewed_scenes} of {stats.total_scenes} scenes reviewed
         </div>
       </div>
@@ -148,144 +151,145 @@ export function ReviewProgress({
       {/* Review Status Breakdown */}
       <div
         className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
-        data-oid="tp:4.4l"
+        data-oid="oyy:lsl"
       >
         <div
           className="text-center p-3 bg-muted/50 rounded-md"
-          data-oid="tn.b_m5"
+          data-oid="grfe3r8"
         >
           <div
             className="flex items-center justify-center mb-2"
-            data-oid="si5db._"
+            data-oid="3m8f4gh"
           >
-            <Clock className="h-4 w-4 text-gray-500" data-oid=".a1byo_" />
+            <Clock className="h-4 w-4 text-gray-500" data-oid="7f1mdoy" />
           </div>
-          <div className="text-xl font-bold text-gray-600" data-oid=":ou.ny.">
+          <div className="text-xl font-bold text-gray-600" data-oid="wh__f:d">
             {stats.pending_scenes}
           </div>
-          <div className="text-xs text-muted-foreground" data-oid="n64jv43">
+          <div className="text-xs text-muted-foreground" data-oid="wa1i.ca">
             Pending
           </div>
         </div>
 
         <div
           className="text-center p-3 bg-muted/50 rounded-md"
-          data-oid="3ng60jz"
+          data-oid="pe:w1zb"
         >
           <div
             className="flex items-center justify-center mb-2"
-            data-oid="8q..md-"
+            data-oid=":8lsjzb"
           >
             <CheckCircle
               className="h-4 w-4 text-green-500"
-              data-oid="l8su1-8"
+              data-oid="6o8o-gj"
             />
           </div>
-          <div className="text-xl font-bold text-green-600" data-oid="er_rxey">
+          <div className="text-xl font-bold text-green-600" data-oid="cyqntub">
             {stats.approved_scenes}
           </div>
-          <div className="text-xs text-muted-foreground" data-oid="0jq:880">
+          <div className="text-xs text-muted-foreground" data-oid="45xwhsj">
             Approved
           </div>
         </div>
 
         <div
           className="text-center p-3 bg-muted/50 rounded-md"
-          data-oid="0cvc36m"
+          data-oid="8659srf"
         >
           <div
             className="flex items-center justify-center mb-2"
-            data-oid="avpq19q"
+            data-oid="uf5h40:"
           >
-            <XCircle className="h-4 w-4 text-red-500" data-oid="et0dlxr" />
+            <XCircle className="h-4 w-4 text-red-500" data-oid="l79-u-t" />
           </div>
-          <div className="text-xl font-bold text-red-600" data-oid="15y_-9n">
+          <div className="text-xl font-bold text-red-600" data-oid="kvle24u">
             {stats.rejected_scenes}
           </div>
-          <div className="text-xs text-muted-foreground" data-oid="1aomj58">
+          <div className="text-xs text-muted-foreground" data-oid="ueo7ew_">
             Rejected
           </div>
         </div>
 
         <div
           className="text-center p-3 bg-muted/50 rounded-md"
-          data-oid="5it2zr3"
+          data-oid="q4h4ub1"
         >
           <div
             className="flex items-center justify-center mb-2"
-            data-oid="_6g26w:"
+            data-oid="tcw3age"
           >
             <AlertTriangle
               className="h-4 w-4 text-yellow-500"
-              data-oid="t:-il_6"
+              data-oid="wkaa5vm"
             />
           </div>
-          <div className="text-xl font-bold text-yellow-600" data-oid="7kszl08">
+          <div className="text-xl font-bold text-yellow-600" data-oid="95haa2z">
             {stats.corrected_scenes}
           </div>
-          <div className="text-xs text-muted-foreground" data-oid="gerr.:a">
+          <div className="text-xs text-muted-foreground" data-oid="aw8gqaz">
             Corrected
           </div>
         </div>
       </div>
 
       {/* Review Quality Metrics */}
-      <div className="space-y-4 mb-6" data-oid="q4obkm7">
-        <h4 className="text-sm font-medium" data-oid="z6-l0hb">
+      <div className="space-y-4 mb-6" data-oid="nnjn007">
+        <h4 className="text-sm font-medium" data-oid="vnjkc34">
           Review Quality
         </h4>
 
-        <div className="space-y-3" data-oid="u73gx-w">
+        <div className="space-y-3" data-oid="j.0lm1a">
           {/* Approval Rate */}
-          <div className="flex items-center justify-between" data-oid="..jxuq8">
-            <div className="flex items-center space-x-2" data-oid="jr5tplv">
+          <div className="flex items-center justify-between" data-oid="g5upls:">
+            <div className="flex items-center space-x-2" data-oid="4rzqeyj">
               <TrendingUp
                 className="h-4 w-4 text-green-500"
-                data-oid="q82yt9i"
+                data-oid=".:9_qu7"
               />
-              <span className="text-sm" data-oid="p-64c:1">
+
+              <span className="text-sm" data-oid="w_6c7vd">
                 Approval Rate
               </span>
             </div>
-            <div className="flex items-center space-x-2" data-oid="0fbihxn">
-              <div className="text-sm font-medium" data-oid="kd1y7kz">
+            <div className="flex items-center space-x-2" data-oid="1eubhd_">
+              <div className="text-sm font-medium" data-oid="n6793qo">
                 {approvalRate.toFixed(1)}%
               </div>
               <div
                 className="w-16 h-2 bg-muted rounded-full overflow-hidden"
-                data-oid="3-eyjj_"
+                data-oid="yrgdcbd"
               >
                 <div
                   className="h-full bg-green-500 transition-all"
                   style={{ width: `${approvalRate}%` }}
-                  data-oid="-jt9crv"
+                  data-oid="8_2ka:b"
                 />
               </div>
             </div>
           </div>
 
           {/* Review Rate */}
-          <div className="flex items-center justify-between" data-oid="tbxoymj">
-            <div className="flex items-center space-x-2" data-oid="5v2g8l6">
-              <Timer className="h-4 w-4 text-blue-500" data-oid="k56iqpk" />
-              <span className="text-sm" data-oid="u-6zfq5">
+          <div className="flex items-center justify-between" data-oid="-yf2-j5">
+            <div className="flex items-center space-x-2" data-oid="2c4v9_5">
+              <Timer className="h-4 w-4 text-blue-500" data-oid=".ky6o5." />
+              <span className="text-sm" data-oid="n3oornl">
                 Review Rate
               </span>
             </div>
-            <div className="text-sm font-medium" data-oid="h5_5veo">
+            <div className="text-sm font-medium" data-oid="4lwu.0f">
               {stats.review_rate.toFixed(1)} scenes/hour
             </div>
           </div>
 
           {/* Avg Time per Scene */}
-          <div className="flex items-center justify-between" data-oid="mq4206p">
-            <div className="flex items-center space-x-2" data-oid="1uarbh1">
-              <Clock className="h-4 w-4 text-purple-500" data-oid="q7bt_cn" />
-              <span className="text-sm" data-oid="p-9wrew">
+          <div className="flex items-center justify-between" data-oid="tr-7xs5">
+            <div className="flex items-center space-x-2" data-oid="m_ys7ac">
+              <Clock className="h-4 w-4 text-purple-500" data-oid="j_6jxa9" />
+              <span className="text-sm" data-oid="vptpk2s">
                 Avg Time per Scene
               </span>
             </div>
-            <div className="text-sm font-medium" data-oid="fjx8mms">
+            <div className="text-sm font-medium" data-oid="61ep5y3">
               {formatTime(stats.avg_time_per_scene)}
             </div>
           </div>
@@ -293,35 +297,35 @@ export function ReviewProgress({
       </div>
 
       {/* Session Info */}
-      <div className="pt-4 border-t" data-oid=":zheoon">
+      <div className="pt-4 border-t" data-oid="_e29otx">
         <div
           className="grid grid-cols-2 gap-4 text-xs text-muted-foreground"
-          data-oid="ozgv5q0"
+          data-oid="5_p-b.5"
         >
-          <div className="flex items-center space-x-1" data-oid="3xmnmxc">
-            <User className="h-3 w-3" data-oid="dtvse-o" />
-            <span data-oid="hvabe2i">
+          <div className="flex items-center space-x-1" data-oid="9lx4bs1">
+            <User className="h-3 w-3" data-oid="gz.kucb" />
+            <span data-oid="xe7dds9">
               Reviewer: {reviewerId || "Current User"}
             </span>
           </div>
-          <div className="flex items-center space-x-1" data-oid="4lq9a01">
-            <Calendar className="h-3 w-3" data-oid="uzpc6d6" />
-            <span data-oid="lm_sxy7">Last 24 hours</span>
+          <div className="flex items-center space-x-1" data-oid="1-dd1nf">
+            <Calendar className="h-3 w-3" data-oid="_zyysdj" />
+            <span data-oid="2r1d0y3">Last 24 hours</span>
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
       {stats.pending_scenes > 0 && (
-        <div className="mt-4 pt-4 border-t" data-oid="qhd3kwk">
-          <div className="flex items-center justify-between" data-oid="nfk97il">
-            <div className="text-sm" data-oid="1::b.v-">
-              <span className="font-medium" data-oid="mhz46j0">
+        <div className="mt-4 pt-4 border-t" data-oid=".nz5vxu">
+          <div className="flex items-center justify-between" data-oid="wynygc2">
+            <div className="text-sm" data-oid="c_:oitl">
+              <span className="font-medium" data-oid="cd7q935">
                 {stats.pending_scenes}
               </span>{" "}
               scenes remaining
             </div>
-            <div className="text-xs text-muted-foreground" data-oid="l7ny5ss">
+            <div className="text-xs text-muted-foreground" data-oid="24v-__8">
               Estimated:{" "}
               {formatTime(stats.pending_scenes * stats.avg_time_per_scene)}{" "}
               remaining
@@ -334,16 +338,17 @@ export function ReviewProgress({
       {completionPercentage === 100 && (
         <div
           className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md"
-          data-oid="ou:-46f"
+          data-oid="nfn-lz4"
         >
-          <div className="flex items-center space-x-2" data-oid="fzt-u2p">
+          <div className="flex items-center space-x-2" data-oid="n1p51y8">
             <CheckCircle
               className="h-4 w-4 text-green-600"
-              data-oid="5n5uefi"
+              data-oid="52gth6j"
             />
+
             <span
               className="text-sm font-medium text-green-800"
-              data-oid="5oncsk0"
+              data-oid="dd_-y91"
             >
               All scenes reviewed!
             </span>
