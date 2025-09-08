@@ -4,6 +4,7 @@ Cloudflare R2 storage service
 
 import boto3
 import logging
+import base64
 from typing import Tuple, Dict
 from botocore.exceptions import ClientError
 from app.core.config import settings
@@ -146,3 +147,100 @@ class StorageService:
     def get_public_url(self, key: str) -> str:
         """Get public URL for an object (if bucket is public)"""
         return f"{settings.R2_PUBLIC_URL}/{key}"
+    
+    async def upload_base64_image(
+        self, 
+        key: str, 
+        base64_data: str, 
+        content_type: str = "image/png",
+        metadata: Dict[str, str] = None
+    ) -> bool:
+        """Upload a base64-encoded image to R2"""
+        try:
+            # Decode base64 data
+            image_data = base64.b64decode(base64_data)
+            
+            # Upload to R2
+            success = await self.upload_object(key, image_data, content_type, metadata)
+            
+            if success:
+                logger.info(f"Successfully uploaded {key} to R2")
+            else:
+                logger.error(f"Failed to upload {key} to R2")
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"Failed to upload base64 image {key}: {e}")
+            return False
+    
+    async def upload_scene_files(
+        self, 
+        scene_id: str, 
+        thumbnail_base64: str = None,
+        depth_base64: str = None
+    ) -> Dict[str, str]:
+        """Upload scene-related files (thumbnail, depth map) to R2"""
+        uploaded_keys = {}
+        
+        try:
+            # Upload thumbnail if provided
+            if thumbnail_base64:
+                thumb_key = f"scenes/{scene_id}/thumbnail.jpg"
+                success = await self.upload_base64_image(
+                    thumb_key, thumbnail_base64, "image/jpeg",
+                    {"scene_id": scene_id, "type": "thumbnail"}
+                )
+                if success:
+                    uploaded_keys["r2_key_thumbnail"] = thumb_key  # Match database schema
+            
+            # Upload depth map if provided
+            if depth_base64:
+                depth_key = f"scenes/{scene_id}/depth.png"
+                success = await self.upload_base64_image(
+                    depth_key, depth_base64, "image/png",
+                    {"scene_id": scene_id, "type": "depth_map"}
+                )
+                if success:
+                    uploaded_keys["r2_key_depth"] = depth_key  # Match database schema
+            
+            return uploaded_keys
+            
+        except Exception as e:
+            logger.error(f"Failed to upload scene files for {scene_id}: {e}")
+            return uploaded_keys
+    
+    async def upload_object_masks(
+        self, 
+        scene_id: str, 
+        objects_with_masks: list
+    ) -> Dict[str, str]:
+        """Upload object mask files to R2"""
+        uploaded_keys = {}
+        
+        try:
+            for i, obj in enumerate(objects_with_masks):
+                if obj.get("has_mask") and obj.get("mask_base64"):
+                    # Generate mask key
+                    object_label = obj.get("label", "object").replace(" ", "_").lower()
+                    mask_key = f"scenes/{scene_id}/masks/{i}_{object_label}_mask.png"
+                    
+                    success = await self.upload_base64_image(
+                        mask_key, obj["mask_base64"], "image/png",
+                        {
+                            "scene_id": scene_id, 
+                            "object_index": str(i),
+                            "object_label": object_label,
+                            "type": "segmentation_mask"
+                        }
+                    )
+                    
+                    if success:
+                        # Store the key for this object (using object index as identifier)
+                        uploaded_keys[f"object_{i}_mask_key"] = mask_key
+            
+            return uploaded_keys
+            
+        except Exception as e:
+            logger.error(f"Failed to upload object masks for {scene_id}: {e}")
+            return uploaded_keys

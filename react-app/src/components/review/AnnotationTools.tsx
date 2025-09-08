@@ -553,10 +553,20 @@ function ObjectAnnotationItem({
         </div>
       )}
 
-      <div className="text-xs text-muted-foreground mt-1" data-oid="..76z6e">
-        {Math.round(object.bbox.width)}×{Math.round(object.bbox.height)} at (
-        {Math.round(object.bbox.x)}, {Math.round(object.bbox.y)})
-      </div>
+      {(object.bbox &&
+        typeof object.bbox.x === "number" &&
+        typeof object.bbox.y === "number" &&
+        typeof object.bbox.width === "number" &&
+        typeof object.bbox.height === "number") ? (
+        <div className="text-xs text-muted-foreground mt-1" data-oid="..76z6e">
+          {Math.round(object.bbox.width)}×{Math.round(object.bbox.height)} at (
+          {Math.round(object.bbox.x)}, {Math.round(object.bbox.y)})
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground mt-1" data-oid="..76z6e">
+          Bounding box: N/A
+        </div>
+      )}
 
       {isSelected && isEditing && (
         <div className="mt-3 pt-3 border-t space-y-2" data-oid="8xwaeom">

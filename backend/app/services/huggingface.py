@@ -363,3 +363,245 @@ class HuggingFaceService:
                     return None
         
         return None
+    
+    def handle_existing_hf_metadata(self, metadata: Dict[str, Any], scene_id: str, hf_index: int) -> Dict[str, Any]:
+        """
+        Handle existing metadata from HuggingFace datasets to avoid redundant AI processing.
+        
+        Args:
+            metadata: Raw HF dataset item metadata (excluding image column)
+            scene_id: Database scene ID 
+            hf_index: Original HF dataset index
+            
+        Returns:
+            Dict with keys:
+            - scene_updates: Dict of updates to apply to scene record
+            - objects_data: List of object records to create (if any)
+            - skip_ai: Dict indicating which AI components to skip
+            
+        Example:
+            >>> svc = HuggingFaceService()
+            >>> result = svc.handle_existing_hf_metadata({
+            ...     "room_type": "living_room",
+            ...     "caption": "A modern living room with sofa",
+            ...     "objects": [{"category": "sofa", "bbox": [100, 200, 300, 400]}]
+            ... }, "scene-123", 42)
+            >>> result["scene_updates"]["scene_type"]
+            'living_room'
+            >>> result["skip_ai"]["scene_classification"]
+            True
+        """
+        if not metadata or not isinstance(metadata, dict):
+            return {
+                "scene_updates": {},
+                "objects_data": [],
+                "skip_ai": {
+                    "scene_classification": False,
+                    "object_detection": False, 
+                    "style_analysis": False,
+                    "depth_estimation": False,
+                    "color_analysis": False,
+                    "material_classification": False
+                }
+            }
+        
+        scene_updates = {}
+        objects_data = []
+        skip_ai = {
+            "scene_classification": False,
+            "object_detection": False,
+            "style_analysis": False, 
+            "depth_estimation": False,
+            "color_analysis": False,
+            "material_classification": False
+        }
+        
+        # Preserve all original metadata in attrs
+        scene_updates["attrs"] = {
+            **metadata,
+            "hf_original_index": hf_index,
+            "metadata_processed_at": datetime.utcnow().isoformat()
+        }
+        
+        try:
+            # Scene type mapping
+            scene_type_mapping = {
+                "room_type": "scene_type",
+                "scene_type": "scene_type", 
+                "room": "scene_type",
+                "room_category": "scene_type"
+            }
+            
+            for hf_key, db_key in scene_type_mapping.items():
+                if hf_key in metadata:
+                    scene_value = str(metadata[hf_key]).lower().strip()
+                    # Map common room types
+                    room_type_mapping = {
+                        "living_room": "living_room",
+                        "livingroom": "living_room", 
+                        "living": "living_room",
+                        "bedroom": "bedroom",
+                        "bed_room": "bedroom",
+                        "kitchen": "kitchen",
+                        "bathroom": "bathroom", 
+                        "bath_room": "bathroom",
+                        "dining_room": "dining_room",
+                        "diningroom": "dining_room",
+                        "dining": "dining_room",
+                        "office": "office",
+                        "study": "office",
+                        "home_office": "office",
+                        "garage": "garage",
+                        "hallway": "hallway",
+                        "balcony": "balcony",
+                        "outdoor": "outdoor"
+                    }
+                    
+                    mapped_type = room_type_mapping.get(scene_value, scene_value)
+                    scene_updates["scene_type"] = mapped_type
+                    scene_updates["scene_conf"] = metadata.get(f"{hf_key}_confidence", 0.8)  # Default confidence
+                    skip_ai["scene_classification"] = True
+                    logger.info(f"Scene {scene_id}: Mapped HF {hf_key}='{scene_value}' to scene_type='{mapped_type}'")
+                    break
+                    
+            # Description/caption mapping
+            description_keys = ["caption", "description", "text", "summary", "title"]
+            for desc_key in description_keys:
+                if desc_key in metadata and metadata[desc_key]:
+                    scene_updates["description"] = str(metadata[desc_key]).strip()
+                    logger.info(f"Scene {scene_id}: Using HF {desc_key} as description")
+                    break
+                    
+            # Style analysis mapping
+            style_mapping = {
+                "style": "primary_style",
+                "design_style": "primary_style",
+                "interior_style": "primary_style", 
+                "decor_style": "primary_style"
+            }
+            
+            for hf_key, db_key in style_mapping.items():
+                if hf_key in metadata:
+                    style_value = str(metadata[hf_key]).lower().strip()
+                    scene_updates[db_key] = style_value
+                    scene_updates["style_confidence"] = metadata.get(f"{hf_key}_confidence", 0.7)
+                    skip_ai["style_analysis"] = True
+                    logger.info(f"Scene {scene_id}: Using HF style '{style_value}'")
+                    break
+                    
+            # Color analysis mapping
+            color_keys = ["colors", "color_palette", "dominant_colors", "primary_colors"]
+            for color_key in color_keys:
+                if color_key in metadata:
+                    color_data = metadata[color_key]
+                    if isinstance(color_data, (list, dict)) and color_data:
+                        scene_updates["color_analysis"] = color_data
+                        skip_ai["color_analysis"] = True
+                        logger.info(f"Scene {scene_id}: Using existing color analysis from HF")
+                        break
+                        
+            # Depth map handling
+            depth_keys = ["depth_map", "depth", "depth_image", "depth_data"]
+            for depth_key in depth_keys:
+                if depth_key in metadata:
+                    depth_data = metadata[depth_key]
+                    if depth_data:  # Could be base64, URL, or other format
+                        scene_updates["depth_available"] = True
+                        skip_ai["depth_estimation"] = True
+                        logger.info(f"Scene {scene_id}: Found existing depth data in HF metadata")
+                        # TODO: Handle actual depth map upload to R2 if needed
+                        break
+                        
+            # Object detection mapping
+            objects_keys = ["objects", "annotations", "bounding_boxes", "detections"]
+            for obj_key in objects_keys:
+                if obj_key in metadata:
+                    objects = metadata[obj_key]
+                    if isinstance(objects, list) and objects:
+                        # Convert HF object format to Modomo format
+                        for i, obj in enumerate(objects):
+                            if isinstance(obj, dict):
+                                converted_obj = self._convert_hf_object_to_modomo(obj, i)
+                                if converted_obj:
+                                    objects_data.append(converted_obj)
+                                    
+                        if objects_data:
+                            skip_ai["object_detection"] = True
+                            logger.info(f"Scene {scene_id}: Using {len(objects_data)} existing objects from HF")
+                        break
+                        
+            # Material detection mapping
+            if "materials" in metadata or "material" in metadata:
+                materials = metadata.get("materials", [metadata.get("material")])
+                if materials:
+                    skip_ai["material_classification"] = True
+                    logger.info(f"Scene {scene_id}: Found existing material data in HF")
+                    
+            logger.info(f"Scene {scene_id}: HF metadata processing complete - skip_ai: {skip_ai}")
+            
+        except Exception as e:
+            logger.warning(f"Scene {scene_id}: Error processing HF metadata: {e}")
+            # Return safe defaults on error
+            scene_updates = {"attrs": metadata}
+            
+        return {
+            "scene_updates": scene_updates,
+            "objects_data": objects_data, 
+            "skip_ai": skip_ai
+        }
+    
+    def _convert_hf_object_to_modomo(self, hf_obj: Dict[str, Any], index: int) -> Optional[Dict[str, Any]]:
+        """
+        Convert HF object annotation to Modomo object format.
+        
+        Args:
+            hf_obj: HF object dictionary 
+            index: Object index for ID generation
+            
+        Returns:
+            Modomo object dictionary or None if conversion fails
+        """
+        try:
+            # Extract category/label
+            category = hf_obj.get("category", hf_obj.get("label", hf_obj.get("class", "furniture")))
+            
+            # Extract bounding box - handle multiple formats
+            bbox = hf_obj.get("bbox", hf_obj.get("bounding_box", hf_obj.get("box")))
+            if not bbox:
+                return None
+                
+            # Normalize bbox format to [x, y, width, height]
+            if isinstance(bbox, list) and len(bbox) == 4:
+                if "x1" in str(hf_obj) or "x2" in str(hf_obj):  # [x1, y1, x2, y2] format
+                    x1, y1, x2, y2 = bbox
+                    bbox_normalized = [x1, y1, x2-x1, y2-y1]
+                else:  # Already [x, y, w, h] format
+                    bbox_normalized = bbox
+            elif isinstance(bbox, dict):
+                x = bbox.get("x", bbox.get("x1", 0))
+                y = bbox.get("y", bbox.get("y1", 0)) 
+                w = bbox.get("width", bbox.get("w", bbox.get("x2", 0) - x))
+                h = bbox.get("height", bbox.get("h", bbox.get("y2", 0) - y))
+                bbox_normalized = [x, y, w, h]
+            else:
+                return None
+                
+            # Create Modomo object
+            modomo_obj = {
+                "category": str(category).lower(),
+                "confidence": float(hf_obj.get("confidence", hf_obj.get("score", 0.8))),
+                "bbox": bbox_normalized,
+                "description": hf_obj.get("description", hf_obj.get("caption")),
+                "attributes": {}
+            }
+            
+            # Add additional attributes 
+            for key, value in hf_obj.items():
+                if key not in ["category", "label", "class", "bbox", "bounding_box", "box", "confidence", "score"]:
+                    modomo_obj["attributes"][key] = value
+                    
+            return modomo_obj
+            
+        except Exception as e:
+            logger.warning(f"Failed to convert HF object {index}: {e}")
+            return None

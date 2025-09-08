@@ -19,6 +19,11 @@ class SceneService:
         self.supabase = get_supabase()
         self.storage = StorageService()
     
+    def _transform_object_data(self, obj_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Transform database object format to schema format"""
+        # For database schema, no transformation needed - use data as is
+        return obj_data.copy()
+    
     def _enrich_scene_data(self, scene_data: Dict[str, Any], objects: Optional[List[SceneObject]] = None) -> Dict[str, Any]:
         """Add computed fields to scene data for frontend compatibility"""
         enriched = scene_data.copy()
@@ -195,7 +200,13 @@ class SceneService:
                     .eq("scene_id", scene_id)
                     .execute()
                 )
-                objects = [SceneObject(**obj) for obj in objects_result.data]
+                
+                # Transform database format to schema format
+                objects = []
+                for obj_data in objects_result.data:
+                    transformed_data = self._transform_object_data(obj_data)
+                    objects.append(SceneObject(**transformed_data))
+                
                 scene_data["objects"] = [obj.model_dump() for obj in objects]
             else:
                 # Get object count for this scene
@@ -226,7 +237,13 @@ class SceneService:
                 .execute()
             )
             
-            return [SceneObject(**obj) for obj in result.data]
+            # Transform database format to schema format
+            objects = []
+            for obj_data in result.data:
+                transformed_data = self._transform_object_data(obj_data)
+                objects.append(SceneObject(**transformed_data))
+            
+            return objects
             
         except Exception as e:
             logger.error(f"Failed to get objects for scene {scene_id}: {e}")
@@ -245,15 +262,19 @@ class SceneService:
             if not result.data:
                 return None
             
-            scene = Scene(**result.data[0])
+            scene_row = result.data[0]
+            scene = Scene(**scene_row)
             
             # Get appropriate R2 key
             r2_key = None
             if image_type == "original":
                 r2_key = scene.r2_key_original
+            elif image_type == "thumbnail":
+                # Prefer explicit thumbnail key; fallback to original to avoid 404s in UI
+                r2_key = scene_row.get("r2_key_thumbnail") or scene.r2_key_original
             elif image_type == "depth":
-                r2_key = scene.depth_key
-            # Note: thumbnail is not in the schema, would need to be added
+                # Support both legacy 'depth_key' and new 'r2_key_depth'
+                r2_key = scene_row.get("r2_key_depth") or scene.depth_key
             
             if not r2_key:
                 return None
@@ -267,19 +288,24 @@ class SceneService:
             raise
     
     async def update_scene(self, scene_id: str, updates: Dict[str, Any]) -> bool:
-        """Update scene metadata (for corrections/reviews)"""
+        """Update scene metadata (for corrections/reviews and AI outputs)"""
         try:
-            # Filter allowed updates
+            # Normalize incoming keys for Supabase schema compatibility
+            normalized = dict(updates)
+            # Map r2_key_depth -> depth_key if depth_key not provided
+            if 'r2_key_depth' in normalized and 'depth_key' not in normalized:
+                normalized['depth_key'] = normalized['r2_key_depth']
+            
+            # Allowed fields in Supabase scenes table
             allowed_fields = [
-                'scene_type', 'scene_conf', 'status', 'depth_key'
+                'scene_type', 'scene_conf', 'status', 'depth_key',
+                'r2_key_thumbnail', 'palette', 'phash'
             ]
             
-            filtered_updates = {
-                k: v for k, v in updates.items() 
-                if k in allowed_fields
-            }
+            filtered_updates = {k: v for k, v in normalized.items() if k in allowed_fields}
             
             if not filtered_updates:
+                logger.info(f"No allowed scene updates for {scene_id}; received keys: {list(updates.keys())}")
                 return False
             
             result = (

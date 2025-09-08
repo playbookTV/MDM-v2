@@ -192,9 +192,13 @@ class AIPipelineService:
                             'hex': first_color.get('hex', f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}")
                         }
                 
-                # Parse depth analysis
+                # Parse depth analysis (preserve base64 if provided by RunPod)
                 depth_analysis = runpod_output.get('depth_analysis', {})
                 depth_available = depth_analysis.get('depth_available', False)
+                depth_base64 = depth_analysis.get('depth_base64')
+                
+                # Optional generated assets
+                thumbnail_base64 = runpod_output.get('thumbnail_base64')
                 
                 return {
                     'scene_id': scene_id,
@@ -209,6 +213,9 @@ class AIPipelineService:
                     'primary_style': primary_style,
                     'style_confidence': style_confidence,
                     'depth_available': depth_available,
+                    # Pass through base64 blobs so worker can upload
+                    **({'thumbnail_base64': thumbnail_base64} if thumbnail_base64 else {}),
+                    **({'depth_analysis': {**depth_analysis, **({'depth_base64': depth_base64} if depth_base64 else {})}} if depth_analysis else {}),
                     'dominant_color': dominant_color,
                     'processing_completed': datetime.utcnow().isoformat()
                 }

@@ -25,7 +25,7 @@ async def get_scene_image(
         # Map frontend types to backend types
         image_type_mapping = {
             "original": "original",
-            "thumbnail": "original",  # For now, use original as thumbnail
+            "thumbnail": "thumbnail",
             "depth": "depth"
         }
         

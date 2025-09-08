@@ -245,12 +245,19 @@ def segment_objects(image: Image.Image, objects: list) -> list:
                 mask_area = int(np.sum(mask))
                 mask_coverage = mask_area / (image.size[0] * image.size[1])
                 
+                # Convert mask to base64 image
+                mask_image = Image.fromarray((mask * 255).astype(np.uint8), mode='L')
+                mask_buffer = io.BytesIO()
+                mask_image.save(mask_buffer, format='PNG')
+                mask_base64 = base64.b64encode(mask_buffer.getvalue()).decode('utf-8')
+
                 segmented_objects.append({
                     **obj,  # Include original object data
                     "has_mask": True,
                     "mask_area": mask_area,
                     "mask_coverage": round(mask_coverage, 4),
-                    "segmentation_confidence": float(scores[best_mask_idx])
+                    "segmentation_confidence": float(scores[best_mask_idx]),
+                    "mask_base64": mask_base64  # Add base64-encoded mask
                 })
                 
             except Exception as e:
@@ -314,12 +321,19 @@ def segment_objects_transformers(image: Image.Image, objects: list) -> list:
                 mask_area = int(np.sum(mask))
                 mask_coverage = mask_area / (image.size[0] * image.size[1])
                 
+                # Convert mask to base64 image
+                mask_image = Image.fromarray((mask * 255).astype(np.uint8), mode='L')
+                mask_buffer = io.BytesIO()
+                mask_image.save(mask_buffer, format='PNG')
+                mask_base64 = base64.b64encode(mask_buffer.getvalue()).decode('utf-8')
+
                 segmented_objects.append({
                     **obj,  # Include original object data
                     "has_mask": True,
                     "mask_area": mask_area,
                     "mask_coverage": round(mask_coverage, 4),
-                    "segmentation_confidence": score
+                    "segmentation_confidence": score,
+                    "mask_base64": mask_base64  # Add base64-encoded mask
                 })
                 
             except Exception as e:
@@ -479,6 +493,16 @@ def estimate_depth(image: Image.Image) -> dict:
         else:
             depth_array = np.array(depth_map)
         
+        # Create depth visualization
+        # Normalize depth array to 0-255 for visualization
+        depth_normalized = ((depth_array - depth_array.min()) / (depth_array.max() - depth_array.min()) * 255).astype(np.uint8)
+        
+        # Convert to PIL Image and then to base64
+        depth_image = Image.fromarray(depth_normalized, mode='L')
+        depth_buffer = io.BytesIO()
+        depth_image.save(depth_buffer, format='PNG')
+        depth_base64 = base64.b64encode(depth_buffer.getvalue()).decode('utf-8')
+
         return {
             "depth_available": True,
             "depth_stats": {
@@ -486,7 +510,8 @@ def estimate_depth(image: Image.Image) -> dict:
                 "max_depth": float(depth_array.max()), 
                 "mean_depth": float(depth_array.mean()),
                 "depth_range": float(depth_array.max() - depth_array.min())
-            }
+            },
+            "depth_base64": depth_base64  # Add base64-encoded depth map
         }
         
     except Exception as e:
@@ -512,10 +537,20 @@ def process_scene_complete(image_data_b64: str, scene_id: str, options: dict = N
         
         logger.info(f"Processing scene {scene_id}, image size: {image.size}")
         
+        # Generate thumbnail (256x256 max, maintaining aspect ratio)
+        thumbnail = image.copy()
+        thumbnail.thumbnail((256, 256), Image.Resampling.LANCZOS)
+        
+        # Convert thumbnail to base64
+        thumb_buffer = io.BytesIO()
+        thumbnail.save(thumb_buffer, format='JPEG', quality=85, optimize=True)
+        thumbnail_base64 = base64.b64encode(thumb_buffer.getvalue()).decode('utf-8')
+        
         results = {
             "scene_id": scene_id,
             "processing_started": time.time(),
-            "image_size": image.size
+            "image_size": image.size,
+            "thumbnail_base64": thumbnail_base64  # Add thumbnail
         }
         
         # Run AI analysis pipeline

@@ -27,7 +27,27 @@ celery_app.conf.update(
     task_soft_time_limit=settings.JOB_TIMEOUT - 60,
     worker_prefetch_multiplier=1,
     worker_max_tasks_per_child=settings.CELERY_WORKER_MAX_TASKS,
-    broker_connection_retry_on_startup=True
+    broker_connection_retry_on_startup=True,
+    # Redis connection resilience
+    broker_connection_retry=True,
+    broker_connection_max_retries=10,
+    broker_pool_limit=10,
+    result_backend_transport_options={
+        'connection_pool_kwargs': {
+            'max_connections': 20,
+            'socket_keepalive': True,
+            'socket_keepalive_options': {},
+            'retry_on_timeout': True,
+        }
+    },
+    broker_transport_options={
+        'connection_pool_kwargs': {
+            'max_connections': 20,
+            'socket_keepalive': True,
+            'socket_keepalive_options': {},
+            'retry_on_timeout': True,
+        }
+    }
 )
 
 # Task routing - route tasks to specific queues for better control

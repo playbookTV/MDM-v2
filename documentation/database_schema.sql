@@ -254,7 +254,7 @@ create index if not exists idx_objects_attrs_gin on objects using gin (attrs);
 insert into scene_labels(code, display) values
   ('bedroom','Bedroom'),('living_room','Living Room'),('kitchen','Kitchen'),
   ('bathroom','Bathroom'),('dining_room','Dining Room'),('office','Office'),
-  ('hallway','Hallway'),('balcony','Balcony'),('outdoor','Outdoor')
+  ('hallway','Hallway'),('balcony','Balcony'),('outdoor','Outdoor'),('garage','Garage')
 on conflict do nothing;
 
 insert into style_labels(code, display) values

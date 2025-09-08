@@ -28,7 +28,7 @@ def run_async(coro):
     
     return loop.run_until_complete(coro)
 
-async def _create_scene_objects(scene_id: str, objects_data: list):
+async def _create_scene_objects(scene_id: str, objects_data: list, mask_keys: dict = None, scene_materials: dict = None):
     """Create object records in database from RunPod object detection results"""
     from app.core.supabase import get_supabase
     import uuid
@@ -82,6 +82,11 @@ async def _create_scene_objects(scene_id: str, objects_data: list):
         }
         normalized_category = category_mapping.get(category.lower(), "furniture")  # Default to "furniture"
 
+        # Get mask key from uploaded R2 files
+        uploaded_mask_key = None
+        if mask_keys:
+            uploaded_mask_key = mask_keys.get(f"object_{i}_mask_key")
+            
         db_object = {
             "id": str(uuid.uuid4()),
             "scene_id": scene_id,
@@ -91,7 +96,7 @@ async def _create_scene_objects(scene_id: str, objects_data: list):
             "bbox_y": bbox.get("y", 0), 
             "bbox_w": bbox.get("width", 0),  # Fixed: bbox_w instead of bbox_width
             "bbox_h": bbox.get("height", 0),  # Fixed: bbox_h instead of bbox_height  
-            "mask_key": obj.get("mask_key", obj.get("r2_mask_key")),  # Try both field names
+            "mask_key": uploaded_mask_key or obj.get("mask_key", obj.get("r2_mask_key")),  # Use uploaded key first, then fallback
             "thumb_key": obj.get("thumb_key", obj.get("r2_thumb_key")),  # R2 thumbnail key
             "depth_key": obj.get("depth_key", obj.get("r2_depth_key")),  # R2 depth key
             "subcategory": obj.get("subcategory"),
@@ -132,41 +137,40 @@ async def _create_scene_objects(scene_id: str, objects_data: list):
         created_objects = result.data
         logger.info(f"Created {len(created_objects)} object records for scene {scene_id}")
         
-        # Extract materials from RunPod response and create object_materials records
+        # Extract materials from scene-level material analysis and apply to objects
         materials_to_insert = []
         
-        for i, obj in enumerate(objects_data):
-            if i < len(created_objects):
-                object_id = created_objects[i]["id"]
+        if scene_materials and created_objects:
+            logger.info(f"Processing scene-level materials: {scene_materials}")
+            
+            # Get dominant materials from scene analysis
+            dominant_materials = scene_materials.get("dominant_materials", [])
+            
+            if dominant_materials:
+                logger.info(f"Found {len(dominant_materials)} dominant materials from scene analysis")
                 
-                # Extract materials from object data
-                materials = obj.get("materials", [])
-                if isinstance(materials, list):
-                    for material_info in materials:
+                # Apply the top materials to all objects (since RunPod does scene-level material analysis)
+                for obj_record in created_objects:
+                    object_id = obj_record["id"]
+                    
+                    # Apply top 3 materials to each object
+                    for material_info in dominant_materials[:3]:
                         if isinstance(material_info, dict):
-                            material_code = material_info.get("material", material_info.get("name"))
+                            material_code = material_info.get("material", "unknown")
                             confidence = material_info.get("confidence", 0.5)
-                        elif isinstance(material_info, str):
-                            material_code = material_info
-                            confidence = 0.5  # Default confidence
-                        else:
-                            continue
                             
-                        if material_code:
-                            materials_to_insert.append({
-                                "object_id": object_id,
-                                "material_code": material_code.lower(),
-                                "conf": float(confidence)
-                            })
-                
-                # Also check if material is stored as a single field
-                single_material = obj.get("material")
-                if single_material and isinstance(single_material, str):
-                    materials_to_insert.append({
-                        "object_id": object_id,
-                        "material_code": single_material.lower(),
-                        "conf": float(obj.get("material_confidence", 0.5))
-                    })
+                            if material_code and material_code != "unknown":
+                                materials_to_insert.append({
+                                    "object_id": object_id,
+                                    "material_code": material_code.lower(),
+                                    "conf": float(confidence)
+                                })
+            else:
+                logger.info("No dominant materials found in scene analysis")
+        else:
+            logger.info("No scene materials provided or no objects created")
+        
+        logger.info(f"Total materials to insert: {len(materials_to_insert)}")
         
         # Insert materials if any were found
         if materials_to_insert:
@@ -429,7 +433,48 @@ def process_scene(self, job_id: str, scene_id: str, options: Dict[str, Any] = No
                 # Small delay for realistic progress
                 await asyncio.sleep(0.5)
             
-            # Prepare final results
+            # Process and upload generated files to R2
+            current_task.update_state(
+                state='PROGRESS',
+                meta={
+                    'current': 7,
+                    'total': 8,
+                    'stage': 'file_upload',
+                    'description': 'Uploading generated files to storage',
+                    'scene_id': scene_id
+                }
+            )
+            
+            await job_service.add_job_event(job_id, "progress", {
+                "stage": "file_upload",
+                "description": "Uploading masks, depth maps, and thumbnails",
+                "scene_id": scene_id,
+                "progress": 87.5
+            })
+            
+            # Upload scene-level files (thumbnail, depth map) to R2
+            scene_file_keys = {}
+            if ai_results.get("thumbnail_base64"):
+                logger.info(f"Uploading thumbnail for scene {scene_id}")
+            if ai_results.get("depth_analysis", {}).get("depth_base64"):
+                logger.info(f"Uploading depth map for scene {scene_id}")
+            
+            scene_file_keys = await storage_service.upload_scene_files(
+                scene_id=scene_id,
+                thumbnail_base64=ai_results.get("thumbnail_base64"),
+                depth_base64=ai_results.get("depth_analysis", {}).get("depth_base64")
+            )
+            logger.info(f"Uploaded scene files for {scene_id}: {scene_file_keys}")
+            
+            # Upload object mask files to R2
+            objects_data = ai_results.get("objects", [])
+            mask_keys = {}
+            if objects_data:
+                logger.info(f"Uploading masks for {len(objects_data)} objects in scene {scene_id}")
+                mask_keys = await storage_service.upload_object_masks(scene_id, objects_data)
+                logger.info(f"Uploaded {len(mask_keys)} object masks for {scene_id}")
+            
+            # Prepare final results with R2 keys
             processing_results = {
                 "status": "processed",
                 "scene_type": ai_results.get("scene_type", "unknown"),
@@ -438,19 +483,23 @@ def process_scene(self, job_id: str, scene_id: str, options: Dict[str, Any] = No
                 "style_confidence": ai_results.get("style_confidence", 0.0),
                 "objects_detected": ai_results.get("objects_detected", 0),
                 "objects": ai_results.get("objects", []),  # Include actual objects array
-                "color_analysis": ai_results.get("dominant_color", {}),
+                "palette": ai_results.get("color_palette", ai_results.get("dominant_color", {})),  # Match database schema
                 "depth_available": ai_results.get("depth_available", False),
                 "processing_success": ai_results.get("success", False),
-                "ai_error": ai_results.get("error") if not ai_results.get("success") else None
+                "ai_error": ai_results.get("error") if not ai_results.get("success") else None,
+                # Add R2 keys to scene record
+                **scene_file_keys  # This adds thumb_key and depth_key if they exist
             }
             
-            await scene_service.update_scene(scene_id, processing_results)
+            updated = await scene_service.update_scene(scene_id, processing_results)
+            logger.info(f"Scene {scene_id} metadata updated: {updated}")
             
-            # Create object records from RunPod results
+            # Create object records from RunPod results with mask keys
             objects_data = ai_results.get("objects", [])
             if objects_data:
                 logger.info(f"Creating {len(objects_data)} object records for scene {scene_id}")
-                await _create_scene_objects(scene_id, objects_data)
+                scene_materials = ai_results.get("material_analysis", {})
+                await _create_scene_objects(scene_id, objects_data, mask_keys, scene_materials)
             
             # Get current job to preserve existing metadata
             current_job = await job_service.get_job(job_id)
@@ -633,7 +682,7 @@ def process_scenes_in_dataset(self, job_id: str, dataset_id: str, options: Dict[
                     })
                     
                     # Trigger individual scene processing task
-                    scene_job_id = f"{job_id}_scene_{idx}"
+                    scene_job_id = str(uuid.uuid4())
                     scene_task = process_scene.delay(scene_job_id, scene_id, {
                         "parent_job": job_id,
                         "dataset_id": dataset_id,

@@ -214,16 +214,61 @@ def process_huggingface_dataset(
                     failed_scenes += 1
                     continue
                 
-                # Create scene record - using sync version for Celery
-                scene_data = SceneCreate(
-                    source=f"huggingface:{hf_dataset_url}",
-                    r2_key_original=r2_key,
-                    width=image_data['width'],
-                    height=image_data['height']
+                # Process existing HF metadata to avoid redundant AI processing
+                metadata_result = hf_service.handle_existing_hf_metadata(
+                    metadata=image_data['metadata'],
+                    scene_id="temp",  # Will be replaced after scene creation
+                    hf_index=image_data['hf_index']
                 )
+                
+                # Create scene record with any pre-existing metadata - using sync version for Celery
+                base_scene_data = {
+                    "source": f"huggingface:{hf_dataset_url}",
+                    "r2_key_original": r2_key,
+                    "width": image_data['width'],
+                    "height": image_data['height']
+                }
+                
+                # Merge in metadata-derived scene updates
+                scene_data_dict = {**base_scene_data, **metadata_result["scene_updates"]}
+                scene_data = SceneCreate(**scene_data_dict)
                 
                 scene = dataset_service.create_scene_sync(dataset_id, scene_data)
                 processed_scenes.append(scene.id)
+                
+                # Create object records from HF metadata if any were found
+                if metadata_result["objects_data"]:
+                    logger.info(f"Creating {len(metadata_result['objects_data'])} objects from HF metadata for scene {scene.id}")
+                    # Import here to avoid circular imports
+                    from app.worker.tasks import _create_scene_objects
+                    import asyncio
+                    
+                    # Convert HF objects to database format
+                    hf_objects_for_db = []
+                    for obj in metadata_result["objects_data"]:
+                        hf_obj_db = {
+                            "category": obj["category"],
+                            "confidence": obj["confidence"],
+                            "bbox": obj["bbox"],  # Already normalized to [x, y, w, h]
+                            "description": obj.get("description"),
+                            "attrs": obj.get("attributes", {})
+                        }
+                        hf_objects_for_db.append(hf_obj_db)
+                    
+                    # Use existing object creation logic
+                    try:
+                        asyncio.run(_create_scene_objects(scene.id, hf_objects_for_db))
+                        logger.info(f"Successfully created HF objects for scene {scene.id}")
+                    except Exception as e:
+                        logger.error(f"Failed to create HF objects for scene {scene.id}: {e}")
+                        # Continue processing - object creation failure shouldn't stop scene processing
+                
+                # Log metadata processing results
+                skip_components = [k for k, v in metadata_result["skip_ai"].items() if v]
+                if skip_components:
+                    logger.info(f"Scene {scene.id}: Will skip AI processing for: {', '.join(skip_components)}")
+                else:
+                    logger.info(f"Scene {scene.id}: Full AI processing will be performed")
                 
                 logger.debug(f"Processed image {idx + 1}/{total_images}: {scene.id}")
                 

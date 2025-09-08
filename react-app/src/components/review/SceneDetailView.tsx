@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   ZoomIn,
   ZoomOut,
@@ -49,6 +49,7 @@ export function SceneDetailView({
   const [showInfo, setShowInfo] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const { data: scene, isLoading, error } = useScene(sceneId, true);
   const { prefetchScene } = useScenePrefetch();
@@ -81,15 +82,20 @@ export function SceneDetailView({
     onObjectSelect?.(null);
   }, [sceneId, onObjectSelect]);
 
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
+  // Register non-passive wheel listener to allow preventDefault
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      const newZoom = Math.max(0.1, Math.min(5, zoom * delta));
-      setZoom(newZoom);
-    },
-    [zoom],
-  );
+      setZoom((z) => Math.max(0.1, Math.min(5, z * delta)));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", onWheel as EventListener);
+    };
+  }, []);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -355,7 +361,7 @@ export function SceneDetailView({
       {/* Image Container */}
       <div
         className="relative h-full min-h-96 overflow-hidden cursor-grab active:cursor-grabbing"
-        onWheel={handleWheel}
+        ref={containerRef}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -460,12 +466,22 @@ export function SceneDetailView({
               </div>
             )}
 
-            <div className="text-xs text-muted-foreground" data-oid=".ojmm.v">
-              {Math.round(selectedObject.bbox.width)}×
-              {Math.round(selectedObject.bbox.height)} at (
-              {Math.round(selectedObject.bbox.x)},{" "}
-              {Math.round(selectedObject.bbox.y)})
-            </div>
+            {(selectedObject.bbox &&
+              typeof selectedObject.bbox.x === "number" &&
+              typeof selectedObject.bbox.y === "number" &&
+              typeof selectedObject.bbox.width === "number" &&
+              typeof selectedObject.bbox.height === "number") ? (
+              <div className="text-xs text-muted-foreground" data-oid=".ojmm.v">
+                {Math.round(selectedObject.bbox.width)}×
+                {Math.round(selectedObject.bbox.height)} at (
+                {Math.round(selectedObject.bbox.x)},{" "}
+                {Math.round(selectedObject.bbox.y)})
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground" data-oid=".ojmm.v">
+                Bounding box: N/A
+              </div>
+            )}
 
             {selectedObject.review_status && (
               <Badge variant="outline" className="text-xs" data-oid="98_3l0a">
@@ -496,6 +512,18 @@ function ObjectOverlay({
   imageHeight: number;
 }) {
   const { bbox } = object;
+
+  // Guard against undefined bbox
+  if (
+    !bbox ||
+    typeof bbox.x !== "number" ||
+    typeof bbox.y !== "number" ||
+    typeof bbox.width !== "number" ||
+    typeof bbox.height !== "number"
+  ) {
+    console.warn("ObjectOverlay: Invalid bbox data", { object, bbox });
+    return null;
+  }
 
   // Convert bbox coordinates to percentage
   const left = (bbox.x / imageWidth) * 100;

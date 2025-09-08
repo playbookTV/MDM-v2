@@ -97,6 +97,31 @@ async def get_scenes(
         logger.error(f"Failed to fetch scenes: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch scenes")
 
+def _to_api_object(obj: SceneObject) -> dict:
+    """Transform SQLAlchemy SceneObject to API schema dict"""
+    return {
+        "id": str(obj.id),
+        "scene_id": str(obj.scene_id),
+        "label": obj.category_code or "object",
+        "confidence": float(obj.confidence),
+        "bbox": {
+            "x": float(obj.bbox_x),
+            "y": float(obj.bbox_y),
+            "width": float(obj.bbox_w),
+            "height": float(obj.bbox_h),
+        },
+        "category": obj.subcategory,
+        "material": (obj.attrs or {}).get("material") if hasattr(obj, "attrs") else None,
+        "material_conf": None,
+        "description": obj.description,
+        "r2_key_mask": obj.mask_key,
+        "r2_key_thumbnail": obj.thumb_key,
+        "review_status": obj.review_status,
+        "review_notes": obj.review_notes,
+        "created_at": obj.created_at,
+        "updated_at": getattr(obj, "updated_at", None),
+    }
+
 @router.get("/{scene_id}", response_model=SceneSchema)
 async def get_scene(
     scene_id: str,
@@ -122,8 +147,38 @@ async def get_scene(
         
         scene = row.Scene
         scene.dataset_name = row.dataset_name
+
+        # Manually build API schema to include transformed objects
+        scene_dict = {
+            "id": str(scene.id),
+            "dataset_id": str(scene.dataset_id),
+            "dataset_name": scene.dataset_name,
+            "source": scene.source,
+            "width": scene.width,
+            "height": scene.height,
+            "r2_key_original": scene.r2_key_original,
+            "r2_key_thumbnail": getattr(scene, "r2_key_thumbnail", None),
+            "r2_key_depth": getattr(scene, "r2_key_depth", None) or getattr(scene, "depth_key", None),
+            "scene_type": scene.scene_type,
+            "scene_conf": scene.scene_conf,
+            "styles": getattr(scene, "styles", []) or [],
+            "palette": getattr(scene, "palette", []) or [],
+            "status": scene.status,
+            "processing_error": getattr(scene, "processing_error", None),
+            "review_status": getattr(scene, "review_status", None),
+            "review_notes": getattr(scene, "review_notes", None),
+            "reviewed_by": getattr(scene, "reviewed_by", None),
+            "reviewed_at": getattr(scene, "reviewed_at", None),
+            "objects": None,
+            "created_at": scene.created_at,
+            "updated_at": getattr(scene, "updated_at", None),
+            "processed_at": getattr(scene, "processed_at", None),
+        }
+
+        if include_objects and hasattr(scene, "objects") and scene.objects is not None:
+            scene_dict["objects"] = [_to_api_object(o) for o in scene.objects]
         
-        return scene
+        return scene_dict
         
     except HTTPException:
         raise
@@ -151,7 +206,7 @@ async def get_scene_objects(
         result = await db.execute(query)
         objects = result.scalars().all()
         
-        return objects
+        return [_to_api_object(o) for o in objects]
         
     except HTTPException:
         raise
