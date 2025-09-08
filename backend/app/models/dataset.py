@@ -33,38 +33,18 @@ class Dataset(Base):
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class SceneStyle(Base):
-    """Scene to style relationship with confidence"""
-    __tablename__ = "scene_styles"
-    
-    scene_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("scenes.id", ondelete="CASCADE"), primary_key=True)
-    style_code: Mapped[str] = mapped_column(String(50), primary_key=True)  # references style_labels.code
-    conf: Mapped[float] = mapped_column(Float, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class ObjectMaterial(Base):
-    """Object to material relationship with confidence"""
-    __tablename__ = "object_materials"
-    
-    object_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("objects.id", ondelete="CASCADE"), primary_key=True)
-    material_code: Mapped[str] = mapped_column(String(50), primary_key=True)  # references material_labels.code
-    conf: Mapped[float] = mapped_column(Float, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
     scenes: Mapped[List["Scene"]] = relationship("Scene", back_populates="dataset", cascade="all, delete-orphan")
     jobs: Mapped[List["Job"]] = relationship("Job", back_populates="dataset")
+
 
 class Scene(Base):
     """Scene model"""
     __tablename__ = "scenes"
     
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4()))
-    dataset_id: Mapped[str] = mapped_column(UUID(as_uuid=False), nullable=False)
+    dataset_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("datasets.id", ondelete="CASCADE"), nullable=False)
     
     # Source info
     source: Mapped[str] = mapped_column(String(255), nullable=False)  # original filename
@@ -100,26 +80,6 @@ class Scene(Base):
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class SceneStyle(Base):
-    """Scene to style relationship with confidence"""
-    __tablename__ = "scene_styles"
-    
-    scene_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("scenes.id", ondelete="CASCADE"), primary_key=True)
-    style_code: Mapped[str] = mapped_column(String(50), primary_key=True)  # references style_labels.code
-    conf: Mapped[float] = mapped_column(Float, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class ObjectMaterial(Base):
-    """Object to material relationship with confidence"""
-    __tablename__ = "object_materials"
-    
-    object_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("objects.id", ondelete="CASCADE"), primary_key=True)
-    material_code: Mapped[str] = mapped_column(String(50), primary_key=True)  # references material_labels.code
-    conf: Mapped[float] = mapped_column(Float, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
     processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     
@@ -127,12 +87,13 @@ class ObjectMaterial(Base):
     dataset: Mapped["Dataset"] = relationship("Dataset", back_populates="scenes")
     objects: Mapped[List["SceneObject"]] = relationship("SceneObject", back_populates="scene", cascade="all, delete-orphan")
 
+
 class SceneObject(Base):
     """Detected object in a scene"""
     __tablename__ = "objects"
     
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4()))
-    scene_id: Mapped[str] = mapped_column(UUID(as_uuid=False), nullable=False)
+    scene_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("scenes.id", ondelete="CASCADE"), nullable=False)
     
     # Object classification
     category_code: Mapped[str] = mapped_column(String(100), nullable=False)  # canonical category code
@@ -160,37 +121,18 @@ class SceneObject(Base):
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class SceneStyle(Base):
-    """Scene to style relationship with confidence"""
-    __tablename__ = "scene_styles"
-    
-    scene_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("scenes.id", ondelete="CASCADE"), primary_key=True)
-    style_code: Mapped[str] = mapped_column(String(50), primary_key=True)  # references style_labels.code
-    conf: Mapped[float] = mapped_column(Float, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class ObjectMaterial(Base):
-    """Object to material relationship with confidence"""
-    __tablename__ = "object_materials"
-    
-    object_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("objects.id", ondelete="CASCADE"), primary_key=True)
-    material_code: Mapped[str] = mapped_column(String(50), primary_key=True)  # references material_labels.code
-    conf: Mapped[float] = mapped_column(Float, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
     scene: Mapped["Scene"] = relationship("Scene", back_populates="objects")
+
 
 class Job(Base):
     """Processing job model"""
     __tablename__ = "jobs"
     
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4()))
-    dataset_id: Mapped[str] = mapped_column(UUID(as_uuid=False), nullable=False)
+    dataset_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("datasets.id", ondelete="CASCADE"), nullable=False)
     
     # Job info
     name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -216,26 +158,6 @@ class Job(Base):
     # Relationships
     dataset: Mapped["Dataset"] = relationship("Dataset", back_populates="jobs")
 
-class Review(Base):
-    """Review/annotation model for tracking human corrections"""
-    __tablename__ = "reviews"
-    
-    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4()))
-    scene_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False))  # nullable for object-only reviews
-    object_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False))  # nullable for scene-only reviews
-    
-    # Review details
-    action: Mapped[str] = mapped_column(String(20), nullable=False)  # 'approve', 'reject', 'correct'
-    changes: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)  # what was changed
-    notes: Mapped[Optional[str]] = mapped_column(Text)
-    
-    # Session tracking
-    session_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False))
-    reviewer: Mapped[Optional[str]] = mapped_column(String(100))
-    
-    # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
 
 class SceneStyle(Base):
     """Scene to style relationship with confidence"""
@@ -254,4 +176,26 @@ class ObjectMaterial(Base):
     object_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("objects.id", ondelete="CASCADE"), primary_key=True)
     material_code: Mapped[str] = mapped_column(String(50), primary_key=True)  # references material_labels.code
     conf: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+
+
+class Review(Base):
+    """Review/annotation model for tracking human corrections"""
+    __tablename__ = "reviews"
+    
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4()))
+    scene_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False))  # nullable for object-only reviews
+    object_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False))  # nullable for scene-only reviews
+    
+    # Review details
+    action: Mapped[str] = mapped_column(String(20), nullable=False)  # 'approve', 'reject', 'correct'
+    changes: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)  # what was changed
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+    
+    # Session tracking
+    session_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False))
+    reviewer: Mapped[Optional[str]] = mapped_column(String(100))
+    
+    # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

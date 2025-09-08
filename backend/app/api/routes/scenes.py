@@ -401,64 +401,69 @@ async def get_scene_process_status(
     scene_id: str,
     db: AsyncSession = Depends(get_db)
 ):
-    """Get the current processing status for a scene"""
+    """Get the current processing status for a scene (uses Supabase jobs)"""
     try:
-        # Get the most recent processing job for this scene
-        job_query = select(Job).where(
-            Job.kind == "scene_processing",
-            Job.metadata.contains({"scene_id": scene_id})
-        ).order_by(desc(Job.created_at)).limit(1)
-        
-        job_result = await db.execute(job_query)
-        job = job_result.scalar_one_or_none()
-        
-        if not job:
+        # Load scene to find dataset_id (SQLAlchemy)
+        scene_query = select(Scene).where(Scene.id == scene_id)
+        scene_result = await db.execute(scene_query)
+        scene = scene_result.scalar_one_or_none()
+
+        dataset_id = str(scene.dataset_id) if scene else None
+
+        # Use Supabase JobService to fetch recent jobs
+        from app.services.jobs import JobService
+        job_service = JobService()
+        jobs_result = await job_service.get_jobs(
+            page=1,
+            per_page=50,
+            kind="process",
+            dataset_id=dataset_id
+        )
+
+        # Filter jobs for this scene_id in meta
+        matching = [j for j in jobs_result.get("data", []) if (j.get("meta", {}) or {}).get("scene_id") == scene_id]
+        if not matching:
             return {
                 "scene_id": scene_id,
                 "status": "no_job",
                 "message": "No processing job found for this scene"
             }
-        
-        # Get processing progress from job metadata
+
+        job = matching[0]
+        status = job.get("status")
         progress = 0
         stage = "unknown"
         description = ""
-        
-        if job.status == "pending":
+
+        if status == "queued":
             progress = 0
             stage = "queued"
             description = "Job queued for processing"
-        elif job.status == "running":
-            # Try to get progress from job result if available
-            if job.result and isinstance(job.result, dict):
-                progress = job.result.get("progress", 0)
-                stage = job.result.get("stage", "processing")
-                description = job.result.get("description", "Processing scene...")
-            else:
-                progress = 10
-                stage = "processing"
-                description = "AI analysis in progress..."
-        elif job.status == "succeeded":
+        elif status == "running":
+            progress = (job.get("result", {}) or {}).get("progress", 50)
+            stage = (job.get("result", {}) or {}).get("stage", "processing")
+            description = (job.get("result", {}) or {}).get("description", "AI analysis in progress...")
+        elif status == "succeeded":
             progress = 100
             stage = "completed"
             description = "Scene processing completed successfully"
-        elif job.status == "failed":
+        elif status == "failed":
             progress = 0
             stage = "failed"
-            description = job.error or "Scene processing failed"
-        
+            description = job.get("error") or "Scene processing failed"
+
         return {
             "scene_id": scene_id,
-            "job_id": job.id,
-            "status": job.status,
+            "job_id": job.get("id"),
+            "status": status,
             "progress": progress,
             "stage": stage,
             "description": description,
-            "started_at": job.started_at,
-            "finished_at": job.finished_at,
-            "error": job.error
+            "started_at": job.get("started_at"),
+            "finished_at": job.get("finished_at"),
+            "error": job.get("error")
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to get processing status for scene {scene_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to get processing status")

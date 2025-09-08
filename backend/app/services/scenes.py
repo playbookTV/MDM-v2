@@ -7,7 +7,6 @@ from typing import List, Optional, Dict, Any
 from uuid import UUID, uuid4
 
 from app.core.supabase import get_supabase
-from app.schemas.database import Scene, SceneObject, SceneWithDetails, ObjectWithDetails
 from app.services.storage import StorageService
 
 logger = logging.getLogger(__name__)
@@ -21,15 +20,31 @@ class SceneService:
     
     def _transform_object_data(self, obj_data: Dict[str, Any]) -> Dict[str, Any]:
         """Transform database object format to schema format"""
-        # For database schema, no transformation needed - use data as is
-        return obj_data.copy()
+        # Convert Supabase object format to proper bbox format for frontend
+        transformed = obj_data.copy()
+        
+        # Convert separate bbox columns to bbox object if they exist
+        if ("bbox_x" in obj_data and "bbox_y" in obj_data and 
+            "bbox_w" in obj_data and "bbox_h" in obj_data):
+            transformed["bbox"] = {
+                "x": float(obj_data["bbox_x"]),
+                "y": float(obj_data["bbox_y"]),
+                "width": float(obj_data["bbox_w"]),
+                "height": float(obj_data["bbox_h"])
+            }
+        
+        # Map category_code to label for frontend compatibility
+        if "category_code" in obj_data and "label" not in obj_data:
+            transformed["label"] = obj_data["category_code"] or "object"
+        
+        return transformed
     
-    def _enrich_scene_data(self, scene_data: Dict[str, Any], objects: Optional[List[SceneObject]] = None) -> Dict[str, Any]:
+    def _enrich_scene_data(self, scene_data: Dict[str, Any], objects: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         """Add computed fields to scene data for frontend compatibility"""
         enriched = scene_data.copy()
         
-        # Add has_depth computed field
-        enriched["has_depth"] = bool(scene_data.get("depth_key"))
+        # Add has_depth computed field (support legacy and new columns)
+        enriched["has_depth"] = bool(scene_data.get("r2_key_depth") or scene_data.get("depth_key"))
         
         # Add objects_count computed field
         if objects is not None:
@@ -130,19 +145,18 @@ class SceneService:
                 object_counts = await self._get_objects_count_bulk(scene_ids)
             
             for scene_data in result.data:
-                scene = Scene(**scene_data)
-                scene_dict = scene.model_dump()
+                scene_dict = dict(scene_data)
                 
                 if include_objects:
                     # Get objects for this scene
                     objects_result = (
                         self.supabase.table("objects")
                         .select("*")
-                        .eq("scene_id", scene.id)
+                        .eq("scene_id", scene_data["id"])
                         .execute()
                     )
-                    objects = [SceneObject(**obj) for obj in objects_result.data]
-                    scene_dict["objects"] = [obj.model_dump() for obj in objects]
+                    objects = [self._transform_object_data(obj) for obj in objects_result.data]
+                    scene_dict["objects"] = objects
                     
                     # Enrich with computed fields (including object count)
                     enriched_scene = self._enrich_scene_data(scene_dict, objects)
@@ -177,15 +191,14 @@ class SceneService:
             if not result.data:
                 return None
             
-            scene_data = result.data[0]
-            scene = Scene(**scene_data)
+            scene_data = dict(result.data[0])
             
             # Get dataset name
-            if scene.dataset_id:
+            if scene_data.get("dataset_id"):
                 dataset_result = (
                     self.supabase.table("datasets")
                     .select("name")
-                    .eq("id", scene.dataset_id)
+                    .eq("id", scene_data.get("dataset_id"))
                     .execute()
                 )
                 if dataset_result.data:
@@ -201,13 +214,9 @@ class SceneService:
                     .execute()
                 )
                 
-                # Transform database format to schema format
-                objects = []
-                for obj_data in objects_result.data:
-                    transformed_data = self._transform_object_data(obj_data)
-                    objects.append(SceneObject(**transformed_data))
-                
-                scene_data["objects"] = [obj.model_dump() for obj in objects]
+                # Return raw objects (frontend normalizes bbox)
+                objects = [self._transform_object_data(obj) for obj in objects_result.data]
+                scene_data["objects"] = objects
             else:
                 # Get object count for this scene
                 objects_count_result = (
@@ -227,7 +236,7 @@ class SceneService:
             logger.error(f"Failed to get scene {scene_id}: {e}")
             raise
     
-    async def get_scene_objects(self, scene_id: str) -> List[SceneObject]:
+    async def get_scene_objects(self, scene_id: str) -> List[Dict[str, Any]]:
         """Get all objects detected in a scene"""
         try:
             result = (
@@ -237,13 +246,8 @@ class SceneService:
                 .execute()
             )
             
-            # Transform database format to schema format
-            objects = []
-            for obj_data in result.data:
-                transformed_data = self._transform_object_data(obj_data)
-                objects.append(SceneObject(**transformed_data))
-            
-            return objects
+            # Transform database format to schema format (return dicts)
+            return [self._transform_object_data(obj_data) for obj_data in result.data]
             
         except Exception as e:
             logger.error(f"Failed to get objects for scene {scene_id}: {e}")
@@ -262,19 +266,18 @@ class SceneService:
             if not result.data:
                 return None
             
-            scene_row = result.data[0]
-            scene = Scene(**scene_row)
+            scene_row = dict(result.data[0])
             
             # Get appropriate R2 key
             r2_key = None
             if image_type == "original":
-                r2_key = scene.r2_key_original
+                r2_key = scene_row.get("r2_key_original")
             elif image_type == "thumbnail":
                 # Prefer explicit thumbnail key; fallback to original to avoid 404s in UI
-                r2_key = scene_row.get("r2_key_thumbnail") or scene.r2_key_original
+                r2_key = scene_row.get("r2_key_thumbnail") or scene_row.get("r2_key_original")
             elif image_type == "depth":
                 # Support both legacy 'depth_key' and new 'r2_key_depth'
-                r2_key = scene_row.get("r2_key_depth") or scene.depth_key
+                r2_key = scene_row.get("r2_key_depth") or scene_row.get("depth_key")
             
             if not r2_key:
                 return None

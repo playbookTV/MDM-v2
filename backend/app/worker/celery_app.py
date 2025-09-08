@@ -28,6 +28,7 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     worker_max_tasks_per_child=settings.CELERY_WORKER_MAX_TASKS,
     broker_connection_retry_on_startup=True,
+    broker_heartbeat=10,
     # Redis connection resilience
     broker_connection_retry=True,
     broker_connection_max_retries=10,
@@ -38,7 +39,10 @@ celery_app.conf.update(
             'socket_keepalive': True,
             'socket_keepalive_options': {},
             'retry_on_timeout': True,
-        }
+        },
+        'socket_timeout': 10,
+        'socket_connect_timeout': 10,
+        'health_check_interval': 30,
     },
     broker_transport_options={
         'connection_pool_kwargs': {
@@ -46,7 +50,10 @@ celery_app.conf.update(
             'socket_keepalive': True,
             'socket_keepalive_options': {},
             'retry_on_timeout': True,
-        }
+        },
+        'socket_timeout': 10,
+        'socket_connect_timeout': 10,
+        'health_check_interval': 30,
     }
 )
 

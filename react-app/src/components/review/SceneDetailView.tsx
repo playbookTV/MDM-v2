@@ -160,6 +160,43 @@ export function SceneDetailView({
     return colors[index % colors.length];
   };
 
+  // Normalize objects to ensure bbox is present when DB fields are returned
+  const normalizedObjects: SceneObject[] = (scene?.objects || []).map((obj: any) => {
+    if (obj && !obj.bbox) {
+      // From DB-style columns
+      if (
+        typeof obj.bbox_x === "number" &&
+        typeof obj.bbox_y === "number" &&
+        typeof obj.bbox_w === "number" &&
+        typeof obj.bbox_h === "number"
+      ) {
+        return {
+          ...obj,
+          bbox: {
+            x: obj.bbox_x,
+            y: obj.bbox_y,
+            width: obj.bbox_w,
+            height: obj.bbox_h,
+          },
+        } as SceneObject
+      }
+      // From array format [x1,y1,x2,y2]
+      if (Array.isArray(obj.bbox) && obj.bbox.length === 4) {
+        const [x1, y1, x2, y2] = obj.bbox
+        return {
+          ...obj,
+          bbox: {
+            x: x1,
+            y: y1,
+            width: x2 - x1,
+            height: y2 - y1,
+          },
+        } as SceneObject
+      }
+    }
+    return obj as SceneObject
+  })
+
   if (error) {
     return (
       <div
@@ -395,8 +432,8 @@ export function SceneDetailView({
 
           {/* Object Overlays */}
           {showObjects &&
-            scene.objects &&
-            scene.objects.map((object) => (
+            normalizedObjects &&
+            normalizedObjects.map((object) => (
               <ObjectOverlay
                 key={object.id}
                 object={object}
@@ -426,7 +463,7 @@ export function SceneDetailView({
                 {scene.width} × {scene.height}px
               </span>
               <span data-oid="wef5v92">
-                {scene.objects?.length || 0} objects
+              {normalizedObjects?.length || 0} objects
               </span>
               {scene.dataset_name && (
                 <span data-oid="vms9ok3">Dataset: {scene.dataset_name}</span>
@@ -521,11 +558,12 @@ function ObjectOverlay({
     typeof bbox.width !== "number" ||
     typeof bbox.height !== "number"
   ) {
-    console.warn("ObjectOverlay: Invalid bbox data", { object, bbox });
+    console.debug("ObjectOverlay: Invalid bbox data", { objectId: object?.id, bbox });
     return null;
   }
 
   // Convert bbox coordinates to percentage
+  if (!imageWidth || !imageHeight) return null;
   const left = (bbox.x / imageWidth) * 100;
   const top = (bbox.y / imageHeight) * 100;
   const width = (bbox.width / imageWidth) * 100;
