@@ -51,7 +51,7 @@ class SceneService:
             enriched["objects_count"] = len(objects)
         elif "objects" in scene_data:
             enriched["objects_count"] = len(scene_data["objects"])
-        else:
+        elif "objects_count" not in scene_data:
             # Will be computed separately for bulk queries
             enriched["objects_count"] = 0
         
@@ -162,7 +162,7 @@ class SceneService:
                     enriched_scene = self._enrich_scene_data(scene_dict, objects)
                 else:
                     # Use bulk object count
-                    scene_dict["objects_count"] = object_counts.get(str(scene.id), 0)
+                    scene_dict["objects_count"] = object_counts.get(str(scene_data["id"]), 0)
                     
                     # Enrich with computed fields
                     enriched_scene = self._enrich_scene_data(scene_dict)

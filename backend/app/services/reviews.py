@@ -226,3 +226,42 @@ class ReviewService:
         except Exception as e:
             logger.error(f"Failed to apply object corrections: {e}")
             raise
+    
+    async def apply_scene_review_status(self, scene_id: str, verdict: str) -> bool:
+        """Update scene status based on review verdict"""
+        try:
+            # Map review verdict to scene status
+            status_map = {
+                "approve": "approved",
+                "reject": "rejected", 
+                "edit": "corrected"
+            }
+            
+            new_status = status_map.get(verdict, "processed")
+            
+            # Update scene status
+            result = (
+                self.supabase.table("scenes")
+                .update({"status": new_status})
+                .eq("id", scene_id)
+                .execute()
+            )
+            
+            logger.info(f"Updated scene {scene_id} status to {new_status}")
+            return len(result.data) > 0
+            
+        except Exception as e:
+            logger.error(f"Failed to update scene status for {scene_id}: {e}")
+            raise
+    
+    async def apply_object_review_status(self, object_id: str, verdict: str) -> bool:
+        """Update object status based on review verdict (placeholder for future use)"""
+        try:
+            # Objects don't have a status field in current schema
+            # This method is a placeholder for future object status tracking
+            logger.info(f"Object {object_id} reviewed with verdict: {verdict}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to update object review status for {object_id}: {e}")
+            raise

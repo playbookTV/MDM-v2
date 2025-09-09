@@ -202,6 +202,9 @@ async def submit_scene_review(review: Dict[str, Any]):
         if verdict == "edit" and after_json:
             await service.apply_scene_corrections(scene_id, after_json)
         
+        # Update scene status based on review verdict
+        await service.apply_scene_review_status(scene_id, verdict)
+        
         return {"message": f"Scene {status}", "review_id": str(result.id)}
         
     except Exception as e:
@@ -252,6 +255,9 @@ async def submit_object_review(review: Dict[str, Any]):
         if verdict == "edit" and after_json:
             await service.apply_object_corrections(object_id, after_json)
         
+        # Update object status based on review verdict
+        await service.apply_object_review_status(object_id, verdict)
+        
         return {"message": f"Object {status}", "review_id": str(result.id)}
         
     except Exception as e:
@@ -274,6 +280,9 @@ async def approve_scene(scene_id: str, notes: Optional[str] = None):
         
         review = await service.create_review(review_data)
         
+        # Update scene status to approved
+        await service.apply_scene_review_status(scene_id, "approve")
+        
         return {"message": "Scene approved", "review_id": review.id}
         
     except Exception as e:
@@ -294,6 +303,9 @@ async def reject_scene(scene_id: str, notes: Optional[str] = None):
         )
         
         review = await service.create_review(review_data)
+        
+        # Update scene status to rejected
+        await service.apply_scene_review_status(scene_id, "reject")
         
         return {"message": "Scene rejected", "review_id": review.id}
         
