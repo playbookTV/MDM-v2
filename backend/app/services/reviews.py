@@ -265,3 +265,95 @@ class ReviewService:
         except Exception as e:
             logger.error(f"Failed to update object review status for {object_id}: {e}")
             raise
+    
+    async def get_review_stats(
+        self, 
+        dataset_id: Optional[str] = None,
+        reviewer_id: Optional[str] = None,
+        time_range: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Get comprehensive review statistics from database.
+        
+        Args:
+            dataset_id: Optional dataset filter
+            reviewer_id: Optional reviewer filter  
+            time_range: Optional time range filter (unused for now)
+            
+        Returns:
+            Dictionary with review statistics matching ReviewStats schema
+        """
+        try:
+            logger.info(f"Fetching review stats - dataset: {dataset_id}, reviewer: {reviewer_id}")
+            
+            # Get total scenes count
+            scenes_query = self.supabase.table("scenes").select("id, status")
+            if dataset_id:
+                scenes_query = scenes_query.eq("dataset_id", dataset_id)
+            
+            scenes_result = scenes_query.execute()
+            total_scenes = len(scenes_result.data)
+            
+            # Count scenes by status
+            scene_status_counts = {}
+            for scene in scenes_result.data:
+                status = scene.get("status", "unprocessed")
+                scene_status_counts[status] = scene_status_counts.get(status, 0) + 1
+            
+            # Get review counts  
+            reviews_query = self.supabase.table("reviews").select("id, target, verdict, created_at")
+            if reviewer_id:
+                reviews_query = reviews_query.eq("reviewer_id", reviewer_id)
+            
+            reviews_result = reviews_query.execute()
+            total_reviews = len(reviews_result.data)
+            
+            # Count reviews by verdict
+            review_verdict_counts = {}
+            for review in reviews_result.data:
+                verdict = review.get("verdict", "approve")
+                review_verdict_counts[verdict] = review_verdict_counts.get(verdict, 0) + 1
+            
+            # Calculate statistics
+            approved_scenes = scene_status_counts.get("approved", 0)
+            rejected_scenes = scene_status_counts.get("rejected", 0) 
+            corrected_scenes = scene_status_counts.get("corrected", 0)
+            processed_scenes = scene_status_counts.get("processed", 0)
+            
+            # Total reviewed = approved + rejected + corrected
+            reviewed_scenes = approved_scenes + rejected_scenes + corrected_scenes
+            pending_scenes = total_scenes - reviewed_scenes
+            
+            # Calculate review rate
+            review_rate = (reviewed_scenes / total_scenes * 100) if total_scenes > 0 else 0.0
+            
+            # Estimate average time per scene (placeholder - would need timing data)
+            avg_time_per_scene = 45.0  # Default estimate in seconds
+            
+            stats = {
+                "total_scenes": total_scenes,
+                "reviewed_scenes": reviewed_scenes, 
+                "pending_scenes": max(0, pending_scenes),
+                "approved_scenes": approved_scenes,
+                "rejected_scenes": rejected_scenes,
+                "corrected_scenes": corrected_scenes,
+                "review_rate": round(review_rate, 1),
+                "avg_time_per_scene": avg_time_per_scene
+            }
+            
+            logger.info(f"Review stats calculated: {stats}")
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Failed to get review stats: {e}")
+            # Return safe defaults on error
+            return {
+                "total_scenes": 0,
+                "reviewed_scenes": 0,
+                "pending_scenes": 0,
+                "approved_scenes": 0,
+                "rejected_scenes": 0,
+                "corrected_scenes": 0,
+                "review_rate": 0.0,
+                "avg_time_per_scene": 0.0
+            }

@@ -28,7 +28,7 @@ def run_async(coro):
     
     return loop.run_until_complete(coro)
 
-async def _create_scene_objects(scene_id: str, objects_data: list, mask_keys: dict = None, scene_materials: dict = None):
+async def _create_scene_objects(scene_id: str, objects_data: list, mask_keys: dict = None, scene_materials: dict = None, thumb_keys: dict = None):
     """Create object records in database from RunPod object detection results"""
     from app.core.supabase import get_supabase
     import uuid
@@ -82,10 +82,13 @@ async def _create_scene_objects(scene_id: str, objects_data: list, mask_keys: di
         }
         normalized_category = category_mapping.get(category.lower(), "furniture")  # Default to "furniture"
 
-        # Get mask key from uploaded R2 files
+        # Get mask and thumbnail keys from uploaded R2 files
         uploaded_mask_key = None
+        uploaded_thumb_key = None
         if mask_keys:
             uploaded_mask_key = mask_keys.get(f"object_{i}_mask_key")
+        if thumb_keys:
+            uploaded_thumb_key = thumb_keys.get(f"object_{i}_thumb_key")
             
         db_object = {
             "id": str(uuid.uuid4()),
@@ -97,7 +100,7 @@ async def _create_scene_objects(scene_id: str, objects_data: list, mask_keys: di
             "bbox_w": bbox.get("width", 0),  # Fixed: bbox_w instead of bbox_width
             "bbox_h": bbox.get("height", 0),  # Fixed: bbox_h instead of bbox_height  
             "mask_key": uploaded_mask_key or obj.get("mask_key", obj.get("r2_mask_key")),  # Use uploaded key first, then fallback
-            "thumb_key": obj.get("thumb_key", obj.get("r2_thumb_key")),  # R2 thumbnail key
+            "thumb_key": uploaded_thumb_key or obj.get("thumb_key", obj.get("r2_thumb_key")),  # Use uploaded key first, then fallback
             "depth_key": obj.get("depth_key", obj.get("r2_depth_key")),  # R2 depth key
             "subcategory": obj.get("subcategory"),
             "description": obj.get("description", obj.get("caption")),  # Try description or caption
@@ -466,13 +469,18 @@ def process_scene(self, job_id: str, scene_id: str, options: Dict[str, Any] = No
             )
             logger.info(f"Uploaded scene files for {scene_id}: {scene_file_keys}")
             
-            # Upload object mask files to R2
+            # Upload object mask and thumbnail files to R2
             objects_data = ai_results.get("objects", [])
             mask_keys = {}
+            thumb_keys = {}
             if objects_data:
                 logger.info(f"Uploading masks for {len(objects_data)} objects in scene {scene_id}")
                 mask_keys = await storage_service.upload_object_masks(scene_id, objects_data)
                 logger.info(f"Uploaded {len(mask_keys)} object masks for {scene_id}")
+                
+                logger.info(f"Uploading thumbnails for {len(objects_data)} objects in scene {scene_id}")
+                thumb_keys = await storage_service.upload_object_thumbnails(scene_id, objects_data)
+                logger.info(f"Uploaded {len(thumb_keys)} object thumbnails for {scene_id}")
             
             # Prepare final results with R2 keys
             processing_results = {
@@ -499,7 +507,7 @@ def process_scene(self, job_id: str, scene_id: str, options: Dict[str, Any] = No
             if objects_data:
                 logger.info(f"Creating {len(objects_data)} object records for scene {scene_id}")
                 scene_materials = ai_results.get("material_analysis", {})
-                await _create_scene_objects(scene_id, objects_data, mask_keys, scene_materials)
+                await _create_scene_objects(scene_id, objects_data, mask_keys, scene_materials, thumb_keys)
             
             # Get current job to preserve existing metadata
             current_job = await job_service.get_job(job_id)

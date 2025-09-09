@@ -189,11 +189,17 @@ def detect_objects(image: Image.Image) -> list:
                     }
                     
                     if label.lower() in furniture_objects or conf > 0.5:
+                        # Convert to [x, y, width, height] format to match reference implementation
+                        bbox_x = int(x1)
+                        bbox_y = int(y1)
+                        bbox_width = int(x2 - x1)
+                        bbox_height = int(y2 - y1)
+                        
                         objects.append({
                             "label": label,
                             "confidence": round(conf, 3),
-                            "bbox": [int(x1), int(y1), int(x2), int(y2)],
-                            "area": int((x2-x1) * (y2-y1))
+                            "bbox": [bbox_x, bbox_y, bbox_width, bbox_height],
+                            "area": int(bbox_width * bbox_height)
                         })
         
         # Sort by confidence and limit results
@@ -226,9 +232,10 @@ def segment_objects(image: Image.Image, objects: list) -> list:
         for obj in objects:
             try:
                 # Get bounding box center as prompt point
+                # bbox format: [x, y, width, height]
                 bbox = obj['bbox']
-                center_x = int((bbox[0] + bbox[2]) / 2)
-                center_y = int((bbox[1] + bbox[3]) / 2)
+                center_x = int(bbox[0] + bbox[2] / 2)  # x + width/2
+                center_y = int(bbox[1] + bbox[3] / 2)  # y + height/2
                 
                 # Generate mask using point prompt
                 masks, scores, _ = models['sam2_predictor'].predict(
@@ -285,10 +292,13 @@ def segment_objects_transformers(image: Image.Image, objects: list) -> list:
         for obj in objects:
             try:
                 # Get bounding box for input prompts
+                # bbox format: [x, y, width, height]
                 bbox = obj['bbox']
                 # Convert to input format for transformers SAM2 (4 levels required)
                 # Format: [image level, object level, point level, point coordinates]
-                input_points = [[[[int((bbox[0] + bbox[2]) / 2), int((bbox[1] + bbox[3]) / 2)]]]]
+                center_x = int(bbox[0] + bbox[2] / 2)  # x + width/2
+                center_y = int(bbox[1] + bbox[3] / 2)  # y + height/2
+                input_points = [[[[center_x, center_y]]]]
                 input_labels = [[[1]]]  # 1 for foreground, matching the 4-level structure
                 
                 # Prepare inputs
@@ -526,6 +536,105 @@ def estimate_depth(image: Image.Image) -> dict:
             }
         }
 
+def enhance_objects_with_details(image: Image.Image, objects: list) -> list:
+    """
+    Generate object thumbnails, descriptions, and depth crops for detected objects.
+    
+    Args:
+        image: Original scene image
+        objects: List of detected objects with bounding boxes
+        
+    Returns:
+        Enhanced objects with thumb_base64, description, and depth_base64 fields
+    """
+    try:
+        enhanced_objects = []
+        
+        for obj in objects:
+            enhanced_obj = obj.copy()
+            
+            try:
+                # Get bounding box coordinates - format: [x, y, width, height]
+                bbox = obj.get("bbox", [])
+                if isinstance(bbox, list) and len(bbox) >= 4:
+                    # Standard format: [x, y, width, height]
+                    x, y, w, h = bbox[0], bbox[1], bbox[2], bbox[3]
+                    x = int(x)
+                    y = int(y) 
+                    w = int(w)
+                    h = int(h)
+                elif isinstance(bbox, dict):
+                    # Dictionary format: {x, y, width, height}
+                    x = int(bbox.get("x", 0))
+                    y = int(bbox.get("y", 0))
+                    w = int(bbox.get("width", 0))
+                    h = int(bbox.get("height", 0))
+                else:
+                    logger.warning(f"Unsupported bbox format for object {obj.get('label', 'unknown')}: {bbox}")
+                    enhanced_objects.append(enhanced_obj)
+                    continue
+                
+                # Skip if bbox is invalid
+                if w <= 0 or h <= 0:
+                    logger.warning(f"Invalid bbox for object {obj.get('label', 'unknown')}: {bbox}")
+                    enhanced_objects.append(enhanced_obj)
+                    continue
+                
+                # Crop object from image for thumbnail generation
+                object_crop = image.crop((x, y, x + w, y + h))
+                
+                # Generate object thumbnail (128x128 max)
+                thumbnail = object_crop.copy()
+                thumbnail.thumbnail((128, 128), Image.Resampling.LANCZOS)
+                
+                # Convert thumbnail to base64
+                thumb_buffer = io.BytesIO()
+                thumbnail.save(thumb_buffer, format='JPEG', quality=85, optimize=True)
+                thumb_base64 = base64.b64encode(thumb_buffer.getvalue()).decode('utf-8')
+                enhanced_obj["thumb_base64"] = thumb_base64
+                
+                # Generate object description using CLIP
+                label = obj.get("label", "object")
+                material = obj.get("material", "")
+                confidence = obj.get("confidence", 0.0)
+                
+                # Create descriptive text based on available information
+                if material and confidence > 0.7:
+                    description = f"{material} {label} with {confidence*100:.0f}% confidence"
+                elif confidence > 0.5:
+                    description = f"{label} detected with {confidence*100:.0f}% confidence"
+                else:
+                    description = f"{label} object"
+                
+                # Add area information if available
+                if "area" in obj:
+                    area_desc = f", area: {obj['area']:.0f} pixels"
+                    description += area_desc
+                
+                enhanced_obj["description"] = description
+                
+                # Generate depth crop if depth estimation was successful
+                # Note: This would require passing depth map from estimate_depth function
+                # For now, we'll mark it as a placeholder
+                enhanced_obj["has_depth_crop"] = False  # Will be implemented when depth integration is added
+                
+                logger.debug(f"Enhanced object {label}: thumb={len(thumb_base64)} chars, desc='{description[:50]}...'")
+                
+            except Exception as e:
+                logger.error(f"Failed to enhance object {obj.get('label', 'unknown')}: {e}")
+                # Add empty enhancement fields on error
+                enhanced_obj["description"] = obj.get("label", "object")
+                enhanced_obj["has_depth_crop"] = False
+            
+            enhanced_objects.append(enhanced_obj)
+        
+        logger.info(f"Enhanced {len(enhanced_objects)} objects with thumbnails and descriptions")
+        return enhanced_objects
+        
+    except Exception as e:
+        logger.error(f"Object enhancement failed: {e}")
+        return objects  # Return original objects on failure
+
 def process_scene_complete(image_data_b64: str, scene_id: str, options: dict = None) -> dict:
     """Complete scene processing pipeline"""
     start_time = time.time()
@@ -573,6 +682,10 @@ def process_scene_complete(image_data_b64: str, scene_id: str, options: dict = N
         logger.info("Running material analysis...")
         material_analysis = analyze_materials(image, segmented_objects)
         results["material_analysis"] = material_analysis
+        
+        logger.info("Generating object thumbnails and descriptions...")
+        enhanced_objects = enhance_objects_with_details(image, segmented_objects)
+        results["segmented_objects"] = enhanced_objects  # Replace with enhanced objects
         
         logger.info("Extracting color palette...")
         color_palette = extract_color_palette(image)

@@ -244,3 +244,38 @@ class StorageService:
         except Exception as e:
             logger.error(f"Failed to upload object masks for {scene_id}: {e}")
             return uploaded_keys
+    
+    async def upload_object_thumbnails(
+        self, 
+        scene_id: str, 
+        objects_with_thumbnails: list
+    ) -> Dict[str, str]:
+        """Upload object thumbnail files to R2"""
+        uploaded_keys = {}
+        
+        try:
+            for i, obj in enumerate(objects_with_thumbnails):
+                if obj.get("thumb_base64"):
+                    # Generate thumbnail key
+                    object_label = obj.get("label", "object").replace(" ", "_").lower()
+                    thumb_key = f"scenes/{scene_id}/thumbs/{i}_{object_label}_thumb.jpg"
+                    
+                    success = await self.upload_base64_image(
+                        thumb_key, obj["thumb_base64"], "image/jpeg",
+                        {
+                            "scene_id": scene_id,
+                            "object_index": str(i),
+                            "object_label": object_label, 
+                            "type": "object_thumbnail"
+                        }
+                    )
+                    
+                    if success:
+                        # Store the key for this object (using object index as identifier)
+                        uploaded_keys[f"object_{i}_thumb_key"] = thumb_key
+            
+            return uploaded_keys
+            
+        except Exception as e:
+            logger.error(f"Failed to upload object thumbnails for {scene_id}: {e}")
+            return uploaded_keys

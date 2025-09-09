@@ -18,20 +18,81 @@ class SceneService:
         self.supabase = get_supabase()
         self.storage = StorageService()
     
-    def _transform_object_data(self, obj_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Transform database object format to schema format"""
+    def _transform_object_data(self, obj_data: Dict[str, Any], scene_width: int = None, scene_height: int = None) -> Dict[str, Any]:
+        """
+        Transform database object format to schema format with accurate bbox coordinates.
+        
+        Args:
+            obj_data: Object data from database with bbox_x, bbox_y, bbox_w, bbox_h columns
+            scene_width: Scene image width in pixels (for coordinate validation)
+            scene_height: Scene image height in pixels (for coordinate validation)
+            
+        Returns:
+            Transformed object data with normalized bbox coordinates
+        """
         # Convert Supabase object format to proper bbox format for frontend
         transformed = obj_data.copy()
         
         # Convert separate bbox columns to bbox object if they exist
         if ("bbox_x" in obj_data and "bbox_y" in obj_data and 
             "bbox_w" in obj_data and "bbox_h" in obj_data):
-            transformed["bbox"] = {
-                "x": float(obj_data["bbox_x"]),
-                "y": float(obj_data["bbox_y"]),
-                "width": float(obj_data["bbox_w"]),
-                "height": float(obj_data["bbox_h"])
-            }
+            
+            # Get raw bbox values (stored as absolute pixel coordinates)
+            bbox_x = float(obj_data["bbox_x"])
+            bbox_y = float(obj_data["bbox_y"])
+            bbox_w = float(obj_data["bbox_w"])
+            bbox_h = float(obj_data["bbox_h"])
+            
+            # Validate bbox coordinates are within image bounds
+            if scene_width and scene_height:
+                # Clamp coordinates to image bounds
+                bbox_x = max(0, min(bbox_x, scene_width))
+                bbox_y = max(0, min(bbox_y, scene_height))
+                bbox_w = max(0, min(bbox_w, scene_width - bbox_x))
+                bbox_h = max(0, min(bbox_h, scene_height - bbox_y))
+                
+                logger.debug(f"Bbox validation: scene=({scene_width}x{scene_height}), "
+                           f"bbox=({bbox_x:.1f},{bbox_y:.1f},{bbox_w:.1f},{bbox_h:.1f})")
+            
+            # Handle edge cases
+            if bbox_w <= 0 or bbox_h <= 0:
+                logger.warning(f"Invalid bbox dimensions: w={bbox_w}, h={bbox_h}, using default")
+                transformed["bbox"] = {"x": 0, "y": 0, "width": 0, "height": 0}
+            else:
+                # Store as absolute pixel coordinates (frontend expects this format)
+                transformed["bbox"] = {
+                    "x": bbox_x,
+                    "y": bbox_y,
+                    "width": bbox_w,
+                    "height": bbox_h
+                }
+        
+        # Add SAM2 mask URL if mask_key exists
+        if "mask_key" in obj_data and obj_data["mask_key"]:
+            # Generate public URL for SAM2 mask
+            mask_url = self.storage.get_public_url(obj_data["mask_key"])
+            transformed["mask_url"] = mask_url
+            transformed["has_mask"] = True
+        else:
+            transformed["has_mask"] = False
+        
+        # Add object thumbnail URL if thumb_key exists
+        if "thumb_key" in obj_data and obj_data["thumb_key"]:
+            # Generate public URL for object thumbnail
+            thumb_url = self.storage.get_public_url(obj_data["thumb_key"])
+            transformed["thumb_url"] = thumb_url
+            transformed["has_thumbnail"] = True
+        else:
+            transformed["has_thumbnail"] = False
+        
+        # Add object depth URL if depth_key exists  
+        if "depth_key" in obj_data and obj_data["depth_key"]:
+            # Generate public URL for object depth crop
+            depth_url = self.storage.get_public_url(obj_data["depth_key"])
+            transformed["depth_url"] = depth_url
+            transformed["has_depth"] = True
+        else:
+            transformed["has_depth"] = False
         
         # Map category_code to label for frontend compatibility
         if "category_code" in obj_data and "label" not in obj_data:
@@ -155,7 +216,10 @@ class SceneService:
                         .eq("scene_id", scene_data["id"])
                         .execute()
                     )
-                    objects = [self._transform_object_data(obj) for obj in objects_result.data]
+                    # Extract scene dimensions for bbox validation
+                    scene_width = scene_data.get("width")
+                    scene_height = scene_data.get("height")
+                    objects = [self._transform_object_data(obj, scene_width, scene_height) for obj in objects_result.data]
                     scene_dict["objects"] = objects
                     
                     # Enrich with computed fields (including object count)
@@ -214,8 +278,10 @@ class SceneService:
                     .execute()
                 )
                 
-                # Return raw objects (frontend normalizes bbox)
-                objects = [self._transform_object_data(obj) for obj in objects_result.data]
+                # Extract scene dimensions for bbox validation
+                scene_width = scene_data.get("width")
+                scene_height = scene_data.get("height")
+                objects = [self._transform_object_data(obj, scene_width, scene_height) for obj in objects_result.data]
                 scene_data["objects"] = objects
             else:
                 # Get object count for this scene
@@ -239,6 +305,20 @@ class SceneService:
     async def get_scene_objects(self, scene_id: str) -> List[Dict[str, Any]]:
         """Get all objects detected in a scene"""
         try:
+            # Get scene dimensions for bbox validation
+            scene_result = (
+                self.supabase.table("scenes")
+                .select("width, height")
+                .eq("id", scene_id)
+                .execute()
+            )
+            
+            scene_width = scene_height = None
+            if scene_result.data:
+                scene_width = scene_result.data[0].get("width")
+                scene_height = scene_result.data[0].get("height")
+            
+            # Get objects
             result = (
                 self.supabase.table("objects")
                 .select("*")
@@ -246,8 +326,8 @@ class SceneService:
                 .execute()
             )
             
-            # Transform database format to schema format (return dicts)
-            return [self._transform_object_data(obj_data) for obj_data in result.data]
+            # Transform database format to schema format with scene dimensions
+            return [self._transform_object_data(obj_data, scene_width, scene_height) for obj_data in result.data]
             
         except Exception as e:
             logger.error(f"Failed to get objects for scene {scene_id}: {e}")
