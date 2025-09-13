@@ -92,6 +92,30 @@ export function AIProcessingTrigger({
         setProgress(statusData.progress || 0);
 
         if (statusData.status === "succeeded") {
+          // Verify that processed data is actually available before showing success
+          try {
+            const verifyResponse = await fetch(`/api/v1/scenes/${scene.id}`);
+            if (!verifyResponse.ok) {
+              throw new Error("Failed to verify processed data");
+            }
+            
+            const updatedScene = await verifyResponse.json();
+            
+            // Check that processing actually completed by verifying we have the expected data
+            const hasProcessedData = updatedScene.scene_type && 
+              updatedScene.objects && updatedScene.objects.length > 0;
+            
+            if (!hasProcessedData) {
+              // Data not yet available, continue polling
+              setTimeout(pollProgress, 1000);
+              return;
+            }
+          } catch (err) {
+            // If verification fails, continue polling
+            setTimeout(pollProgress, 1000);
+            return;
+          }
+
           setProgress(100);
           const endTime = Date.now();
           setProcessingTime((endTime - startTime) / 1000);
@@ -104,7 +128,7 @@ export function AIProcessingTrigger({
             duration: 5000,
           });
 
-          // Notify parent component
+          // Notify parent component with the updated scene data
           onProcessingComplete?.(scene.id);
 
           // Auto-reset after 3 seconds

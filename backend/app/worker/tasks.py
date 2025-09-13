@@ -5,7 +5,7 @@ Celery tasks for background job processing
 import asyncio
 import logging
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Union, Tuple
 from celery import current_task
 from app.worker.celery_app import celery_app
 from app.services.jobs import JobService
@@ -17,6 +17,73 @@ from app.core.supabase import init_supabase, get_supabase
 from app.core.redis import init_redis
 
 logger = logging.getLogger(__name__)
+
+def validate_and_normalize_bbox(bbox_data: Union[list, dict], object_index: int = 0) -> Dict[str, int]:
+    """
+    Validate and normalize bbox data to ensure positive width/height values.
+    
+    Handles both [x,y,w,h] and [x1,y1,x2,y2] formats, detects and corrects
+    negative dimensions that indicate coordinate format confusion.
+    
+    Args:
+        bbox_data: Bbox as list [x,y,w,h] or dict {x,y,width,height}
+        object_index: Object index for logging
+        
+    Returns:
+        Normalized bbox dict with positive dimensions
+    """
+    # Handle bbox as list with format validation
+    if isinstance(bbox_data, list) and len(bbox_data) == 4:
+        x, y, width, height = bbox_data
+        
+        # Detect and fix coordinate format issues
+        # If width/height are negative, this might be [x1,y1,x2,y2] format
+        if width < 0 or height < 0:
+            logger.warning(f"Detected negative bbox dimensions for object {object_index}: {bbox_data}")
+            # Assume it's [x1,y1,x2,y2] format and convert
+            x1, y1, x2, y2 = x, y, width, height
+            # Ensure proper ordering
+            if x2 < x1:
+                x1, x2 = x2, x1
+            if y2 < y1:
+                y1, y2 = y2, y1
+            # Convert to [x,y,w,h] format
+            x, y, width, height = x1, y1, abs(x2 - x1), abs(y2 - y1)
+            logger.info(f"Converted bbox to: x={x}, y={y}, w={width}, h={height}")
+        
+        # Validate final bbox values
+        if width <= 0 or height <= 0:
+            logger.error(f"Invalid bbox dimensions for object {object_index}: w={width}, h={height}")
+            return {'x': 0, 'y': 0, 'width': 0, 'height': 0}
+        else:
+            return {
+                'x': max(0, int(x)),  # Ensure non-negative coordinates
+                'y': max(0, int(y)),
+                'width': int(width),
+                'height': int(height)
+            }
+    
+    # Handle bbox as dict {x, y, width, height}
+    elif isinstance(bbox_data, dict):
+        # Validate dict format bbox
+        x = bbox_data.get('x', 0)
+        y = bbox_data.get('y', 0)
+        width = bbox_data.get('width', 0)
+        height = bbox_data.get('height', 0)
+        
+        if width <= 0 or height <= 0:
+            logger.error(f"Invalid dict bbox dimensions for object {object_index}: w={width}, h={height}")
+            return {'x': 0, 'y': 0, 'width': 0, 'height': 0}
+        else:
+            return {
+                'x': max(0, int(x)),
+                'y': max(0, int(y)),
+                'width': int(width),
+                'height': int(height)
+            }
+    else:
+        # Default fallback
+        return {'x': 0, 'y': 0, 'width': 0, 'height': 0}
 
 def run_async(coro):
     """Helper to run async functions in Celery tasks"""
@@ -43,44 +110,100 @@ async def _create_scene_objects(scene_id: str, objects_data: list, mask_keys: di
     for i, obj in enumerate(objects_data):
         # Handle different RunPod object formats
         # Format 1: {category, confidence, bbox: {x, y, width, height}, ...}
-        # Format 2: {label, confidence, bbox: [x1, y1, x2, y2], ...}
+        # Format 2: {label, confidence, bbox: [x, y, width, height], ...} (ACTUAL RunPod format)
         bbox_data = obj.get("bbox", {})
         
-        # Handle bbox as list [x1, y1, x2, y2] (RunPod format)
-        if isinstance(bbox_data, list) and len(bbox_data) == 4:
-            x1, y1, x2, y2 = bbox_data
-            bbox = {
-                'x': x1,
-                'y': y1, 
-                'width': x2 - x1,
-                'height': y2 - y1
-            }
-        # Handle bbox as dict {x, y, width, height}
-        elif isinstance(bbox_data, dict):
-            bbox = bbox_data
-        else:
-            # Default fallback
-            bbox = {'x': 0, 'y': 0, 'width': 0, 'height': 0}
+        # Validate and normalize bbox using helper function
+        bbox = validate_and_normalize_bbox(bbox_data, i)
         
-        # Normalize category to match database schema
+        # Normalize category to match MODOMO_TAXONOMY canonical labels
         category = obj.get("category", obj.get("label", "furniture"))  # Default fallback
-        # Convert RunPod categories to our canonical categories
+        
+        # Debug logging to trace category mapping
+        logger.info(f"Object {i}: Raw label='{obj.get('label')}', category='{obj.get('category')}', using='{category}'")
+        
+        # Enhanced category mapping based on MODOMO_TAXONOMY
         category_mapping = {
-            "sofa": "sofa",
-            "chair": "chair", 
-            "table": "table",
-            "bed": "bed",
-            "cabinet": "cabinet",
-            "shelf": "shelf",
-            "lamp": "lamp",
-            "plant": "plant",
-            "artwork": "artwork",
-            "mirror": "mirror",
-            "cushion": "cushion",
-            "rug": "rug",
-            "curtain": "curtain"
+            # Seating categories
+            "sofa": "seating",
+            "chair": "seating", 
+            "couch": "seating",
+            "armchair": "seating",
+            "stool": "seating",
+            "bench": "seating",
+            "recliner": "seating",
+            
+            # Table categories
+            "table": "tables",
+            "dining_table": "tables",
+            "coffee_table": "tables", 
+            "desk": "tables",
+            "nightstand": "tables",
+            
+            # Storage categories
+            "cabinet": "storage",
+            "shelf": "storage",
+            "dresser": "storage",
+            "wardrobe": "storage",
+            "bookshelf": "storage",
+            
+            # Bedroom categories
+            "bed": "bedroom",
+            "mattress": "bedroom",
+            "headboard": "bedroom",
+            
+            # Lighting categories
+            "lamp": "lighting",
+            "floor_lamp": "lighting",
+            "table_lamp": "lighting",
+            "ceiling_light": "lighting",
+            
+            # Electronics
+            "tv": "entertainment",
+            "laptop": "home_office",
+            "monitor": "home_office",
+            
+            # Kitchen appliances
+            "refrigerator": "kitchen_appliances",
+            "oven": "kitchen_appliances",
+            "microwave": "kitchen_appliances",
+            "dishwasher": "kitchen_appliances",
+            
+            # Decor
+            "plant": "decor_accessories",
+            "potted plant": "decor_accessories",
+            "potted_plant": "decor_accessories",
+            "vase": "decor_accessories",
+            "mirror": "decor_accessories",
+            "clock": "decor_accessories",
+            "artwork": "wall_decor",
+            
+            # Textiles
+            "rug": "soft_furnishings",
+            "pillow": "soft_furnishings",
+            "curtains": "window_treatments"
         }
-        normalized_category = category_mapping.get(category.lower(), "furniture")  # Default to "furniture"
+        
+        # Get canonical category or default to the label itself
+        normalized_category = category_mapping.get(category.lower(), category.lower())
+        
+        # Debug logging to trace final mapping
+        logger.info(f"Object {i}: '{category}' → '{normalized_category}'")
+        
+        # Set subcategory for more granular classification
+        subcategory = None
+        if category.lower() in ['sectional', 'loveseat', 'chaise_lounge']:
+            subcategory = category.lower()
+        elif category.lower() in ['dining_table', 'coffee_table', 'console_table']:
+            subcategory = category.lower()  
+        elif category.lower() in ['floor_lamp', 'table_lamp', 'pendant_light']:
+            subcategory = category.lower()
+        elif category.lower() in ['bookshelf', 'tv_stand', 'dresser']:
+            subcategory = category.lower()
+        elif category.lower() in ['platform_bed', 'bunk_bed', 'canopy_bed', 'bed_frame']:
+            subcategory = category.lower()
+        elif category.lower() == 'bed':
+            subcategory = 'bed_frame'  # Default subcategory for generic bed detection
 
         # Get mask and thumbnail keys from uploaded R2 files
         uploaded_mask_key = None
@@ -90,6 +213,14 @@ async def _create_scene_objects(scene_id: str, objects_data: list, mask_keys: di
         if thumb_keys:
             uploaded_thumb_key = thumb_keys.get(f"object_{i}_thumb_key")
             
+        # Validate bbox dimensions before database insertion
+        bbox_width = bbox.get("width", 0)
+        bbox_height = bbox.get("height", 0)
+        
+        if bbox_width <= 0 or bbox_height <= 0:
+            logger.error(f"CRITICAL: Object {i} has invalid bbox dimensions: width={bbox_width}, height={bbox_height}. Raw bbox: {bbox_data}. Skipping object.")
+            continue  # Skip this object entirely
+            
         db_object = {
             "id": str(uuid.uuid4()),
             "scene_id": scene_id,
@@ -97,12 +228,12 @@ async def _create_scene_objects(scene_id: str, objects_data: list, mask_keys: di
             "confidence": float(obj.get("confidence", 0.0)),
             "bbox_x": bbox.get("x", 0),
             "bbox_y": bbox.get("y", 0), 
-            "bbox_w": bbox.get("width", 0),  # Fixed: bbox_w instead of bbox_width
-            "bbox_h": bbox.get("height", 0),  # Fixed: bbox_h instead of bbox_height  
+            "bbox_w": bbox_width,  # Validated positive width
+            "bbox_h": bbox_height,  # Validated positive height  
             "mask_key": uploaded_mask_key or obj.get("mask_key", obj.get("r2_mask_key")),  # Use uploaded key first, then fallback
             "thumb_key": uploaded_thumb_key or obj.get("thumb_key", obj.get("r2_thumb_key")),  # Use uploaded key first, then fallback
             "depth_key": obj.get("depth_key", obj.get("r2_depth_key")),  # R2 depth key
-            "subcategory": obj.get("subcategory"),
+            "subcategory": subcategory or obj.get("subcategory"),
             "description": obj.get("description", obj.get("caption")),  # Try description or caption
             "attrs": obj.get("attrs", obj.get("attributes"))  # Additional object attributes
         }

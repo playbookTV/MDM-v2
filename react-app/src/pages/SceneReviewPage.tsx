@@ -129,11 +129,19 @@ export function SceneReviewPage() {
   };
 
   const handleProcessingComplete = () => {
-    // Invalidate React Query cache to refresh scene data after AI processing
+    // Force immediate refetch of scene data after AI processing
     queryClient.invalidateQueries({ queryKey: ["scenes"] });
+    queryClient.refetchQueries({ queryKey: ["scenes"] });
+    
     if (currentScene) {
       queryClient.invalidateQueries({ queryKey: ["scene", currentScene.id] });
       queryClient.invalidateQueries({
+        queryKey: ["sceneObjects", currentScene.id],
+      });
+      
+      // Force immediate refetch of the current scene data
+      queryClient.refetchQueries({ queryKey: ["scene", currentScene.id] });
+      queryClient.refetchQueries({
         queryKey: ["sceneObjects", currentScene.id],
       });
     }

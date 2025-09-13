@@ -173,30 +173,86 @@ def detect_objects(image: Image.Image) -> list:
         for result in results:
             if result.boxes is not None:
                 for box in result.boxes:
-                    # Extract box data
-                    x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                    # Extract box data with validation
+                    coords = box.xyxy[0].cpu().numpy()
+                    x1, y1, x2, y2 = coords[0], coords[1], coords[2], coords[3]
+                    
+                    # Validate coordinates to prevent negative dimensions
+                    x1, y1, x2, y2 = float(x1), float(y1), float(x2), float(y2)
+                    
+                    # Ensure x2 > x1 and y2 > y1 (swap if necessary)
+                    if x2 < x1:
+                        x1, x2 = x2, x1
+                    if y2 < y1:
+                        y1, y2 = y2, y1
+                    
+                    # Validate minimum dimensions (at least 1 pixel)
+                    if (x2 - x1) < 1 or (y2 - y1) < 1:
+                        logger.warning(f"Invalid bbox dimensions for {models['yolo'].names[int(box.cls[0])]}: ({x1:.1f},{y1:.1f},{x2:.1f},{y2:.1f})")
+                        continue
+                    
+                    # Debug log valid detections
+                    logger.debug(f"Valid detection: {models['yolo'].names[int(box.cls[0])]} at ({x1:.1f},{y1:.1f},{x2:.1f},{y2:.1f})")
+                    
                     conf = float(box.conf[0])
                     cls = int(box.cls[0])
                     label = models['yolo'].names[cls]
                     
-                    # Filter for furniture/interior objects
+                    # Comprehensive furniture/interior objects taxonomy
+                    # Based on MODOMO_TAXONOMY - flattened for YOLO detection
                     furniture_objects = {
-                        'chair', 'couch', 'potted plant', 'bed', 'dining table',
-                        'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard',
-                        'cell phone', 'microwave', 'oven', 'toaster', 'sink',
-                        'refrigerator', 'book', 'clock', 'vase', 'scissors',
-                        'teddy bear', 'hair drier', 'toothbrush', 'sofa', 'table'
+                        # Seating
+                        'chair', 'couch', 'sofa', 'sectional', 'armchair', 'dining_chair', 'stool', 
+                        'bench', 'loveseat', 'recliner', 'chaise_lounge', 'bar_stool', 'office_chair',
+                        
+                        # Tables  
+                        'table', 'dining_table', 'coffee_table', 'side_table', 'console_table', 
+                        'desk', 'nightstand', 'end_table',
+                        
+                        # Storage
+                        'bookshelf', 'cabinet', 'dresser', 'wardrobe', 'tv_stand', 'shelf',
+                        
+                        # Bedroom
+                        'bed', 'bed_frame', 'mattress', 'headboard',
+                        
+                        # Kitchen & Appliances
+                        'refrigerator', 'stove', 'oven', 'microwave', 'dishwasher', 'sink',
+                        'toaster', 'coffee_maker',
+                        
+                        # Bathroom
+                        'toilet', 'bathtub', 'shower',
+                        
+                        # Lighting
+                        'lamp', 'floor_lamp', 'table_lamp', 'ceiling_light', 'chandelier',
+                        
+                        # Electronics
+                        'tv', 'television', 'laptop', 'computer', 'monitor', 'speakers',
+                        
+                        # Decor & Accessories
+                        'mirror', 'plant', 'potted_plant', 'vase', 'picture_frame', 'clock',
+                        'book', 'pillow', 'rug', 'curtains',
+                        
+                        # Miscellaneous interior items
+                        'ottoman', 'fireplace', 'radiator', 'air_conditioner'
                     }
                     
                     if label.lower() in furniture_objects or conf > 0.5:
-                        # Convert to [x, y, width, height] format to match reference implementation
+                        # Convert to [x, y, width, height] format using validated coordinates
                         bbox_x = int(x1)
                         bbox_y = int(y1)
-                        bbox_width = int(x2 - x1)
+                        bbox_width = int(x2 - x1)  # These are now guaranteed positive due to validation above
                         bbox_height = int(y2 - y1)
                         
+                        # Double-check dimensions are positive (should never trigger after validation)
+                        if bbox_width <= 0 or bbox_height <= 0:
+                            logger.error(f"Detected negative dimensions after validation: w={bbox_width}, h={bbox_height}")
+                            continue
+                        
+                        # Canonical label mapping - normalize synonyms to standard categories
+                        canonical_label = get_canonical_label(label.lower())
+                        
                         objects.append({
-                            "label": label,
+                            "label": canonical_label,
                             "confidence": round(conf, 3),
                             "bbox": [bbox_x, bbox_y, bbox_width, bbox_height],
                             "area": int(bbox_width * bbox_height)
@@ -209,6 +265,65 @@ def detect_objects(image: Image.Image) -> list:
     except Exception as e:
         logger.error(f"Object detection failed: {e}")
         return []
+
+def get_canonical_label(label: str) -> str:
+    """
+    Map YOLO labels to canonical furniture categories based on MODOMO_TAXONOMY.
+    Handles synonyms and ensures consistent labeling.
+    
+    Args:
+        label: YOLO detection label (lowercase)
+        
+    Returns:
+        Canonical label from MODOMO_TAXONOMY
+    """
+    # Canonical label mapping - maps synonyms to standard categories
+    label_mapping = {
+        # Seating synonyms
+        'couch': 'sofa',
+        'settee': 'sofa', 
+        'loveseat': 'sofa',
+        'armchair': 'chair',
+        'dining_chair': 'chair',
+        'office_chair': 'chair',
+        
+        # Table synonyms  
+        'dining_table': 'table',
+        'coffee_table': 'table',
+        'side_table': 'table',
+        'end_table': 'table',
+        'console_table': 'table',
+        'desk': 'table',
+        'nightstand': 'table',
+        
+        # Storage synonyms
+        'bookshelf': 'shelf',
+        'tv_stand': 'cabinet',
+        'dresser': 'cabinet',
+        'wardrobe': 'cabinet',
+        
+        # Electronics synonyms
+        'television': 'tv',
+        'monitor': 'tv',
+        'computer': 'laptop',
+        
+        # Plant synonyms
+        'potted_plant': 'plant',
+        'houseplant': 'plant',
+        
+        # Lighting synonyms
+        'floor_lamp': 'lamp',
+        'table_lamp': 'lamp',
+        'desk_lamp': 'lamp',
+        
+        # Kitchen synonyms
+        'refrigerator': 'fridge',
+        'stove': 'oven',
+        'cooktop': 'oven'
+    }
+    
+    # Return canonical label or original if no mapping exists
+    return label_mapping.get(label, label)
 
 def segment_objects(image: Image.Image, objects: list) -> list:
     """Generate segmentation masks for detected objects using SAM2"""
@@ -248,9 +363,21 @@ def segment_objects(image: Image.Image, objects: list) -> list:
                 best_mask_idx = np.argmax(scores)
                 mask = masks[best_mask_idx]
                 
-                # Calculate mask statistics
+                # Calculate mask statistics with validation
+                # Ensure mask is binary (0 or 1) and positive
+                mask = np.clip(mask, 0, 1)  # Clamp to valid range
                 mask_area = int(np.sum(mask))
-                mask_coverage = mask_area / (image.size[0] * image.size[1])
+                image_area = image.size[0] * image.size[1]
+                
+                # Validate mask area is reasonable
+                if mask_area < 0:
+                    logger.error(f"Invalid negative mask area: {mask_area}, setting to 0")
+                    mask_area = 0
+                elif mask_area > image_area:
+                    logger.warning(f"Mask area {mask_area} exceeds image area {image_area}, clamping")
+                    mask_area = min(mask_area, image_area)
+                
+                mask_coverage = mask_area / image_area if image_area > 0 else 0.0
                 
                 # Convert mask to base64 image
                 mask_image = Image.fromarray((mask * 255).astype(np.uint8), mode='L')
@@ -327,9 +454,21 @@ def segment_objects_transformers(image: Image.Image, objects: list) -> list:
                     mask = masks[best_idx]
                     score = float(scores[best_idx])
                 
-                # Calculate mask statistics
+                # Calculate mask statistics with validation
+                # Ensure mask is binary (0 or 1) and positive
+                mask = np.clip(mask, 0, 1)  # Clamp to valid range
                 mask_area = int(np.sum(mask))
-                mask_coverage = mask_area / (image.size[0] * image.size[1])
+                image_area = image.size[0] * image.size[1]
+                
+                # Validate mask area is reasonable
+                if mask_area < 0:
+                    logger.error(f"Invalid negative mask area: {mask_area}, setting to 0")
+                    mask_area = 0
+                elif mask_area > image_area:
+                    logger.warning(f"Mask area {mask_area} exceeds image area {image_area}, clamping")
+                    mask_area = min(mask_area, image_area)
+                
+                mask_coverage = mask_area / image_area if image_area > 0 else 0.0
                 
                 # Convert mask to base64 image
                 mask_image = Image.fromarray((mask * 255).astype(np.uint8), mode='L')

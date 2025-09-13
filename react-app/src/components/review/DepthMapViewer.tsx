@@ -311,7 +311,7 @@ export function DepthMapViewer({
       </CardContent>
 
       {/* CSS for depth map styling */}
-      <style jsx data-oid="-jjqnr5">{`
+      <style jsx={true} data-oid="-jjqnr5">{`
         .depth-heatmap {
           filter: hue-rotate(240deg) saturate(1.5) contrast(1.2);
         }
