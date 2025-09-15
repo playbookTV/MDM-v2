@@ -108,11 +108,16 @@ async def start_review_session(session_data: ReviewSessionCreate):
     """Start a new review session"""
     try:
         service = ReviewService()
-        session = await service.start_review_session(session_data.dataset_id)
+        session = await service.start_review_session(
+            dataset_id=session_data.dataset_id,
+            reviewer_id="anonymous"  # TODO: Get from auth context
+        )
         
         logger.info(f"Started review session: {session['id']}")
         return ReviewSession(**session)
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to start review session: {e}")
         raise HTTPException(status_code=500, detail="Failed to start review session")
@@ -127,6 +132,8 @@ async def end_review_session(session_id: str):
         logger.info(f"Ended review session: {session_id}")
         return ReviewSession(**session)
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to end review session {session_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to end review session")
@@ -150,6 +157,8 @@ async def get_review_stats(
         
         return ReviewStats(**stats)
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to get review stats: {e}")
         raise HTTPException(status_code=500, detail="Failed to get review stats")

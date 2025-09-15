@@ -496,12 +496,26 @@ export function SceneDetailView({
               </span>
             </div>
 
-            {selectedObject.material && (
+            {/* Enhanced material display */}
+            {selectedObject.materials && selectedObject.materials.length > 0 ? (
+              <div className="space-y-1" data-oid="qg3pl96">
+                <div className="text-xs font-medium">Materials:</div>
+                {selectedObject.materials.slice(0, 3).map((mat, idx) => (
+                  <div key={idx} className="text-xs flex items-center justify-between">
+                    <span className="text-muted-foreground">{mat.material}</span>
+                    <span className="font-mono">
+                      {(mat.confidence * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : selectedObject.material ? (
+              // Fallback to legacy single material
               <div className="text-xs" data-oid="qg3pl96">
                 Material: {selectedObject.material} (
                 {(selectedObject.material_conf || 0) * 100}%)
               </div>
-            )}
+            ) : null}
 
             {(selectedObject.bbox &&
               typeof selectedObject.bbox.x === "number" &&

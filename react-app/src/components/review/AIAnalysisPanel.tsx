@@ -267,7 +267,33 @@ export function AIAnalysisPanel({
                             </Badge>
                           </div>
 
-                          {object.material && (
+                          {/* Enhanced material display with multiple materials */}
+                          {object.materials && object.materials.length > 0 ? (
+                            <div className="space-y-1 mt-2">
+                              {object.materials.slice(0, 3).map((mat, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-center space-x-2 text-xs"
+                                  data-oid="tulizv-"
+                                >
+                                  <Settings
+                                    className="h-3 w-3 text-muted-foreground"
+                                    data-oid="wq5dwpb"
+                                  />
+                                  <span className="text-muted-foreground" data-oid="o-bko7.">
+                                    {mat.material}
+                                  </span>
+                                  <Badge 
+                                    variant="outline" 
+                                    className="text-xs h-4 px-1"
+                                  >
+                                    {formatConfidence(mat.confidence)}
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
+                          ) : object.material ? (
+                            // Fallback to legacy single material
                             <div
                               className="flex items-center space-x-2 text-xs text-muted-foreground"
                               data-oid="tulizv-"
@@ -286,7 +312,7 @@ export function AIAnalysisPanel({
                                 )}
                               </span>
                             </div>
-                          )}
+                          ) : null}
 
                           {(object.bbox &&
                             typeof object.bbox.x === "number" &&

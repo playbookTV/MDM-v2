@@ -1,6 +1,6 @@
 ## TASK-008
 ---
-STATUS: DOING
+STATUS: COMPLETE
 
 Implement bbox coordinate validation to prevent negative width/height values in database storage.
 

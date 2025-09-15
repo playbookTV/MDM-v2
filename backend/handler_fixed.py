@@ -549,36 +549,206 @@ def analyze_style(image: Image.Image) -> dict:
             "style_alternatives": []
         }
 
-def analyze_materials(image: Image.Image, objects: list) -> dict:
-    """Analyze materials using CLIP zero-shot classification"""
+def detect_object_materials(image: Image.Image, objects: list, material_taxonomy: dict = None) -> list:
+    """
+    Enhanced material detection using CLIP on object crops for contextual analysis.
+    
+    Args:
+        image: Full scene PIL Image
+        objects: List of detected objects with bbox and label
+        material_taxonomy: Optional custom material taxonomy
+        
+    Returns:
+        Objects enriched with materials field
+    """
+    if not objects:
+        return []
+    
+    # Define material taxonomy based on object types
+    if material_taxonomy is None:
+        material_taxonomy = {
+            # Seating materials
+            "sofa": ["fabric upholstery", "leather upholstery", "velvet fabric", "linen fabric", 
+                    "microfiber", "wood frame", "metal legs"],
+            "chair": ["wood", "metal", "plastic", "fabric seat", "leather seat", "rattan", "mesh"],
+            
+            # Table materials
+            "table": ["wood surface", "glass top", "marble top", "metal frame", "laminate", 
+                     "stone surface", "acrylic"],
+            "desk": ["wood", "metal", "glass", "laminate", "particle board"],
+            
+            # Storage materials  
+            "cabinet": ["wood", "metal", "laminate", "glass doors", "particle board", "MDF"],
+            "shelf": ["wood", "metal", "glass", "wire mesh", "plastic"],
+            "dresser": ["solid wood", "veneer", "laminate", "metal handles"],
+            
+            # Bedroom materials
+            "bed": ["wood frame", "metal frame", "upholstered headboard", "fabric", "leather"],
+            "mattress": ["memory foam", "latex", "spring coils", "fabric cover"],
+            
+            # Lighting materials
+            "lamp": ["metal base", "ceramic base", "glass shade", "fabric shade", "plastic", "wood"],
+            
+            # Electronics
+            "tv": ["plastic casing", "glass screen", "metal stand"],
+            "monitor": ["plastic", "metal", "glass screen"],
+            
+            # Bathroom
+            "toilet": ["ceramic", "porcelain", "plastic seat"],
+            "bathtub": ["acrylic", "fiberglass", "cast iron", "ceramic"],
+            "sink": ["ceramic", "porcelain", "stainless steel", "stone"],
+            
+            # Decor
+            "mirror": ["glass", "metal frame", "wood frame", "plastic frame"],
+            "plant": ["organic leaves", "ceramic pot", "plastic pot", "terracotta pot"],
+            "vase": ["glass", "ceramic", "porcelain", "metal", "crystal"],
+            "rug": ["wool", "cotton", "synthetic fiber", "jute", "silk"],
+            "curtains": ["fabric", "polyester", "cotton", "linen", "silk"],
+            "pillow": ["cotton cover", "linen", "velvet", "silk", "polyester fill"],
+            
+            # Default materials for unknown objects
+            "default": ["wood", "metal", "fabric", "plastic", "glass", "ceramic"]
+        }
+    
     try:
-        material_prompts = [
-            "wood material", "metal material", "fabric material", "leather material",
-            "glass material", "ceramic material", "plastic material", "stone material"
+        enhanced_objects = []
+        
+        for obj in objects:
+            enhanced_obj = obj.copy()
+            
+            try:
+                # Get object label and bbox
+                label = obj.get("label", "unknown")
+                bbox = obj.get("bbox", [])
+                
+                # Skip if no valid bbox
+                if not bbox or len(bbox) < 4:
+                    enhanced_obj["materials"] = []
+                    enhanced_objects.append(enhanced_obj)
+                    continue
+                
+                # Extract object crop
+                x, y, w, h = bbox[0], bbox[1], bbox[2], bbox[3]
+                
+                # Validate bbox dimensions
+                if w <= 0 or h <= 0:
+                    enhanced_obj["materials"] = []
+                    enhanced_objects.append(enhanced_obj)
+                    continue
+                
+                # Crop object from image
+                object_crop = image.crop((x, y, x + w, y + h))
+                
+                # Get material candidates based on object type
+                material_candidates = material_taxonomy.get(label, material_taxonomy.get("default", []))
+                
+                # Prepare material prompts for CLIP
+                material_prompts = [f"a photo of {mat}" for mat in material_candidates]
+                
+                if not material_prompts:
+                    enhanced_obj["materials"] = []
+                    enhanced_objects.append(enhanced_obj)
+                    continue
+                
+                # Run CLIP on object crop with material prompts
+                inputs = models['clip_processor'](
+                    text=material_prompts,
+                    images=object_crop,
+                    return_tensors="pt",
+                    padding=True
+                )
+                
+                with torch.no_grad():
+                    outputs = models['clip_model'](**inputs)
+                    logits = outputs.logits_per_image
+                    probs = logits.softmax(dim=1)
+                
+                # Adaptive confidence thresholds based on object type
+                confidence_thresholds = {
+                    "sofa": 0.20,      # Higher threshold for complex objects
+                    "chair": 0.20,
+                    "table": 0.18,
+                    "bed": 0.20,
+                    "cabinet": 0.18,
+                    "lamp": 0.15,
+                    "plant": 0.25,     # Higher for organic materials
+                    "mirror": 0.30,    # Very high for simple materials
+                    "rug": 0.22,
+                    "curtains": 0.22,
+                    "pillow": 0.20
+                }
+                
+                threshold = confidence_thresholds.get(label, 0.15)
+                
+                # Extract materials above threshold
+                materials = []
+                for i, material in enumerate(material_candidates):
+                    confidence = float(probs[0][i])
+                    if confidence > threshold:
+                        materials.append({
+                            "material": material,
+                            "confidence": round(confidence, 3)
+                        })
+                
+                # Sort by confidence
+                materials.sort(key=lambda x: x['confidence'], reverse=True)
+                
+                # Limit to top 3 materials
+                enhanced_obj["materials"] = materials[:3]
+                
+                # Add material summary to object
+                if materials:
+                    top_material = materials[0]["material"]
+                    enhanced_obj["primary_material"] = top_material
+                    enhanced_obj["material_confidence"] = materials[0]["confidence"]
+                else:
+                    enhanced_obj["materials"] = []
+                    enhanced_obj["primary_material"] = "unknown"
+                    enhanced_obj["material_confidence"] = 0.0
+                
+                logger.debug(f"Object {label}: detected {len(materials)} materials")
+                
+            except Exception as e:
+                logger.error(f"Material detection failed for object {obj.get('label', 'unknown')}: {e}")
+                enhanced_obj["materials"] = []
+                enhanced_obj["primary_material"] = "unknown"
+                enhanced_obj["material_confidence"] = 0.0
+            
+            enhanced_objects.append(enhanced_obj)
+        
+        # Log material detection statistics
+        total_objects = len(enhanced_objects)
+        with_materials = sum(1 for obj in enhanced_objects if obj.get("materials"))
+        logger.info(f"Material detection: {with_materials}/{total_objects} objects with materials detected")
+        
+        return enhanced_objects
+        
+    except Exception as e:
+        logger.error(f"Enhanced material detection failed: {e}")
+        return objects  # Return original objects on failure
+
+def analyze_materials(image: Image.Image, objects: list) -> dict:
+    """Legacy material analysis function for backwards compatibility"""
+    try:
+        # Use new enhanced material detection
+        enhanced_objects = detect_object_materials(image, objects)
+        
+        # Aggregate materials from all objects
+        all_materials = {}
+        for obj in enhanced_objects:
+            for mat_info in obj.get("materials", []):
+                material = mat_info["material"]
+                confidence = mat_info["confidence"]
+                if material in all_materials:
+                    all_materials[material] = max(all_materials[material], confidence)
+                else:
+                    all_materials[material] = confidence
+        
+        # Convert to list format
+        materials = [
+            {"material": mat, "confidence": round(conf, 3)}
+            for mat, conf in all_materials.items()
         ]
-        
-        inputs = models['clip_processor'](
-            text=material_prompts,
-            images=image,
-            return_tensors="pt",
-            padding=True
-        )
-        
-        with torch.no_grad():
-            outputs = models['clip_model'](**inputs)
-            logits = outputs.logits_per_image
-            probs = logits.softmax(dim=1)
-        
-        # Get detected materials
-        materials = []
-        for i, material in enumerate(material_prompts):
-            confidence = float(probs[0][i])
-            if confidence > 0.15:  # Only confident predictions
-                materials.append({
-                    "material": material.replace(" material", ""),
-                    "confidence": round(confidence, 3)
-                })
-        
         materials.sort(key=lambda x: x['confidence'], reverse=True)
         
         return {
@@ -858,8 +1028,326 @@ def process_scene_complete(image_data_b64: str, scene_id: str, options: dict = N
             "processing_time": round(processing_time, 2)
         }
 
+def batch_process_scenes(images: list, batch_size: int = 4, options: dict = None) -> list:
+    """
+    Process multiple scenes in batches for improved GPU utilization.
+    
+    Args:
+        images: List of tuples [(scene_id, base64_image), ...]
+        batch_size: Max images per GPU batch (1-8)
+        options: Processing options dict
+        
+    Returns:
+        List of results in same order as input
+    """
+    if options is None:
+        options = {}
+    
+    # Validate inputs
+    batch_size = max(1, min(8, batch_size))
+    if not images:
+        return []
+    
+    logger.info(f"📦 Batch processing {len(images)} scenes with batch_size={batch_size}")
+    start_time = time.time()
+    
+    # Set seed for determinism
+    torch.manual_seed(42)
+    np.random.seed(42)
+    
+    results = []
+    
+    # Process in batches
+    for i in range(0, len(images), batch_size):
+        batch = images[i:i+batch_size]
+        batch_start = time.time()
+        
+        try:
+            # Decode all images in batch
+            pil_images = []
+            scene_ids = []
+            
+            for scene_id, image_b64 in batch:
+                try:
+                    image_bytes = base64.b64decode(image_b64)
+                    pil_image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+                    pil_images.append(pil_image)
+                    scene_ids.append(scene_id)
+                except Exception as e:
+                    logger.error(f"Failed to decode image for scene {scene_id}: {e}")
+                    results.append({
+                        "scene_id": scene_id,
+                        "status": "error",
+                        "error": f"Image decode failed: {str(e)}"
+                    })
+            
+            if not pil_images:
+                continue
+            
+            # Batch inference with automatic batch size reduction on OOM
+            current_batch_size = len(pil_images)
+            while current_batch_size > 0:
+                try:
+                    batch_results = _process_batch_gpu(pil_images[:current_batch_size], 
+                                                       scene_ids[:current_batch_size], 
+                                                       options)
+                    results.extend(batch_results)
+                    
+                    # Process remaining if batch was reduced
+                    if current_batch_size < len(pil_images):
+                        remaining_results = _process_batch_gpu(pil_images[current_batch_size:],
+                                                              scene_ids[current_batch_size:],
+                                                              options)
+                        results.extend(remaining_results)
+                    break
+                    
+                except torch.cuda.OutOfMemoryError:
+                    logger.warning(f"GPU OOM with batch_size={current_batch_size}, reducing...")
+                    torch.cuda.empty_cache()
+                    current_batch_size = current_batch_size // 2
+                    if current_batch_size == 0:
+                        # Fall back to single image processing
+                        for img, sid in zip(pil_images, scene_ids):
+                            result = _process_single_scene(img, sid, options)
+                            results.append(result)
+                        break
+            
+            batch_time = time.time() - batch_start
+            logger.info(f"Batch {i//batch_size + 1} processed in {batch_time:.2f}s")
+            
+        except Exception as e:
+            logger.error(f"Batch processing failed: {e}")
+            # Process failed batch individually
+            for scene_id, image_b64 in batch:
+                results.append({
+                    "scene_id": scene_id,
+                    "status": "error", 
+                    "error": f"Batch processing failed: {str(e)}"
+                })
+    
+    total_time = time.time() - start_time
+    avg_time = total_time / len(images) if images else 0
+    logger.info(f"✅ Batch processing complete: {len(images)} scenes in {total_time:.2f}s (avg {avg_time:.2f}s/image)")
+    
+    return results
+
+def _process_batch_gpu(pil_images: list, scene_ids: list, options: dict) -> list:
+    """Process a batch of images on GPU with batched inference."""
+    results = []
+    
+    # Batch CLIP inference for scene classification and styles
+    scene_classifications = _batch_classify_scenes(pil_images)
+    style_analyses = _batch_analyze_styles(pil_images)
+    
+    # Batch YOLO inference
+    all_objects = _batch_detect_objects(pil_images)
+    
+    # Process each image's results
+    for img, scene_id, scene_class, style, objects in zip(
+        pil_images, scene_ids, scene_classifications, style_analyses, all_objects
+    ):
+        # Individual processing for segmentation and enhancement
+        segmented = segment_objects(img, objects)
+        materials = detect_object_materials(img, segmented)
+        enhanced = enhance_objects_with_details(img, materials)
+        colors = extract_color_palette(img)
+        depth = estimate_depth(img)
+        
+        # Generate thumbnail
+        thumbnail = img.copy()
+        thumbnail.thumbnail((256, 256), Image.Resampling.LANCZOS)
+        thumb_buffer = io.BytesIO()
+        thumbnail.save(thumb_buffer, format='JPEG', quality=85)
+        thumbnail_b64 = base64.b64encode(thumb_buffer.getvalue()).decode('utf-8')
+        
+        results.append({
+            "scene_id": scene_id,
+            "status": "success",
+            "scene_analysis": scene_class,
+            "style_analysis": style,
+            "objects": enhanced,
+            "objects_detected": len(enhanced),
+            "material_analysis": {"dominant_materials": [], "all_materials": []},
+            "color_palette": colors,
+            "depth_analysis": depth,
+            "thumbnail_base64": thumbnail_b64,
+            "image_size": img.size
+        })
+    
+    return results
+
+def _batch_classify_scenes(images: list) -> list:
+    """Batch scene classification using CLIP."""
+    scene_types = [
+        "a bedroom interior", "a living room interior", "a kitchen interior",
+        "a bathroom interior", "a dining room interior", "an office interior",
+        "a hallway interior", "an outdoor patio", "a garage interior"
+    ]
+    
+    # Batch process all images at once
+    inputs = models['clip_processor'](
+        text=scene_types,
+        images=images,
+        return_tensors="pt",
+        padding=True
+    )
+    
+    with torch.no_grad():
+        outputs = models['clip_model'](**inputs)
+        logits = outputs.logits_per_image
+        probs = logits.softmax(dim=1)
+    
+    results = []
+    for i in range(len(images)):
+        best_idx = probs[i].argmax().item()
+        confidence = probs[i][best_idx].item()
+        scene_type = scene_types[best_idx].replace("a ", "").replace(" interior", "")
+        
+        top_indices = probs[i].argsort(descending=True)[:3]
+        alternatives = [
+            {
+                "type": scene_types[idx].replace("a ", "").replace(" interior", ""),
+                "confidence": float(probs[i][idx])
+            }
+            for idx in top_indices
+        ]
+        
+        results.append({
+            "scene_type": scene_type,
+            "confidence": float(confidence),
+            "alternatives": alternatives
+        })
+    
+    return results
+
+def _batch_analyze_styles(images: list) -> list:
+    """Batch style analysis using CLIP."""
+    style_prompts = [
+        "contemporary interior design", "traditional interior design",
+        "modern interior design", "rustic interior design",
+        "industrial interior design", "scandinavian interior design",
+        "minimalist interior design", "bohemian interior design"
+    ]
+    
+    inputs = models['clip_processor'](
+        text=style_prompts,
+        images=images,
+        return_tensors="pt",
+        padding=True
+    )
+    
+    with torch.no_grad():
+        outputs = models['clip_model'](**inputs)
+        logits = outputs.logits_per_image
+        probs = logits.softmax(dim=1)
+    
+    results = []
+    for i in range(len(images)):
+        styles = []
+        for j, style in enumerate(style_prompts):
+            confidence = float(probs[i][j])
+            if confidence > 0.1:
+                styles.append({
+                    "style": style.replace(" interior design", ""),
+                    "confidence": round(confidence, 3)
+                })
+        
+        styles.sort(key=lambda x: x['confidence'], reverse=True)
+        
+        results.append({
+            "primary_style": styles[0]['style'] if styles else "contemporary",
+            "style_confidence": styles[0]['confidence'] if styles else 0.5,
+            "style_alternatives": styles[:3]
+        })
+    
+    return results
+
+def _batch_detect_objects(images: list) -> list:
+    """Batch object detection using YOLO."""
+    # Convert PIL images to numpy arrays
+    img_arrays = [np.array(img) for img in images]
+    
+    # Run batch inference
+    batch_results = models['yolo'](img_arrays, conf=0.25, verbose=False)
+    
+    all_objects = []
+    for result, img in zip(batch_results, images):
+        objects = []
+        if result.boxes is not None:
+            for box in result.boxes:
+                coords = box.xyxy[0].cpu().numpy()
+                x1, y1, x2, y2 = float(coords[0]), float(coords[1]), float(coords[2]), float(coords[3])
+                
+                # Validate coordinates
+                if x2 < x1:
+                    x1, x2 = x2, x1
+                if y2 < y1:
+                    y1, y2 = y2, y1
+                
+                if (x2 - x1) < 1 or (y2 - y1) < 1:
+                    continue
+                
+                conf = float(box.conf[0])
+                cls = int(box.cls[0])
+                label = models['yolo'].names[cls]
+                
+                # Filter for furniture objects
+                canonical_label = get_canonical_label(label.lower())
+                
+                objects.append({
+                    "label": canonical_label,
+                    "confidence": round(conf, 3),
+                    "bbox": [int(x1), int(y1), int(x2 - x1), int(y2 - y1)],
+                    "area": int((x2 - x1) * (y2 - y1))
+                })
+        
+        objects.sort(key=lambda x: x['confidence'], reverse=True)
+        all_objects.append(objects[:20])
+    
+    return all_objects
+
+def _process_single_scene(image: Image.Image, scene_id: str, options: dict) -> dict:
+    """Fallback to single scene processing."""
+    try:
+        # Use existing single-image functions
+        scene_analysis = classify_scene(image)
+        objects = detect_objects(image)
+        segmented = segment_objects(image, objects)
+        materials = detect_object_materials(image, segmented)
+        enhanced = enhance_objects_with_details(image, materials)
+        style = analyze_style(image)
+        colors = extract_color_palette(image)
+        depth = estimate_depth(image)
+        
+        # Generate thumbnail
+        thumbnail = image.copy()
+        thumbnail.thumbnail((256, 256), Image.Resampling.LANCZOS)
+        thumb_buffer = io.BytesIO()
+        thumbnail.save(thumb_buffer, format='JPEG', quality=85)
+        thumbnail_b64 = base64.b64encode(thumb_buffer.getvalue()).decode('utf-8')
+        
+        return {
+            "scene_id": scene_id,
+            "status": "success",
+            "scene_analysis": scene_analysis,
+            "style_analysis": style,
+            "objects": enhanced,
+            "objects_detected": len(enhanced),
+            "color_palette": colors,
+            "depth_analysis": depth,
+            "thumbnail_base64": thumbnail_b64,
+            "image_size": image.size
+        }
+    except Exception as e:
+        logger.error(f"Single scene processing failed for {scene_id}: {e}")
+        return {
+            "scene_id": scene_id,
+            "status": "error",
+            "error": str(e)
+        }
+
 def handler(event):
-    """Main RunPod serverless handler"""
+    """Main RunPod serverless handler with batch processing support"""
     try:
         logger.info(f"🔄 Handler invoked: {event.get('id', 'unknown')}")
         
@@ -884,7 +1372,21 @@ def handler(event):
                 "available_models": list(models.keys())
             }
         
-        # Main processing
+        # Check for batch processing
+        batch_images = input_data.get("batch_images")
+        if batch_images:
+            # Batch processing mode
+            batch_size = input_data.get("batch_size", 4)
+            options = input_data.get("options", {})
+            
+            results = batch_process_scenes(batch_images, batch_size, options)
+            return {
+                "status": "success",
+                "batch_results": results,
+                "batch_size": len(results)
+            }
+        
+        # Single image processing (backwards compatible)
         image_data = input_data.get("image")
         scene_id = input_data.get("scene_id", f"scene_{int(time.time())}")
         options = input_data.get("options", {})
@@ -892,7 +1394,7 @@ def handler(event):
         if not image_data:
             return {
                 "status": "error",
-                "error": "No image data provided. Send base64 encoded image in 'image' field."
+                "error": "No image data provided. Send base64 encoded image in 'image' field or batch in 'batch_images'."
             }
         
         # Process the scene

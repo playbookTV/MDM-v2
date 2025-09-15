@@ -105,11 +105,51 @@ async def populate_categories():
     
     # Prepare categories to insert
     new_categories = []
+    
+    # Add missing plant categories first (critical fix)
+    plant_categories = {
+        "potted plant": ("Potted Plant", "decor"),
+        "potted_plant": ("Potted Plant", "decor"),
+        "houseplant": ("Houseplant", "decor"),
+        "planter": ("Planter", "decor"),
+    }
+    
+    # Combine with existing furniture categories
+    all_categories = {}
     for code, name in FURNITURE_CATEGORIES.items():
+        # Determine family based on category type
+        if code in ["sofa", "chair", "armchair", "dining_chair", "office_chair", "stool", "bench", "ottoman"]:
+            family = "seating"
+        elif code in ["coffee_table", "dining_table", "desk", "side_table", "console_table", "nightstand"]:
+            family = "tables"
+        elif code in ["bookshelf", "cabinet", "dresser", "wardrobe", "tv_stand"]:
+            family = "storage"
+        elif code in ["bed", "mattress", "crib"]:
+            family = "bedroom"
+        elif code in ["lamp", "floor_lamp", "table_lamp", "pendant_light", "chandelier"]:
+            family = "lighting"
+        elif code in ["refrigerator", "stove", "oven", "microwave", "dishwasher", "sink"]:
+            family = "kitchen"
+        elif code in ["toilet", "bathtub", "shower", "vanity"]:
+            family = "bathroom"
+        elif code in ["tv", "computer", "monitor", "speakers"]:
+            family = "electronics"
+        elif code in ["mirror", "plant", "vase", "rug", "curtains", "pillow", "artwork", "clock"]:
+            family = "decor"
+        else:
+            family = "other"
+        
+        all_categories[code] = (name, family)
+    
+    # Add plant categories
+    all_categories.update(plant_categories)
+    
+    for code, (display_name, family) in all_categories.items():
         if code not in existing_codes:
             new_categories.append({
                 "code": code,
-                "name": name,
+                "display": display_name,  # Changed from "name" to "display"
+                "family": family,  # Added required family field
                 "parent_code": None  # Can be updated later for hierarchical structure
             })
     
@@ -135,7 +175,7 @@ async def populate_categories():
     sample = supabase.table("categories").select("*").limit(10).execute()
     print("\n📋 Sample categories:")
     for cat in sample.data[:5]:
-        print(f"  - {cat['code']}: {cat['name']}")
+        print(f"  - {cat['code']}: {cat.get('display', cat.get('name', 'N/A'))} (family: {cat.get('family', 'N/A')})")
 
 if __name__ == "__main__":
     asyncio.run(populate_categories())

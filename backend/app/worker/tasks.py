@@ -13,77 +13,13 @@ from app.services.datasets import DatasetService
 from app.services.scenes import SceneService
 from app.services.ai_pipeline import process_scene_ai
 from app.services.storage import StorageService
+from app.utils.bbox import validate_and_normalize_bbox
 from app.core.supabase import init_supabase, get_supabase
 from app.core.redis import init_redis
 
 logger = logging.getLogger(__name__)
 
-def validate_and_normalize_bbox(bbox_data: Union[list, dict], object_index: int = 0) -> Dict[str, int]:
-    """
-    Validate and normalize bbox data to ensure positive width/height values.
-    
-    Handles both [x,y,w,h] and [x1,y1,x2,y2] formats, detects and corrects
-    negative dimensions that indicate coordinate format confusion.
-    
-    Args:
-        bbox_data: Bbox as list [x,y,w,h] or dict {x,y,width,height}
-        object_index: Object index for logging
-        
-    Returns:
-        Normalized bbox dict with positive dimensions
-    """
-    # Handle bbox as list with format validation
-    if isinstance(bbox_data, list) and len(bbox_data) == 4:
-        x, y, width, height = bbox_data
-        
-        # Detect and fix coordinate format issues
-        # If width/height are negative, this might be [x1,y1,x2,y2] format
-        if width < 0 or height < 0:
-            logger.warning(f"Detected negative bbox dimensions for object {object_index}: {bbox_data}")
-            # Assume it's [x1,y1,x2,y2] format and convert
-            x1, y1, x2, y2 = x, y, width, height
-            # Ensure proper ordering
-            if x2 < x1:
-                x1, x2 = x2, x1
-            if y2 < y1:
-                y1, y2 = y2, y1
-            # Convert to [x,y,w,h] format
-            x, y, width, height = x1, y1, abs(x2 - x1), abs(y2 - y1)
-            logger.info(f"Converted bbox to: x={x}, y={y}, w={width}, h={height}")
-        
-        # Validate final bbox values
-        if width <= 0 or height <= 0:
-            logger.error(f"Invalid bbox dimensions for object {object_index}: w={width}, h={height}")
-            return {'x': 0, 'y': 0, 'width': 0, 'height': 0}
-        else:
-            return {
-                'x': max(0, int(x)),  # Ensure non-negative coordinates
-                'y': max(0, int(y)),
-                'width': int(width),
-                'height': int(height)
-            }
-    
-    # Handle bbox as dict {x, y, width, height}
-    elif isinstance(bbox_data, dict):
-        # Validate dict format bbox
-        x = bbox_data.get('x', 0)
-        y = bbox_data.get('y', 0)
-        width = bbox_data.get('width', 0)
-        height = bbox_data.get('height', 0)
-        
-        if width <= 0 or height <= 0:
-            logger.error(f"Invalid dict bbox dimensions for object {object_index}: w={width}, h={height}")
-            return {'x': 0, 'y': 0, 'width': 0, 'height': 0}
-        else:
-            return {
-                'x': max(0, int(x)),
-                'y': max(0, int(y)),
-                'width': int(width),
-                'height': int(height)
-            }
-    else:
-        # Default fallback
-        return {'x': 0, 'y': 0, 'width': 0, 'height': 0}
+# Bbox validation is now handled by app.utils.bbox module
 
 def run_async(coro):
     """Helper to run async functions in Celery tasks"""
@@ -113,8 +49,12 @@ async def _create_scene_objects(scene_id: str, objects_data: list, mask_keys: di
         # Format 2: {label, confidence, bbox: [x, y, width, height], ...} (ACTUAL RunPod format)
         bbox_data = obj.get("bbox", {})
         
-        # Validate and normalize bbox using helper function
-        bbox = validate_and_normalize_bbox(bbox_data, i)
+        # Validate and normalize bbox using robust utilities
+        try:
+            bbox = validate_and_normalize_bbox(bbox_data, object_index=i)
+        except ValueError as e:
+            logger.error(f"Skipping object {i} due to invalid bbox: {e}")
+            continue
         
         # Normalize category to match MODOMO_TAXONOMY canonical labels
         category = obj.get("category", obj.get("label", "furniture"))  # Default fallback

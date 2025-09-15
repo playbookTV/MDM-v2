@@ -48,11 +48,19 @@ export interface SceneObject {
   confidence: number
   bbox: BoundingBox
   r2_key_mask?: string
-  material?: string
-  material_conf?: number
+  material?: string  // Legacy single material
+  material_conf?: number  // Legacy material confidence
+  materials?: MaterialDetection[]  // Enhanced: multiple materials with confidence
+  primary_material?: string  // Enhanced: top material
+  material_confidence?: number  // Enhanced: top material confidence
   review_status?: ReviewStatus
   corrected_label?: string
   review_notes?: string
+}
+
+export interface MaterialDetection {
+  material: string
+  confidence: number
 }
 
 export interface BoundingBox {

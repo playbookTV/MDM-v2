@@ -4,30 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Modomo Dataset Management (MDM)** is the foundation project for Modomo, an AI-powered interior design platform. This repository contains a complete implementation of the data processing pipeline with three main applications:
+**Modomo Dataset Management (MDM)** is an AI-powered interior design data processing platform. This repository implements a complete data pipeline with backend API and web frontend.
 
 ### Core Components
 
-**1. Modomo Dataset Scraper TUI** (`/TUI/`)
-- ✅ **FULLY FUNCTIONAL** Python-based terminal interface for dataset processing
-- Real-time AI processing pipeline with scene classification, object detection, segmentation
-- Supabase database integration with complete schema implementation
-- Cloudflare R2 storage for images, masks, thumbnails, and depth maps
-- Live statistics dashboard and progress tracking
-- Ready for production with mock AI models (easily replaceable with real models)
+**1. FastAPI Backend** (`/backend/`)
+- ✅ **FUNCTIONAL** RESTful API server with comprehensive endpoints
+- Celery + Redis queue for asynchronous job processing
+- RunPod integration for AI model inference (YOLO, SAM2, CLIP)
+- Hugging Face dataset import capabilities  
+- Railway deployment configuration
+- Complete Supabase database integration
+- Cloudflare R2 storage for images, masks, thumbnails, depth maps
 
-**2. FastAPI Backend** (`/backend/`)
-- RESTful API server for web-based dataset curation
-- Railway deployment ready with health checks and monitoring
-- Redis queue integration for background job processing
-- Designed to work with React frontend and support the TUI architecture
-- Database integration with existing Supabase schema
-
-**3. React Web Application** (`/react-app/`)
-- Modern web interface for collaborative dataset curation
-- Built with React 18 + TypeScript + Vite + Tailwind CSS
-- Features: dataset management, job monitoring, analytics dashboard, review interface
-- Designed to replace TUI with scalable web-based solution
+**2. React Web Application** (`/react-app/`)
+- ✅ **IMPLEMENTED** Modern TypeScript + Vite + Tailwind CSS interface
+- Pages: Dataset Explorer, Jobs Monitoring, Stats Dashboard, Scene Review
+- Real-time job status updates with progress tracking
+- Image review interface with bounding box visualization
+- Component architecture complete, API integration working
 
 **Key Technologies**
 - **AI Pipeline**: YOLO + GroundingDINO for object detection, SAM2 for segmentation, Depth Anything V2 for depth estimation, CLIP for embeddings
@@ -39,44 +34,55 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-The system has evolved into a comprehensive multi-platform solution:
+The system follows a modern web application architecture:
 
 ```
-┌─── TUI (Python/Textual) ────┐    ┌─── Web App (React) ────┐
-│    • Direct Processing      │    │   • Collaborative UI   │
-│    • Local/HF Datasets     │────┼──→│   • Review Interface │
-│    • Real-time Stats       │    │   │   • Analytics       │
-└─────────────────────────────┘    └─────────────────────────┘
-                │                                    │
-                └────┬─── AI Pipeline ───┬───────────┘
-                     ▼                   ▼
-            ┌──── Background Jobs ────┬──── FastAPI Backend ────┐
-            │  • Celery + Redis       │  • REST API             │
-            │  • Task Queues          │  • Health Monitoring    │
-            │  • Progress Tracking    │  • Railway Deployment   │
-            └─────────────────────────┴─────────────────────────┘
-                            │
-                ┌───────────┴───────────┐
-                ▼                       ▼
-        ┌─ Supabase DB ─┐       ┌─ R2 Storage ─┐
-        │ • Scenes       │       │ • Images     │
-        │ • Objects      │       │ • Masks      │
-        │ • Materials    │       │ • Depth Maps │
-        │ • Jobs/Stats   │       │ • Thumbnails │
-        └────────────────┘       └──────────────┘
+        ┌─── React Web App ────┐
+        │  • Dataset Explorer  │
+        │  • Jobs Monitoring   │
+        │  • Scene Review      │
+        │  • Stats Dashboard   │
+        └──────────┬────────────┘
+                   │ REST API
+                   ▼
+        ┌─── FastAPI Backend ────┐
+        │  • API Endpoints       │
+        │  • Auth & CORS         │
+        │  • Rate Limiting       │
+        └──────────┬──────────────┘
+                   │
+    ┌──────────────┴──────────────┐
+    ▼                              ▼
+┌─ Celery Workers ─┐      ┌─ RunPod GPU ─┐
+│  • Job Queue     │      │  • YOLO      │
+│  • Task Routing  │◄─────┤  • SAM2      │
+│  • Redis Backend │      │  • CLIP      │
+└──────────────────┘      └──────────────┘
+           │
+    ┌──────┴───────────────┐
+    ▼                      ▼
+┌─ Supabase DB ─┐    ┌─ R2 Storage ─┐
+│ • Scenes       │    │ • Images     │
+│ • Objects      │    │ • Masks      │
+│ • Categories   │    │ • Thumbnails │
+│ • Jobs/Reviews │    │ • Depth Maps │
+└────────────────┘    └──────────────┘
 ```
 
 ### Current Production Status
 
-**✅ TUI Application**: Fully operational at `/Users/leslieisah/MDM/TUI/`
-- Launch command: `PYTHONPATH=/Users/leslieisah/MDM/TUI/src python -m modomo_tui.main`
-- Complete database schema implemented in Supabase
-- Working R2 storage integration
-- 8 sample images ready for testing
-- Mock AI models ready for real model replacement
+**✅ Backend API**: Fully functional with all core features
+- FastAPI server with comprehensive REST endpoints
+- Celery workers processing jobs asynchronously  
+- RunPod GPU integration for AI model inference
+- Hugging Face dataset import functionality
+- Railway deployment ready
 
-**🚧 Backend API**: Core structure implemented, Redis queue integration in progress
-**🚧 React App**: Component architecture complete, backend integration needed
+**✅ React App**: Complete UI implementation
+- All major pages implemented and functional
+- Real-time job monitoring and progress tracking
+- Scene review interface with bbox visualization
+- API integration working
 
 ### Data Model (Implemented in Supabase)
 
@@ -118,22 +124,23 @@ All PRD metrics are tracked in the TUI interface:
 
 ## Running Commands
 
-**TUI Application (Recommended)**:
-```bash
-cd /Users/leslieisah/MDM/TUI
-source venv/bin/activate
-PYTHONPATH=/Users/leslieisah/MDM/TUI/src python -m modomo_tui.main
-```
-
 **Backend API**:
 ```bash
 cd /Users/leslieisah/MDM/backend
+source venv/bin/activate
 python main.py
+```
+
+**Celery Worker**:
+```bash
+cd /Users/leslieisah/MDM/backend
+./scripts/start_celery_worker.sh
 ```
 
 **React App**:
 ```bash
 cd /Users/leslieisah/MDM/react-app
+pnpm install
 pnpm run dev
 ```
 
@@ -141,32 +148,49 @@ pnpm run dev
 
 ```
 MDM/
-├── TUI/                          # Complete TUI implementation (READY)
-│   ├── src/modomo_tui/          # Main application code
-│   ├── database_schema.sql      # Supabase schema
-│   ├── SUCCESS.md               # Implementation status
-│   └── QUICKSTART.md            # Usage instructions
-├── backend/                     # FastAPI server (IN PROGRESS)
-│   ├── app/                     # API implementation
-│   ├── main.py                  # Server entry point
-│   └── railway.json             # Deployment config
-├── react-app/                   # React web interface (IN PROGRESS)
-│   ├── src/                     # React components
-│   └── package.json             # Dependencies
-└── documentation/               # Technical specifications
-    ├── TUI-PRD.md              # Complete PRD implementation
+├── backend/                     # FastAPI server & processing
+│   ├── app/                     # Core application
+│   │   ├── api/routes/         # API endpoints
+│   │   ├── services/           # Business logic
+│   │   ├── worker/             # Celery tasks
+│   │   └── core/               # Config, DB, Redis
+│   ├── main.py                 # API server entry
+│   ├── worker.py               # Celery worker entry
+│   ├── handler_fixed.py        # RunPod GPU handler
+│   └── railway.json            # Deployment config
+├── react-app/                   # Web frontend
+│   ├── src/                    
+│   │   ├── pages/              # Main application pages
+│   │   ├── components/         # Reusable UI components
+│   │   ├── hooks/              # Custom React hooks
+│   │   └── lib/                # API client, utilities
+│   └── package.json            # Dependencies
+├── tasks/                       # Implementation tasks
+│   └── *.md                    # Task specifications
+└── documentation/               # Technical docs
     ├── Taxonomy.md             # Furniture classification
-    └── *.md                    # Additional docs
+    └── *.md                    # Architecture docs
 ```
 
 ## Development Notes
 
-**Production Ready**: The TUI application is fully functional and ready for immediate use with real datasets. The architecture supports easy integration of production AI models by replacing mock implementations.
+**Current Status**: The system is operational with backend API processing jobs via Celery workers and RunPod GPU inference. The React frontend provides a complete interface for dataset curation and review.
 
-**Next Steps**: 
-1. Complete backend API endpoints for web interface
-2. Finish React app backend integration  
-3. Deploy backend to Railway
-4. Replace mock AI models with production models in TUI
+**Recent Changes**:
+- Implemented bbox coordinate validation to prevent negative dimensions
+- Added Hugging Face dataset import capabilities  
+- Enhanced scene review interface with object visualization
+- Fixed category taxonomy with proper hierarchical structure
+- Integrated SAM2 segmentation with RunPod handler
 
-**Current Focus**: The TUI provides a complete working solution while web components are being finalized for collaborative workflows.
+**Active Development**:
+- Optimizing job processing pipeline performance
+- Enhancing error handling and retry logic
+- Improving material detection accuracy
+- Adding batch processing capabilities
+
+**Deployment**:
+- Backend: Railway deployment ready with health checks
+- Workers: Celery with Redis queue backend
+- GPU: RunPod serverless endpoints for AI models
+- Storage: Cloudflare R2 for assets, Supabase for metadata
