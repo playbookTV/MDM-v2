@@ -16,6 +16,35 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# Health endpoint - MUST BE DEFINED FIRST to avoid path conflict with /{job_id}
+@router.get("/health")
+async def get_job_system_health():
+    """Get job system health including Redis status"""
+    try:
+        from app.core.redis import check_redis_health
+        
+        # Check Redis health
+        redis_health = await check_redis_health()
+        
+        # Basic health info
+        health_info = {
+            "status": "healthy" if redis_health["connected"] else "degraded",
+            "redis": redis_health,
+            "queue_processing": redis_health["connected"],
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        return health_info
+        
+    except Exception as e:
+        logger.error(f"Failed to check job system health: {e}")
+        return {
+            "status": "unhealthy",
+            "redis": {"status": "error", "error": str(e), "connected": False},
+            "queue_processing": False,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
 # Response schemas to match React expectations
 class JobStats(BaseModel):
     total_jobs: int

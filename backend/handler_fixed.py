@@ -13,6 +13,37 @@ from PIL import Image
 import torch
 import numpy as np
 
+# Import centralized taxonomy
+try:
+    from app.core.taxonomy import (
+        get_canonical_label,
+        get_category_for_item,
+        get_yolo_whitelist,
+        is_furniture_item
+    )
+except ImportError:
+    # Fallback for RunPod environment where app module might not be available
+    import sys
+    sys.path.insert(0, '/workspace')
+    try:
+        from app.core.taxonomy import (
+            get_canonical_label,
+            get_category_for_item,
+            get_yolo_whitelist,
+            is_furniture_item
+        )
+    except ImportError:
+        logger.warning("Could not import taxonomy module, using embedded fallback")
+        # Minimal fallback functions
+        def get_canonical_label(label: str) -> str:
+            return label.lower()
+        def get_category_for_item(item: str) -> str:
+            return "furniture"
+        def get_yolo_whitelist() -> set:
+            return {'chair', 'couch', 'sofa', 'table', 'bed', 'desk', 'cabinet'}
+        def is_furniture_item(label: str, confidence: float = 0.0, min_conf: float = 0.35) -> bool:
+            return label.lower() in get_yolo_whitelist() or confidence > min_conf
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -198,45 +229,8 @@ def detect_objects(image: Image.Image) -> list:
                     cls = int(box.cls[0])
                     label = models['yolo'].names[cls]
                     
-                    # Comprehensive furniture/interior objects taxonomy
-                    # Based on MODOMO_TAXONOMY - flattened for YOLO detection
-                    furniture_objects = {
-                        # Seating
-                        'chair', 'couch', 'sofa', 'sectional', 'armchair', 'dining_chair', 'stool', 
-                        'bench', 'loveseat', 'recliner', 'chaise_lounge', 'bar_stool', 'office_chair',
-                        
-                        # Tables  
-                        'table', 'dining_table', 'coffee_table', 'side_table', 'console_table', 
-                        'desk', 'nightstand', 'end_table',
-                        
-                        # Storage
-                        'bookshelf', 'cabinet', 'dresser', 'wardrobe', 'tv_stand', 'shelf',
-                        
-                        # Bedroom
-                        'bed', 'bed_frame', 'mattress', 'headboard',
-                        
-                        # Kitchen & Appliances
-                        'refrigerator', 'stove', 'oven', 'microwave', 'dishwasher', 'sink',
-                        'toaster', 'coffee_maker',
-                        
-                        # Bathroom
-                        'toilet', 'bathtub', 'shower',
-                        
-                        # Lighting
-                        'lamp', 'floor_lamp', 'table_lamp', 'ceiling_light', 'chandelier',
-                        
-                        # Electronics
-                        'tv', 'television', 'laptop', 'computer', 'monitor', 'speakers',
-                        
-                        # Decor & Accessories
-                        'mirror', 'plant', 'potted_plant', 'vase', 'picture_frame', 'clock',
-                        'book', 'pillow', 'rug', 'curtains',
-                        
-                        # Miscellaneous interior items
-                        'ottoman', 'fireplace', 'radiator', 'air_conditioner'
-                    }
-                    
-                    if label.lower() in furniture_objects or conf > 0.5:
+                    # Use centralized taxonomy for filtering
+                    if is_furniture_item(label, conf, min_conf=0.35):
                         # Convert to [x, y, width, height] format using validated coordinates
                         bbox_x = int(x1)
                         bbox_y = int(y1)
@@ -248,8 +242,8 @@ def detect_objects(image: Image.Image) -> list:
                             logger.error(f"Detected negative dimensions after validation: w={bbox_width}, h={bbox_height}")
                             continue
                         
-                        # Canonical label mapping - normalize synonyms to standard categories
-                        canonical_label = get_canonical_label(label.lower())
+                        # Use centralized canonical label mapping
+                        canonical_label = get_canonical_label(label)
                         
                         objects.append({
                             "label": canonical_label,
@@ -266,64 +260,9 @@ def detect_objects(image: Image.Image) -> list:
         logger.error(f"Object detection failed: {e}")
         return []
 
-def get_canonical_label(label: str) -> str:
-    """
-    Map YOLO labels to canonical furniture categories based on MODOMO_TAXONOMY.
-    Handles synonyms and ensures consistent labeling.
-    
-    Args:
-        label: YOLO detection label (lowercase)
-        
-    Returns:
-        Canonical label from MODOMO_TAXONOMY
-    """
-    # Canonical label mapping - maps synonyms to standard categories
-    label_mapping = {
-        # Seating synonyms
-        'couch': 'sofa',
-        'settee': 'sofa', 
-        'loveseat': 'sofa',
-        'armchair': 'chair',
-        'dining_chair': 'chair',
-        'office_chair': 'chair',
-        
-        # Table synonyms  
-        'dining_table': 'table',
-        'coffee_table': 'table',
-        'side_table': 'table',
-        'end_table': 'table',
-        'console_table': 'table',
-        'desk': 'table',
-        'nightstand': 'table',
-        
-        # Storage synonyms
-        'bookshelf': 'shelf',
-        'tv_stand': 'cabinet',
-        'dresser': 'cabinet',
-        'wardrobe': 'cabinet',
-        
-        # Electronics synonyms
-        'television': 'tv',
-        'monitor': 'tv',
-        'computer': 'laptop',
-        
-        # Plant synonyms
-        'potted_plant': 'plant',
-        'houseplant': 'plant',
-        
-        # Lighting synonyms
-        'floor_lamp': 'lamp',
-        'table_lamp': 'lamp',
-        'desk_lamp': 'lamp',
-        
-        # Kitchen synonyms
-        'refrigerator': 'fridge',
-        'stove': 'oven',
-        'cooktop': 'oven'
-    }
-    
-    # Return canonical label or original if no mapping exists
-    return label_mapping.get(label, label)
+# NOTE: get_canonical_label is now imported from app.core.taxonomy
+# The old implementation is removed to avoid conflicts
+# If the import fails, the fallback implementation at the top of the file will be used
 
 def segment_objects(image: Image.Image, objects: list) -> list:
     """Generate segmentation masks for detected objects using SAM2"""

@@ -17,6 +17,7 @@ from app.services.storage import StorageService
 from app.utils.bbox import validate_and_normalize_bbox
 from app.core.supabase import init_supabase, get_supabase
 from app.core.redis import init_redis
+from app.core.taxonomy import get_canonical_label, get_category_for_item
 
 logger = logging.getLogger(__name__)
 
@@ -57,86 +58,20 @@ async def _create_scene_objects(scene_id: str, objects_data: list, mask_keys: di
             logger.error(f"Skipping object {i} due to invalid bbox: {e}")
             continue
         
-        # Normalize category to match MODOMO_TAXONOMY canonical labels
-        category = obj.get("category", obj.get("label", "furniture"))  # Default fallback
-        
-        # Debug logging to trace category mapping
-        logger.info(f"Object {i}: Raw label='{obj.get('label')}', category='{obj.get('category')}', using='{category}'")
-        
-        # Enhanced category mapping based on MODOMO_TAXONOMY
-        category_mapping = {
-            # Seating categories
-            "sofa": "seating",
-            "chair": "seating", 
-            "couch": "seating",
-            "armchair": "seating",
-            "stool": "seating",
-            "bench": "seating",
-            "recliner": "seating",
-            
-            # Table categories
-            "table": "tables",
-            "dining_table": "tables",
-            "coffee_table": "tables", 
-            "desk": "tables",
-            "nightstand": "tables",
-            
-            # Storage categories
-            "cabinet": "storage",
-            "shelf": "storage",
-            "dresser": "storage",
-            "wardrobe": "storage",
-            "bookshelf": "storage",
-            
-            # Bedroom categories
-            "bed": "bedroom",
-            "mattress": "bedroom",
-            "headboard": "bedroom",
-            
-            # Lighting categories
-            "lamp": "lighting",
-            "floor_lamp": "lighting",
-            "table_lamp": "lighting",
-            "ceiling_light": "lighting",
-            
-            # Electronics
-            "tv": "entertainment",
-            "laptop": "home_office",
-            "monitor": "home_office",
-            
-            # Kitchen appliances
-            "refrigerator": "kitchen_appliances",
-            "oven": "kitchen_appliances",
-            "microwave": "kitchen_appliances",
-            "dishwasher": "kitchen_appliances",
-            
-            # Decor
-            "plant": "decor_accessories",
-            "potted plant": "decor_accessories",
-            "potted_plant": "decor_accessories",
-            "vase": "decor_accessories",
-            "mirror": "decor_accessories",
-            "clock": "decor_accessories",
-            "artwork": "wall_decor",
-            
-            # Textiles
-            "rug": "soft_furnishings",
-            "pillow": "soft_furnishings",
-            "curtains": "window_treatments"
-        }
-        
-        # Get canonical category or default to the label itself
-        normalized_category = category_mapping.get(category.lower(), category.lower())
+        # Get canonical label and category using centralized taxonomy
+        raw_label = obj.get("label", obj.get("category", "furniture"))
+        canonical_label = get_canonical_label(raw_label)
+        normalized_category = get_category_for_item(canonical_label)
         
         # Debug logging to trace final mapping
-        logger.info(f"Object {i}: '{category}' → '{normalized_category}'")
+        logger.info(f"Object {i}: '{raw_label}' → canonical:'{canonical_label}' → category:'{normalized_category}'")
         
         # Set subcategory for more granular classification
         subcategory = None
-        if category.lower() in ['sectional', 'loveseat', 'chaise_lounge']:
-            subcategory = category.lower()
-        elif category.lower() in ['dining_table', 'coffee_table', 'console_table']:
-            subcategory = category.lower()  
+        if canonical_label in ['sectional', 'loveseat', 'chaise_lounge']:
+            subcategory = canonical_label
+        elif canonical_label in ['dining_table', 'coffee_table', 'console_table']:
+            subcategory = canonical_label  
         elif category.lower() in ['floor_lamp', 'table_lamp', 'pendant_light']:
             subcategory = category.lower()
         elif category.lower() in ['bookshelf', 'tv_stand', 'dresser']:

@@ -277,8 +277,12 @@ class JobService:
                 succeeded = status_counts.get("succeeded", 0)
                 success_rate = (succeeded / total) * 100
             
-            # Get queue length from Redis
-            queue_length = await self.queue.get_queue_length()
+            # Get queue length from Redis with graceful fallback
+            try:
+                queue_length = await self.queue.get_queue_length()
+            except Exception as e:
+                logger.warning(f"Failed to get Redis queue length: {e}")
+                queue_length = 0  # Graceful fallback
             
             return {
                 "total_jobs": total,
