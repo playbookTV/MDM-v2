@@ -19,6 +19,7 @@ except ImportError:
     np = None
 
 from app.core.config import settings
+from app.core.taxonomy import get_canonical_label, is_furniture_item, get_category_for_item
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +108,49 @@ class AIPipelineService:
         # Return mapped value or normalized value if no mapping exists
         return style_type_mapping.get(normalized, normalized)
     
+    def _process_detected_objects(self, raw_objects: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Process and filter detected objects using centralized taxonomy"""
+        processed_objects = []
+        
+        for obj in raw_objects:
+            # Get original detection data
+            label = obj.get('class', obj.get('label', ''))
+            confidence = obj.get('confidence', obj.get('conf', 0.0))
+            bbox = obj.get('bbox', obj.get('box', []))
+            
+            # Skip if no label or confidence too low
+            if not label or confidence < 0.1:
+                continue
+            
+            # Apply taxonomy filtering
+            if not is_furniture_item(label, confidence):
+                logger.debug(f"Filtered out non-furniture item: {label} (conf: {confidence:.3f})")
+                continue
+            
+            # Get canonical label and category
+            canonical_label = get_canonical_label(label)
+            category = get_category_for_item(canonical_label)
+            
+            # Create processed object with canonical labels
+            processed_obj = {
+                'label': canonical_label,
+                'original_label': label,
+                'category': category,
+                'confidence': confidence,
+                'bbox': bbox
+            }
+            
+            # Preserve additional fields from original object
+            for field in ['mask_url', 'mask_base64', 'segmentation', 'area', 'material', 'description']:
+                if field in obj:
+                    processed_obj[field] = obj[field]
+            
+            processed_objects.append(processed_obj)
+            logger.debug(f"Processed object: '{label}' -> '{canonical_label}' ({category}, conf: {confidence:.3f})")
+        
+        logger.info(f"Taxonomy filtering: {len(raw_objects)} -> {len(processed_objects)} objects retained")
+        return processed_objects
+    
     async def process_scene(
         self, 
         image_data: bytes, 
@@ -189,6 +233,10 @@ class AIPipelineService:
                 logger.info(f"RunPod output keys for scene {scene_id}: {list(runpod_output.keys())}")
                 logger.info(f"RunPod objects count: {len(runpod_output.get('objects', []))}")
                 
+                # Process detected objects with taxonomy filtering
+                raw_objects = runpod_output.get('objects', [])
+                processed_objects = self._process_detected_objects(raw_objects)
+                
                 # Parse scene analysis
                 scene_analysis = runpod_output.get('scene_analysis', {})
                 raw_scene_type = scene_analysis.get('scene_type', 'unknown')
@@ -232,8 +280,9 @@ class AIPipelineService:
                     'processed_with': 'runpod',
                     'scene_type': scene_type,
                     'scene_conf': scene_conf,
-                    'objects_detected': len(runpod_output.get('objects', [])),
-                    'objects': runpod_output.get('objects', []),  # Include actual objects
+                    'objects_detected': len(processed_objects),
+                    'objects': processed_objects,  # Use taxonomy-filtered objects
+                    'raw_objects_count': len(raw_objects),  # Track filtering effectiveness
                     'primary_style': primary_style,
                     'style_confidence': style_confidence,
                     'depth_available': depth_available,
