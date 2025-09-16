@@ -164,14 +164,16 @@ def validate_and_normalize_bbox(
             x, y, width, height = convert_bbox_to_xywh(bbox_list)
             
         elif isinstance(bbox_data, dict):
-            # Handle dict format
+            # Handle dict format - ONLY accept x,y,width,height format
             if 'x' in bbox_data and 'y' in bbox_data:
                 x = float(bbox_data.get('x', 0))
                 y = float(bbox_data.get('y', 0))
                 width = float(bbox_data.get('width', bbox_data.get('w', 0)))
                 height = float(bbox_data.get('height', bbox_data.get('h', 0)))
+            elif 'x1' in bbox_data or 'x2' in bbox_data or 'y1' in bbox_data or 'y2' in bbox_data:
+                raise ValueError(f"x1,y1,x2,y2 format is not supported. Use x,y,width,height format instead: {bbox_data}")
             else:
-                raise ValueError(f"Invalid bbox dict format: {bbox_data}")
+                raise ValueError(f"Invalid bbox dict format. Expected x,y,width,height: {bbox_data}")
                 
         else:
             raise ValueError(f"Unsupported bbox format: {type(bbox_data)}")

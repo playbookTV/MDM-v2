@@ -72,13 +72,13 @@ async def _create_scene_objects(scene_id: str, objects_data: list, mask_keys: di
             subcategory = canonical_label
         elif canonical_label in ['dining_table', 'coffee_table', 'console_table']:
             subcategory = canonical_label  
-        elif category.lower() in ['floor_lamp', 'table_lamp', 'pendant_light']:
-            subcategory = category.lower()
-        elif category.lower() in ['bookshelf', 'tv_stand', 'dresser']:
-            subcategory = category.lower()
-        elif category.lower() in ['platform_bed', 'bunk_bed', 'canopy_bed', 'bed_frame']:
-            subcategory = category.lower()
-        elif category.lower() == 'bed':
+        elif raw_label.lower() in ['floor_lamp', 'table_lamp', 'pendant_light']:
+            subcategory = raw_label.lower()
+        elif raw_label.lower() in ['bookshelf', 'tv_stand', 'dresser']:
+            subcategory = raw_label.lower()
+        elif raw_label.lower() in ['platform_bed', 'bunk_bed', 'canopy_bed', 'bed_frame']:
+            subcategory = raw_label.lower()
+        elif raw_label.lower() == 'bed':
             subcategory = 'bed_frame'  # Default subcategory for generic bed detection
 
         # Get mask and thumbnail keys from uploaded R2 files

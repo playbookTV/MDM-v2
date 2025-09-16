@@ -68,7 +68,7 @@ sleep 3
 # Start React Frontend (port 3000 with proxy to 8000)
 echo -e "\n${GREEN}Starting React Frontend...${NC}"
 cd /Users/leslieisah/MDM/react-app
-pnpm run dev &
+pnpm run dev --host &
 FRONTEND_PID=$!
 
 # Display status

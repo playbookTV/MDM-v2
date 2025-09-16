@@ -9,44 +9,48 @@ import io
 import json
 import logging
 import time
+from typing import List, Dict, Any, Optional, Tuple
 from PIL import Image
 import torch
 import numpy as np
 
-# Import centralized taxonomy
-try:
-    from app.core.taxonomy import (
-        get_canonical_label,
-        get_category_for_item,
-        get_yolo_whitelist,
-        is_furniture_item
-    )
-except ImportError:
-    # Fallback for RunPod environment where app module might not be available
-    import sys
-    sys.path.insert(0, '/workspace')
-    try:
-        from app.core.taxonomy import (
-            get_canonical_label,
-            get_category_for_item,
-            get_yolo_whitelist,
-            is_furniture_item
-        )
-    except ImportError:
-        logger.warning("Could not import taxonomy module, using embedded fallback")
-        # Minimal fallback functions
-        def get_canonical_label(label: str) -> str:
-            return label.lower()
-        def get_category_for_item(item: str) -> str:
-            return "furniture"
-        def get_yolo_whitelist() -> set:
-            return {'chair', 'couch', 'sofa', 'table', 'bed', 'desk', 'cabinet'}
-        def is_furniture_item(label: str, confidence: float = 0.0, min_conf: float = 0.35) -> bool:
-            return label.lower() in get_yolo_whitelist() or confidence > min_conf
-
-# Configure logging
+# Configure logging first
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Enhanced fallback functions for RunPod environment (no app module dependency)
+def get_canonical_label(label: str) -> str:
+    """Convert label to canonical form"""
+    return label.lower().replace(' ', '_').replace('-', '_')
+
+def get_category_for_item(item: str) -> str:
+    """Map item to category"""
+    item_lower = item.lower()
+    if item_lower in ['chair', 'stool', 'bench', 'sofa', 'couch', 'loveseat', 'sectional']:
+        return 'seating'
+    elif item_lower in ['table', 'desk', 'coffee_table', 'dining_table']:
+        return 'tables'
+    elif item_lower in ['bed', 'mattress', 'headboard']:
+        return 'bedroom'
+    elif item_lower in ['cabinet', 'dresser', 'bookshelf', 'shelf']:
+        return 'storage'
+    elif item_lower in ['lamp', 'light', 'chandelier']:
+        return 'lighting'
+    else:
+        return 'furniture'
+
+def get_yolo_whitelist() -> set:
+    """Get furniture items for YOLO filtering"""
+    return {
+        'chair', 'couch', 'sofa', 'table', 'bed', 'desk', 'cabinet',
+        'bench', 'stool', 'dresser', 'bookshelf', 'lamp', 'tv_stand',
+        'ottoman', 'sectional', 'loveseat', 'coffee_table', 'dining_table'
+    }
+
+def is_furniture_item(label: str, confidence: float = 0.0, min_conf: float = 0.35) -> bool:
+    """Check if detected item is furniture"""
+    return label.lower() in get_yolo_whitelist() and confidence >= min_conf
+
 
 # Global model storage
 models = {}
@@ -244,9 +248,11 @@ def detect_objects(image: Image.Image) -> list:
                         
                         # Use centralized canonical label mapping
                         canonical_label = get_canonical_label(label)
+                        object_category = get_category_for_item(canonical_label)
                         
                         objects.append({
                             "label": canonical_label,
+                            "category": object_category,
                             "confidence": round(conf, 3),
                             "bbox": [bbox_x, bbox_y, bbox_width, bbox_height],
                             "area": int(bbox_width * bbox_height)
