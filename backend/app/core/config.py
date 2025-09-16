@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     PORT: int = Field(default=8000, description="Port to run the server on")
     PRODUCTION: bool = Field(default=False, description="Production mode flag")
+    ENVIRONMENT: str = Field(default="development", description="Environment name")
     
     # Database settings
     DATABASE_URL: str = Field(..., description="Supabase/PostgreSQL connection string")
@@ -78,6 +79,22 @@ class Settings(BaseSettings):
     USE_LOCAL_AI: bool = Field(default=True, description="Use local AI models when RunPod unavailable")
     AI_PROCESSING_ENABLED: bool = Field(default=True, description="Enable real AI processing (vs mocks)")
     AI_MODEL_CACHE_DIR: str = Field(default="./models", description="Directory for local AI model cache")
+    
+    # Existing annotation preferences for HuggingFace datasets
+    PREFER_EXISTING_ANNOTATIONS: bool = Field(default=True, description="Prefer existing HF annotations over AI processing")
+    MIN_SCENE_CONFIDENCE: float = Field(default=0.6, description="Minimum confidence for accepting existing scene classification")
+    MIN_OBJECT_CONFIDENCE: float = Field(default=0.5, description="Minimum confidence for accepting existing object detection")
+    MIN_STYLE_CONFIDENCE: float = Field(default=0.5, description="Minimum confidence for accepting existing style analysis")
+    REQUIRE_BBOX_VALIDATION: bool = Field(default=True, description="Validate existing bounding boxes before accepting")
+    FORCE_AI_REPROCESSING: bool = Field(default=False, description="Force AI reprocessing even when annotations exist")
+    
+    # Sentry error tracking
+    SENTRY_DSN: Optional[str] = Field(default=None, description="Sentry DSN for error tracking")
+    SENTRY_TRACES_SAMPLE_RATE: float = Field(default=0.1, description="Sentry traces sample rate (0.0-1.0)")
+    
+    # Prometheus metrics
+    ENABLE_METRICS: bool = Field(default=True, description="Enable Prometheus metrics")
+    METRICS_PORT: int = Field(default=9090, description="Prometheus metrics port")
     
     class Config:
         env_file = ".env"

@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { DatasetTable } from "@/components/datasets/DatasetTable";
 import { DatasetUploadModal } from "@/components/datasets/DatasetUploadModal";
 import { HFImportModal } from "@/components/datasets/HFImportModal";
-import { useDatasets, useProcessHuggingFaceDataset } from "@/hooks/useDatasets";
+import { RoboflowImportModal } from "@/components/datasets/RoboflowImportModal";
+import { useDatasets, useProcessHuggingFaceDataset, useProcessRoboflowDataset } from "@/hooks/useDatasets";
 import { useToast } from "@/components/ui/use-toast";
 import type { Dataset } from "@/types/dataset";
 
@@ -15,6 +16,7 @@ export function DatasetExplorerPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showRoboflowModal, setShowRoboflowModal] = useState(false);
   const [highlightDatasetId, setHighlightDatasetId] = useState<string | null>(
     null,
   );
@@ -28,6 +30,7 @@ export function DatasetExplorerPage() {
   });
 
   const processHuggingFace = useProcessHuggingFaceDataset();
+  // const processRoboflow = useProcessRoboflowDataset(); // TODO: Use for advanced Roboflow processing
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -77,26 +80,47 @@ export function DatasetExplorerPage() {
     }
 
     try {
-      const result = await processHuggingFace.mutateAsync({
-        datasetId: dataset.id,
-        hfUrl: dataset.source_url,
-        options: {
-          split: "train",
-          image_column: "image",
-          max_images: 100, // Optional limit for testing
-        },
-      });
+      // Determine dataset source type and process accordingly
+      const isRoboflow = dataset.source_url.includes("universe.roboflow.com");
+      const isHuggingFace = dataset.source_url.includes("huggingface.co");
 
-      console.log(`Processing started successfully. Job ID: ${result.job_id}`);
+      if (isRoboflow) {
+        // For Roboflow datasets, we need API key - show a prompt or use a stored key
+        // For now, we'll prompt user to process via the import flow
+        toast({
+          title: "Roboflow Processing",
+          description: "For Roboflow datasets, please use the 'Import from Roboflow' option with your API key",
+          variant: "default",
+        });
+        return;
+      } else if (isHuggingFace) {
+        const result = await processHuggingFace.mutateAsync({
+          datasetId: dataset.id,
+          hfUrl: dataset.source_url,
+          options: {
+            split: "train",
+            image_column: "image",
+            max_images: 100, // Optional limit for testing
+          },
+        });
 
-      toast({
-        title: "Processing Started",
-        description: `Dataset processing job ${result.job_id} started successfully`,
-        variant: "default",
-      });
+        console.log(`HuggingFace processing started successfully. Job ID: ${result.job_id}`);
 
-      // Navigate to job monitoring page
-      navigate("/jobs");
+        toast({
+          title: "Processing Started",
+          description: `Dataset processing job ${result.job_id} started successfully`,
+          variant: "default",
+        });
+
+        // Navigate to job monitoring page
+        navigate("/jobs");
+      } else {
+        toast({
+          title: "Processing Failed",
+          description: "Unknown dataset source type",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("Failed to start dataset processing:", error);
 
@@ -171,6 +195,14 @@ export function DatasetExplorerPage() {
           >
             <Download className="h-4 w-4 mr-2" data-oid="avjxlpj" />
             Import from HF
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowRoboflowModal(true)}
+            data-oid="roboflow-import"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Import from Roboflow
           </Button>
           <Button onClick={() => setShowUploadModal(true)} data-oid="83v-rll">
             <Plus className="h-4 w-4 mr-2" data-oid="_1swiby" />
@@ -263,6 +295,11 @@ export function DatasetExplorerPage() {
         open={showImportModal}
         onClose={() => setShowImportModal(false)}
         data-oid="9un19th"
+      />
+
+      <RoboflowImportModal
+        open={showRoboflowModal}
+        onClose={() => setShowRoboflowModal(false)}
       />
     </div>
   );

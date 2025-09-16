@@ -127,7 +127,12 @@ export function DatasetTable({
                       data-oid="_p0jg4w"
                     >
                       <span className="text-xs" data-oid="12504sr">
-                        HuggingFace
+                        {dataset.source_url.includes("universe.roboflow.com") 
+                          ? "Roboflow" 
+                          : dataset.source_url.includes("huggingface.co") 
+                          ? "HuggingFace"
+                          : "External"
+                        }
                       </span>
                       <Badge
                         variant="secondary"

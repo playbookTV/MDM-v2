@@ -112,7 +112,8 @@ class AIPipelineService:
         self, 
         image_data: bytes, 
         scene_id: str,
-        options: Dict[str, Any] = None
+        options: Dict[str, Any] = None,
+        skip_ai: Dict[str, bool] = None
     ) -> Dict[str, Any]:
         """
         Complete scene processing pipeline
@@ -121,15 +122,27 @@ class AIPipelineService:
             image_data: Raw image bytes
             scene_id: Unique scene identifier
             options: Processing options
+            skip_ai: Dict indicating which AI components to skip (from pre-existing metadata)
             
         Returns:
             Dictionary with all analysis results
         """
         logger.info(f"Starting AI pipeline for scene {scene_id}")
         
+        # Initialize skip_ai if not provided
+        if skip_ai is None:
+            skip_ai = {}
+            
+        # Log which components will be skipped
+        skipped_components = [k for k, v in skip_ai.items() if v]
+        if skipped_components:
+            logger.info(f"Scene {scene_id}: Skipping AI processing for: {', '.join(skipped_components)}")
+        else:
+            logger.info(f"Scene {scene_id}: Full AI processing will be performed")
+        
         # Check if RunPod processing is available and enabled
         if settings.AI_PROCESSING_ENABLED:
-            runpod_result = await self._try_runpod_processing(image_data, scene_id, options)
+            runpod_result = await self._try_runpod_processing(image_data, scene_id, options, skip_ai)
             logger.info(f"RunPod result for scene {scene_id}: success={runpod_result.get('success')}, status={runpod_result.get('status')}")
             if runpod_result.get("success"):
                 logger.info(f"✅ RunPod processing completed for scene {scene_id}: {runpod_result.get('scene_type')} ({runpod_result.get('scene_conf', 0):.2f})")
@@ -138,13 +151,14 @@ class AIPipelineService:
                 logger.warning(f"❌ RunPod processing failed for scene {scene_id}, falling back to local: {runpod_result.get('error')}")
         
         # Fallback to local processing
-        return await self._process_locally(image_data, scene_id, options)
+        return await self._process_locally(image_data, scene_id, options, skip_ai)
     
     async def _try_runpod_processing(
         self, 
         image_data: bytes, 
         scene_id: str,
-        options: Dict[str, Any] = None
+        options: Dict[str, Any] = None,
+        skip_ai: Dict[str, bool] = None
     ) -> Dict[str, Any]:
         """Try processing with RunPod"""
         try:
@@ -157,7 +171,16 @@ class AIPipelineService:
                 }
             
             logger.info(f"Processing scene {scene_id} with RunPod...")
-            result = await runpod_client.process_scene_runpod(image_data, scene_id, options)
+            
+            # Add skip_ai to options for RunPod processing
+            runpod_options = (options or {}).copy()
+            if skip_ai:
+                runpod_options["skip_ai"] = skip_ai
+                skipped_components = [k for k, v in skip_ai.items() if v]
+                if skipped_components:
+                    logger.info(f"Scene {scene_id}: Passing skip_ai to RunPod: {', '.join(skipped_components)}")
+            
+            result = await runpod_client.process_scene_runpod(image_data, scene_id, runpod_options)
             
             if result.get("status") == "success":
                 # Transform RunPod result to our expected format
@@ -242,35 +265,67 @@ class AIPipelineService:
         self, 
         image_data: bytes, 
         scene_id: str,
-        options: Dict[str, Any] = None
+        options: Dict[str, Any] = None,
+        skip_ai: Dict[str, bool] = None
     ) -> Dict[str, Any]:
         """Process using mock implementations (AI models are on RunPod)"""
         logger.info(f"Processing scene {scene_id} with mock implementations (RunPod preferred)")
         
         try:
+            # Initialize skip_ai if not provided
+            if skip_ai is None:
+                skip_ai = {}
+            
             results = {
                 'scene_id': scene_id,
                 'processing_started': datetime.utcnow().isoformat(),
                 'status': 'processing',
-                'processed_with': 'mock'
+                'processed_with': 'mock',
+                'skipped_components': [k for k, v in skip_ai.items() if v]
             }
             
-            # Use mock implementations since real AI is on RunPod
-            scene_analysis = await self._mock_scene_classification()
-            results.update(scene_analysis)
+            # Conditionally run AI components based on skip_ai flags
+            if not skip_ai.get("scene_classification", False):
+                scene_analysis = await self._mock_scene_classification()
+                results.update(scene_analysis)
+                logger.debug(f"Scene {scene_id}: Performed scene classification")
+            else:
+                logger.info(f"Scene {scene_id}: Skipping scene classification (using existing metadata)")
             
-            object_analysis = await self._mock_object_detection()
-            results.update(object_analysis)
+            if not skip_ai.get("object_detection", False):
+                object_analysis = await self._mock_object_detection()
+                results.update(object_analysis)
+                logger.debug(f"Scene {scene_id}: Performed object detection")
+            else:
+                logger.info(f"Scene {scene_id}: Skipping object detection (using existing annotations)")
             
-            style_analysis = await self._mock_style_analysis()
-            results.update(style_analysis)
+            if not skip_ai.get("style_analysis", False):
+                style_analysis = await self._mock_style_analysis()
+                results.update(style_analysis)
+                logger.debug(f"Scene {scene_id}: Performed style analysis")
+            else:
+                logger.info(f"Scene {scene_id}: Skipping style analysis (using existing metadata)")
             
-            depth_analysis = await self._mock_depth_estimation()
-            results.update(depth_analysis)
+            if not skip_ai.get("depth_estimation", False):
+                depth_analysis = await self._mock_depth_estimation()
+                results.update(depth_analysis)
+                logger.debug(f"Scene {scene_id}: Performed depth estimation")
+            else:
+                logger.info(f"Scene {scene_id}: Skipping depth estimation (using existing depth data)")
             
-            # Simple color analysis without heavy dependencies
-            color_analysis = await self._analyze_colors_basic(image_data)
-            results.update(color_analysis)
+            if not skip_ai.get("color_analysis", False):
+                # Simple color analysis without heavy dependencies
+                color_analysis = await self._analyze_colors_basic(image_data)
+                results.update(color_analysis)
+                logger.debug(f"Scene {scene_id}: Performed color analysis")
+            else:
+                logger.info(f"Scene {scene_id}: Skipping color analysis (using existing color data)")
+            
+            # Material classification is typically done at object level, but can be skipped
+            if not skip_ai.get("material_classification", False):
+                logger.debug(f"Scene {scene_id}: Material classification would be performed (mock)")
+            else:
+                logger.info(f"Scene {scene_id}: Skipping material classification (using existing material data)")
             
             # Final status
             results.update({
@@ -279,7 +334,9 @@ class AIPipelineService:
                 'success': True
             })
             
-            logger.info(f"✅ Mock pipeline completed for scene {scene_id}")
+            skipped_count = len([k for k, v in skip_ai.items() if v])
+            total_components = 6  # Total AI components
+            logger.info(f"✅ Mock pipeline completed for scene {scene_id} (skipped {skipped_count}/{total_components} components)")
             return results
             
         except Exception as e:
@@ -575,7 +632,7 @@ class AIPipelineService:
 ai_pipeline = AIPipelineService()
 
 
-async def process_scene_ai(image_data: bytes, scene_id: str, options: Dict[str, Any] = None) -> Dict[str, Any]:
+async def process_scene_ai(image_data: bytes, scene_id: str, options: Dict[str, Any] = None, skip_ai: Dict[str, bool] = None) -> Dict[str, Any]:
     """
     Main entry point for scene AI processing
     
@@ -583,8 +640,9 @@ async def process_scene_ai(image_data: bytes, scene_id: str, options: Dict[str, 
         image_data: Raw image bytes
         scene_id: Unique scene identifier  
         options: Processing options
+        skip_ai: Dict indicating which AI components to skip (from pre-existing metadata)
         
     Returns:
         Complete AI analysis results
     """
-    return await ai_pipeline.process_scene(image_data, scene_id, options)
+    return await ai_pipeline.process_scene(image_data, scene_id, options, skip_ai)

@@ -424,44 +424,93 @@ class HuggingFaceService:
         }
         
         try:
-            # Scene type mapping
+            # Scene type mapping - Enhanced for more datasets
             scene_type_mapping = {
                 "room_type": "scene_type",
                 "scene_type": "scene_type", 
                 "room": "scene_type",
-                "room_category": "scene_type"
+                "room_category": "scene_type",
+                "room_name": "scene_type",
+                "space_type": "scene_type",
+                "location": "scene_type",
+                "place": "scene_type",
+                "scene_category": "scene_type",
+                "area_type": "scene_type",
+                "indoor_scene": "scene_type"
             }
             
             for hf_key, db_key in scene_type_mapping.items():
                 if hf_key in metadata:
                     scene_value = str(metadata[hf_key]).lower().strip()
-                    # Map common room types
+                    # Map common room types - Enhanced for more datasets
                     room_type_mapping = {
                         "living_room": "living_room",
                         "livingroom": "living_room", 
                         "living": "living_room",
+                        "lounge": "living_room",
+                        "family_room": "living_room",
+                        "sitting_room": "living_room",
                         "bedroom": "bedroom",
                         "bed_room": "bedroom",
+                        "master_bedroom": "bedroom",
+                        "guest_bedroom": "bedroom",
+                        "kids_bedroom": "bedroom",
                         "kitchen": "kitchen",
+                        "kitchenette": "kitchen",
+                        "galley": "kitchen",
                         "bathroom": "bathroom", 
                         "bath_room": "bathroom",
+                        "master_bathroom": "bathroom",
+                        "powder_room": "bathroom",
+                        "washroom": "bathroom",
+                        "restroom": "bathroom",
+                        "toilet": "bathroom",
                         "dining_room": "dining_room",
                         "diningroom": "dining_room",
                         "dining": "dining_room",
+                        "breakfast_nook": "dining_room",
+                        "dinette": "dining_room",
                         "office": "office",
                         "study": "office",
                         "home_office": "office",
+                        "workspace": "office",
+                        "den": "office",
+                        "library": "office",
                         "garage": "garage",
                         "hallway": "hallway",
+                        "corridor": "hallway",
+                        "foyer": "hallway",
+                        "entryway": "hallway",
                         "balcony": "balcony",
-                        "outdoor": "outdoor"
+                        "patio": "balcony",
+                        "terrace": "balcony",
+                        "outdoor": "outdoor",
+                        "garden": "outdoor",
+                        "yard": "outdoor",
+                        "basement": "basement",
+                        "attic": "attic",
+                        "laundry_room": "utility",
+                        "utility_room": "utility",
+                        "mudroom": "utility",
+                        "pantry": "utility",
+                        "closet": "storage",
+                        "walk_in_closet": "storage"
                     }
                     
                     mapped_type = room_type_mapping.get(scene_value, scene_value)
-                    scene_updates["scene_type"] = mapped_type
-                    scene_updates["scene_conf"] = metadata.get(f"{hf_key}_confidence", 0.8)  # Default confidence
-                    skip_ai["scene_classification"] = True
-                    logger.info(f"Scene {scene_id}: Mapped HF {hf_key}='{scene_value}' to scene_type='{mapped_type}'")
+                    confidence = metadata.get(f"{hf_key}_confidence", 0.8)  # Default confidence
+                    
+                    # Apply configuration thresholds and preferences
+                    if (settings.PREFER_EXISTING_ANNOTATIONS and 
+                        not settings.FORCE_AI_REPROCESSING and 
+                        confidence >= settings.MIN_SCENE_CONFIDENCE):
+                        
+                        scene_updates["scene_type"] = mapped_type
+                        scene_updates["scene_conf"] = confidence
+                        skip_ai["scene_classification"] = True
+                        logger.info(f"Scene {scene_id}: Mapped HF {hf_key}='{scene_value}' to scene_type='{mapped_type}' (conf={confidence:.2f})")
+                    else:
+                        logger.info(f"Scene {scene_id}: HF scene type '{scene_value}' below confidence threshold ({confidence:.2f} < {settings.MIN_SCENE_CONFIDENCE}), will reprocess")
                     break
                     
             # Description/caption mapping
@@ -483,10 +532,19 @@ class HuggingFaceService:
             for hf_key, db_key in style_mapping.items():
                 if hf_key in metadata:
                     style_value = str(metadata[hf_key]).lower().strip()
-                    scene_updates[db_key] = style_value
-                    scene_updates["style_confidence"] = metadata.get(f"{hf_key}_confidence", 0.7)
-                    skip_ai["style_analysis"] = True
-                    logger.info(f"Scene {scene_id}: Using HF style '{style_value}'")
+                    confidence = metadata.get(f"{hf_key}_confidence", 0.7)
+                    
+                    # Apply configuration thresholds and preferences
+                    if (settings.PREFER_EXISTING_ANNOTATIONS and 
+                        not settings.FORCE_AI_REPROCESSING and 
+                        confidence >= settings.MIN_STYLE_CONFIDENCE):
+                        
+                        scene_updates[db_key] = style_value
+                        scene_updates["style_confidence"] = confidence
+                        skip_ai["style_analysis"] = True
+                        logger.info(f"Scene {scene_id}: Using HF style '{style_value}' (conf={confidence:.2f})")
+                    else:
+                        logger.info(f"Scene {scene_id}: HF style '{style_value}' below confidence threshold ({confidence:.2f} < {settings.MIN_STYLE_CONFIDENCE}), will reprocess")
                     break
                     
             # Color analysis mapping
@@ -512,22 +570,49 @@ class HuggingFaceService:
                         # TODO: Handle actual depth map upload to R2 if needed
                         break
                         
-            # Object detection mapping
-            objects_keys = ["objects", "annotations", "bounding_boxes", "detections"]
+            # Object detection mapping - Enhanced for COCO format and other standards
+            objects_keys = ["objects", "annotations", "bounding_boxes", "detections", "instances"]
             for obj_key in objects_keys:
                 if obj_key in metadata:
                     objects = metadata[obj_key]
                     if isinstance(objects, list) and objects:
-                        # Convert HF object format to Modomo format
-                        for i, obj in enumerate(objects):
-                            if isinstance(obj, dict):
-                                converted_obj = self._convert_hf_object_to_modomo(obj, i)
-                                if converted_obj:
-                                    objects_data.append(converted_obj)
+                        # Handle different annotation formats
+                        if obj_key == "annotations" and self._is_coco_format(objects):
+                            # COCO format: [{bbox: [x,y,w,h], category_id: int, category: str, ...}]
+                            converted_objects = self._convert_coco_annotations_to_modomo(objects, scene_id)
+                            objects_data.extend(converted_objects)
+                        else:
+                            # Standard format conversion
+                            for i, obj in enumerate(objects):
+                                if isinstance(obj, dict):
+                                    converted_obj = self._convert_hf_object_to_modomo(obj, i)
+                                    if converted_obj:
+                                        objects_data.append(converted_obj)
                                     
-                        if objects_data:
-                            skip_ai["object_detection"] = True
-                            logger.info(f"Scene {scene_id}: Using {len(objects_data)} existing objects from HF")
+                        # Apply configuration thresholds and preferences for object detection
+                        if (objects_data and 
+                            settings.PREFER_EXISTING_ANNOTATIONS and 
+                            not settings.FORCE_AI_REPROCESSING):
+                            
+                            # Filter objects by confidence threshold if enabled
+                            filtered_objects = []
+                            for obj in objects_data:
+                                obj_confidence = obj.get("confidence", 0.8)
+                                if obj_confidence >= settings.MIN_OBJECT_CONFIDENCE:
+                                    filtered_objects.append(obj)
+                                else:
+                                    logger.debug(f"Scene {scene_id}: Object below confidence threshold ({obj_confidence:.2f} < {settings.MIN_OBJECT_CONFIDENCE}), excluding")
+                            
+                            if filtered_objects:
+                                objects_data = filtered_objects
+                                skip_ai["object_detection"] = True
+                                logger.info(f"Scene {scene_id}: Using {len(objects_data)} existing objects from HF ({obj_key} format) after confidence filtering")
+                            else:
+                                logger.info(f"Scene {scene_id}: No objects meet confidence threshold ({settings.MIN_OBJECT_CONFIDENCE}), will reprocess")
+                                objects_data = []
+                        elif settings.FORCE_AI_REPROCESSING:
+                            logger.info(f"Scene {scene_id}: Force AI reprocessing enabled, ignoring existing objects")
+                            objects_data = []
                         break
                         
             # Material detection mapping
@@ -549,6 +634,145 @@ class HuggingFaceService:
             "objects_data": objects_data, 
             "skip_ai": skip_ai
         }
+    
+    def _is_coco_format(self, annotations: List[Dict[str, Any]]) -> bool:
+        """
+        Detect if annotations follow COCO format.
+        
+        Args:
+            annotations: List of annotation dictionaries
+            
+        Returns:
+            True if COCO format detected, False otherwise
+        """
+        if not annotations or not isinstance(annotations, list):
+            return False
+            
+        # Check if first annotation has COCO-style fields
+        first_annotation = annotations[0]
+        if not isinstance(first_annotation, dict):
+            return False
+            
+        # COCO format indicators
+        coco_indicators = [
+            "category_id" in first_annotation,
+            "bbox" in first_annotation and isinstance(first_annotation.get("bbox"), list),
+            "area" in first_annotation,
+            "id" in first_annotation,
+            "image_id" in first_annotation
+        ]
+        
+        # If at least 2 COCO indicators are present, likely COCO format
+        return sum(coco_indicators) >= 2
+    
+    def _convert_coco_annotations_to_modomo(self, coco_annotations: List[Dict[str, Any]], scene_id: str) -> List[Dict[str, Any]]:
+        """
+        Convert COCO format annotations to Modomo object format.
+        
+        Args:
+            coco_annotations: List of COCO annotation dictionaries
+            scene_id: Scene ID for logging
+            
+        Returns:
+            List of Modomo object dictionaries
+        """
+        modomo_objects = []
+        
+        # COCO category ID to name mapping (common COCO categories)
+        coco_categories = {
+            1: "person", 2: "bicycle", 3: "car", 4: "motorcycle", 5: "airplane", 6: "bus", 7: "train", 8: "truck", 9: "boat", 10: "traffic_light",
+            11: "fire_hydrant", 13: "stop_sign", 14: "parking_meter", 15: "bench", 16: "bird", 17: "cat", 18: "dog", 19: "horse", 20: "sheep",
+            21: "cow", 22: "elephant", 23: "bear", 24: "zebra", 25: "giraffe", 27: "backpack", 28: "umbrella", 31: "handbag", 32: "tie", 33: "suitcase",
+            34: "frisbee", 35: "skis", 36: "snowboard", 37: "sports_ball", 38: "kite", 39: "baseball_bat", 40: "baseball_glove", 41: "skateboard", 42: "surfboard", 43: "tennis_racket",
+            44: "bottle", 46: "wine_glass", 47: "cup", 48: "fork", 49: "knife", 50: "spoon", 51: "bowl", 52: "banana", 53: "apple", 54: "sandwich",
+            55: "orange", 56: "broccoli", 57: "carrot", 58: "hot_dog", 59: "pizza", 60: "donut", 61: "cake", 62: "chair", 63: "couch", 64: "potted_plant",
+            65: "bed", 67: "dining_table", 70: "toilet", 72: "tv", 73: "laptop", 74: "mouse", 75: "remote", 76: "keyboard", 77: "cell_phone", 78: "microwave",
+            79: "oven", 80: "toaster", 81: "sink", 82: "refrigerator", 84: "book", 85: "clock", 86: "vase", 87: "scissors", 88: "teddy_bear", 89: "hair_drier", 90: "toothbrush"
+        }
+        
+        for i, annotation in enumerate(coco_annotations):
+            try:
+                # Extract COCO fields
+                bbox = annotation.get("bbox", [])
+                if not bbox or len(bbox) != 4:
+                    logger.warning(f"Scene {scene_id}: Skipping COCO annotation {i} - invalid bbox: {bbox}")
+                    continue
+                
+                # COCO bbox format is [x, y, width, height] - already correct for Modomo
+                bbox_normalized = bbox
+                
+                # Validate bbox if required by configuration
+                if settings.REQUIRE_BBOX_VALIDATION:
+                    if (bbox_normalized[2] <= 0 or bbox_normalized[3] <= 0 or
+                        bbox_normalized[0] < 0 or bbox_normalized[1] < 0):
+                        logger.warning(f"Scene {scene_id}: Skipping COCO annotation {i} - invalid bbox: {bbox_normalized}")
+                        continue
+                
+                # Get category name
+                category_id = annotation.get("category_id")
+                category_name = annotation.get("category") or annotation.get("category_name")
+                
+                if category_name:
+                    category = str(category_name).lower()
+                elif category_id and category_id in coco_categories:
+                    category = coco_categories[category_id]
+                else:
+                    category = "object"  # Default fallback
+                
+                # Map COCO furniture categories to Modomo taxonomy
+                furniture_mapping = {
+                    "chair": "seating",
+                    "couch": "seating", 
+                    "bed": "bedroom",
+                    "dining_table": "tables",
+                    "potted_plant": "decorative",
+                    "tv": "electronics",
+                    "laptop": "electronics",
+                    "refrigerator": "appliances",
+                    "microwave": "appliances",
+                    "oven": "appliances",
+                    "sink": "fixtures",
+                    "toilet": "fixtures",
+                    "bottle": "accessories",
+                    "cup": "accessories",
+                    "bowl": "accessories",
+                    "vase": "decorative",
+                    "clock": "decorative",
+                    "book": "accessories"
+                }
+                
+                modomo_category = furniture_mapping.get(category, category)
+                
+                # Create Modomo object
+                confidence = float(annotation.get("score", annotation.get("confidence", 0.9)))
+                
+                modomo_obj = {
+                    "category": modomo_category,
+                    "confidence": confidence,
+                    "bbox": bbox_normalized,
+                    "description": annotation.get("caption", annotation.get("description")),
+                    "attributes": {
+                        "coco_category_id": category_id,
+                        "coco_category_name": category,
+                        "coco_area": annotation.get("area"),
+                        "coco_id": annotation.get("id"),
+                        "coco_iscrowd": annotation.get("iscrowd", 0)
+                    }
+                }
+                
+                # Filter out None values from attributes
+                modomo_obj["attributes"] = {k: v for k, v in modomo_obj["attributes"].items() if v is not None}
+                
+                modomo_objects.append(modomo_obj)
+                
+                logger.debug(f"Scene {scene_id}: Converted COCO annotation {i}: {category} -> {modomo_category}")
+                
+            except Exception as e:
+                logger.warning(f"Scene {scene_id}: Failed to convert COCO annotation {i}: {e}")
+                continue
+        
+        logger.info(f"Scene {scene_id}: Successfully converted {len(modomo_objects)} COCO annotations to Modomo format")
+        return modomo_objects
     
     def _convert_hf_object_to_modomo(self, hf_obj: Dict[str, Any], index: int) -> Optional[Dict[str, Any]]:
         """
@@ -585,6 +809,13 @@ class HuggingFaceService:
                 bbox_normalized = [x, y, w, h]
             else:
                 return None
+                
+            # Validate bbox if required by configuration
+            if settings.REQUIRE_BBOX_VALIDATION:
+                if (bbox_normalized[2] <= 0 or bbox_normalized[3] <= 0 or
+                    bbox_normalized[0] < 0 or bbox_normalized[1] < 0):
+                    logger.warning(f"HF object {index}: Invalid bbox dimensions: {bbox_normalized}, skipping")
+                    return None
                 
             # Create Modomo object
             modomo_obj = {

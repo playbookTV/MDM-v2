@@ -22,6 +22,17 @@ from app.core.redis import init_redis
 logger = logging.getLogger(__name__)
 
 
+def run_async_safe(coro):
+    """Safe async runner for Celery tasks to avoid scope issues"""
+    import asyncio
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
+
+
 async def _find_or_create_job_record(dataset_id: str, hf_url: str, celery_task_id: str) -> str:
     """Find existing job or link to existing queued job"""
     try:
@@ -135,7 +146,7 @@ def process_huggingface_dataset(
     
     try:
         # Run async initialization
-        job_id, job_service = asyncio.run(_async_wrapper())
+        job_id, job_service = run_async_safe(_async_wrapper())
         
         # Update task status
         self.update_state(
@@ -145,7 +156,7 @@ def process_huggingface_dataset(
         
         # Update job status to running
         if job_service:
-            asyncio.run(job_service.update_job(job_id, {
+            run_async_safe(job_service.update_job(job_id, {
                 "status": "running",
                 "started_at": datetime.now(timezone.utc).isoformat()
             }))
@@ -257,16 +268,29 @@ def process_huggingface_dataset(
                     
                     # Use existing object creation logic
                     try:
-                        asyncio.run(_create_scene_objects(scene.id, hf_objects_for_db))
+                        run_async_safe(_create_scene_objects(scene.id, hf_objects_for_db))
                         logger.info(f"Successfully created HF objects for scene {scene.id}")
                     except Exception as e:
                         logger.error(f"Failed to create HF objects for scene {scene.id}: {e}")
                         # Continue processing - object creation failure shouldn't stop scene processing
                 
-                # Log metadata processing results
+                # Log metadata processing results and store skip_ai flags in scene attributes
                 skip_components = [k for k, v in metadata_result["skip_ai"].items() if v]
                 if skip_components:
                     logger.info(f"Scene {scene.id}: Will skip AI processing for: {', '.join(skip_components)}")
+                    
+                    # Store skip_ai flags in scene attributes for later use by AI processing
+                    scene_attrs_update = scene_data_dict.get("attrs", {})
+                    scene_attrs_update["skip_ai"] = metadata_result["skip_ai"]
+                    scene_attrs_update["hf_metadata_source"] = True
+                    
+                    # Update the scene with skip_ai flags
+                    try:
+                        scene_update_data = {"attrs": scene_attrs_update}
+                        dataset_service.update_scene_sync(scene.id, scene_update_data)
+                        logger.info(f"Scene {scene.id}: Stored skip_ai flags in scene attributes")
+                    except Exception as e:
+                        logger.warning(f"Scene {scene.id}: Failed to store skip_ai flags: {e}")
                 else:
                     logger.info(f"Scene {scene.id}: Full AI processing will be performed")
                 
@@ -287,7 +311,7 @@ def process_huggingface_dataset(
         
         # Update job status to completed
         if job_service:
-            asyncio.run(job_service.update_job(job_id, {
+            run_async_safe(job_service.update_job(job_id, {
                 "status": "succeeded",
                 "finished_at": datetime.now(timezone.utc).isoformat(),
                 "meta": {
@@ -391,7 +415,7 @@ def process_huggingface_dataset(
         # Update job status to failed
         if job_service:
             try:
-                asyncio.run(job_service.update_job(job_id, {
+                run_async_safe(job_service.update_job(job_id, {
                     "status": "failed",
                     "finished_at": datetime.now(timezone.utc).isoformat(),
                     "error": error_message,

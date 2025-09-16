@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from app.services.datasets import DatasetService
 from app.services.storage import StorageService
 from app.services.huggingface import HuggingFaceService
+from app.services.roboflow import RoboflowService
 from app.schemas.database import Dataset, DatasetCreate, SceneCreate
 from app.core.config import settings
 from app.core.validation import validate_huggingface_url
@@ -58,6 +59,18 @@ class ProcessHuggingFaceRequest(BaseModel):
 
 class ProcessHuggingFaceResponse(BaseModel):
     """Process HuggingFace dataset response"""
+    job_id: str
+    status: str
+
+class ProcessRoboflowRequest(BaseModel):
+    """Process Roboflow dataset request"""
+    roboflow_url: str
+    api_key: str
+    export_format: str = "coco"
+    max_images: Optional[int] = None
+
+class ProcessRoboflowResponse(BaseModel):
+    """Process Roboflow dataset response"""
     job_id: str
     status: str
 
@@ -284,3 +297,117 @@ async def process_huggingface_dataset(
     except Exception as e:
         logger.error(f"Failed to start HF processing for dataset {dataset_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to start HuggingFace processing")
+
+@router.post("/{dataset_id}/process-roboflow", response_model=ProcessRoboflowResponse)
+async def process_roboflow_dataset(
+    dataset_id: str,
+    request: ProcessRoboflowRequest
+):
+    """Process Roboflow dataset: validate URL and start background job"""
+    try:
+        # Verify dataset exists
+        service = DatasetService()
+        dataset = await service.get_dataset(dataset_id)
+        
+        if not dataset:
+            raise HTTPException(status_code=404, detail="Dataset not found")
+        
+        # Validate Roboflow URL format
+        roboflow_service = RoboflowService()
+        url_parts = roboflow_service.validate_roboflow_url(request.roboflow_url)
+        
+        if not url_parts:
+            raise HTTPException(
+                status_code=400, 
+                detail="Invalid Roboflow Universe URL format. Expected: https://universe.roboflow.com/workspace/project/model/version"
+            )
+        
+        # Additional validation with Roboflow service (check API key and dataset access)
+        dataset_info = roboflow_service.extract_dataset_info(request.roboflow_url, request.api_key)
+        
+        if not dataset_info:
+            raise HTTPException(
+                status_code=400, 
+                detail="Invalid Roboflow dataset URL, inaccessible dataset, or invalid API key"
+            )
+        
+        # Import the task here to avoid circular imports
+        from app.worker.roboflow_tasks import process_roboflow_dataset as rf_task
+        
+        # Start background processing job
+        job = rf_task.delay(
+            dataset_id=dataset_id,
+            roboflow_dataset_url=request.roboflow_url,
+            api_key=request.api_key,
+            export_format=request.export_format,
+            max_images=request.max_images
+        )
+        
+        logger.info(f"Started Roboflow processing job {job.id} for dataset {dataset_id}")
+        
+        return ProcessRoboflowResponse(
+            job_id=str(job.id),
+            status="started"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to start Roboflow processing for dataset {dataset_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to start Roboflow processing")
+
+@router.post("/{dataset_id}/process-ai")
+async def trigger_ai_processing(dataset_id: str):
+    """Trigger AI processing for existing scenes in a dataset"""
+    try:
+        # Verify dataset exists
+        service = DatasetService()
+        dataset = await service.get_dataset(dataset_id)
+        
+        if not dataset:
+            raise HTTPException(status_code=404, detail="Dataset not found")
+        
+        # Check if dataset has scenes to process
+        from app.services.scenes import SceneService
+        scene_service = SceneService()
+        scenes = await scene_service.get_scenes(dataset_id=dataset_id, limit=1)
+        
+        if not scenes or len(scenes.get('items', [])) == 0:
+            raise HTTPException(
+                status_code=400, 
+                detail="No scenes found in dataset. Import scenes first using /process-huggingface endpoint."
+            )
+        
+        # Import the task to start AI processing
+        from app.worker.tasks import process_scenes_in_dataset
+        from app.services.jobs import JobService
+        
+        # Create a job record for tracking
+        job_service = JobService()
+        job = await job_service.create_job(
+            type="ai_processing",
+            dataset_id=dataset_id,
+            params={"trigger": "manual"}
+        )
+        
+        # Start AI processing task
+        task = process_scenes_in_dataset.delay(
+            job_id=str(job.id),
+            dataset_id=dataset_id,
+            options={"trigger": "manual"}
+        )
+        
+        logger.info(f"Started AI processing job {job.id} for dataset {dataset_id}")
+        
+        return {
+            "job_id": str(job.id),
+            "task_id": str(task.id),
+            "status": "started",
+            "message": "AI processing started for dataset"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to start AI processing for dataset {dataset_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to start AI processing")

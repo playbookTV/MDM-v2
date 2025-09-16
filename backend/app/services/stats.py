@@ -105,8 +105,8 @@ class StatsService:
             avg_processing_time = 15.0  # Default fallback
             if jobs_result.data:
                 for job in jobs_result.data:
-                    if job["status"] == "succeeded" and job.get("result") and isinstance(job["result"], dict):
-                        proc_time = job["result"].get("processing_time")
+                    if job["status"] == "succeeded" and job.get("meta") and isinstance(job["meta"], dict):
+                        proc_time = job["meta"].get("processing_time")
                         if proc_time and isinstance(proc_time, (int, float)):
                             processing_times.append(proc_time)
                 

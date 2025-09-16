@@ -9,6 +9,8 @@ import type {
   PresignResponse,
   RegisterScenesRequest,
   RegisterScenesResponse,
+  ProcessRoboflowRequest,
+  ProcessRoboflowResponse,
   APIError 
 } from '@/types/dataset'
 
@@ -123,6 +125,32 @@ const processHuggingFaceDataset = async (
   })
 }
 
+const processRoboflowDataset = async (
+  datasetId: string,
+  request: ProcessRoboflowRequest
+): Promise<ProcessRoboflowResponse> => {
+  if (!datasetId) {
+    throw new ValidationError('Dataset ID is required')
+  }
+  if (!request.roboflow_url) {
+    throw new ValidationError('Roboflow URL is required')
+  }
+  if (!request.api_key) {
+    throw new ValidationError('Roboflow API key is required')
+  }
+  
+  return apiRequest<ProcessRoboflowResponse>(`${API_BASE}/datasets/${datasetId}/process-roboflow`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      roboflow_url: request.roboflow_url,
+      api_key: request.api_key,
+      export_format: request.export_format || 'coco',
+      max_images: request.max_images,
+    }),
+  })
+}
+
 // React Query hooks
 export const useDatasets = (params?: { 
   q?: string
@@ -165,6 +193,26 @@ export const useProcessHuggingFaceDataset = () => {
     }) => {
       console.log(`Starting HuggingFace dataset processing: ${hfUrl}`)
       return processHuggingFaceDataset(datasetId, hfUrl, options)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['datasets'] })
+    },
+  })
+}
+
+export const useProcessRoboflowDataset = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async ({
+      datasetId,
+      request
+    }: {
+      datasetId: string
+      request: ProcessRoboflowRequest
+    }) => {
+      console.log(`Starting Roboflow dataset processing: ${request.roboflow_url}`)
+      return processRoboflowDataset(datasetId, request)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['datasets'] })

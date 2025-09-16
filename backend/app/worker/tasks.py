@@ -4,8 +4,9 @@ Celery tasks for background job processing
 
 import asyncio
 import logging
+import uuid
 from datetime import datetime
-from typing import Dict, Any, Union, Tuple
+from typing import Dict, Any, Union, Tuple, List
 from celery import current_task
 from app.worker.celery_app import celery_app
 from app.services.jobs import JobService
@@ -327,10 +328,11 @@ def process_dataset(self, job_id: str, dataset_id: str, options: Dict[str, Any] 
             await job_service.update_job(job_id, {
                 "status": "succeeded",
                 "finished_at": datetime.utcnow().isoformat(),
-                "result": {
+                "meta": {
                     "processed_scenes": 10,  # Mock result
                     "success_rate": 100,
-                    "processing_time": 10
+                    "processing_time": 10,
+                    "processing_type": "dataset"
                 }
             })
             
@@ -477,11 +479,21 @@ def process_scene(self, job_id: str, scene_id: str, options: Dict[str, Any] = No
                 "progress": 25.0
             })
             
-            # Process scene with real AI pipeline
+            # Extract skip_ai flags from scene attributes if available
+            skip_ai_flags = None
+            if scene_data and scene_data.get('attrs'):
+                skip_ai_flags = scene_data['attrs'].get('skip_ai')
+                if skip_ai_flags:
+                    skipped_components = [k for k, v in skip_ai_flags.items() if v]
+                    if skipped_components:
+                        logger.info(f"Scene {scene_id}: Using stored skip_ai flags for: {', '.join(skipped_components)}")
+            
+            # Process scene with real AI pipeline, passing skip_ai flags
             ai_results = await process_scene_ai(
                 image_data=image_data,
                 scene_id=scene_id,
-                options=options or {}
+                options=options or {},
+                skip_ai=skip_ai_flags
             )
             
             # Update progress through remaining stages
@@ -590,7 +602,7 @@ def process_scene(self, job_id: str, scene_id: str, options: Dict[str, Any] = No
                 "finished_at": datetime.utcnow().isoformat(),
                 "meta": {
                     **existing_meta,  # Preserve original metadata
-                    "result": processing_results,
+                    **processing_results,  # Include processing results directly in meta
                     "processing_type": "scene_ai"
                 }
             })
@@ -734,59 +746,77 @@ def process_scenes_in_dataset(self, job_id: str, dataset_id: str, options: Dict[
             processed_count = 0
             failed_count = 0
             
-            # Process each scene individually
-            for idx, scene_id in enumerate(scene_ids):
+            # Process scenes in parallel batches
+            batch_size = options.get("batch_size", 3) if options else 3
+            batch_size = max(1, min(batch_size, 8))  # Enforce limits
+            
+            processed_scenes = []
+            failed_scenes = []
+            
+            # Process in batches with parallel execution
+            for batch_start in range(0, len(scene_ids), batch_size):
+                batch_end = min(batch_start + batch_size, len(scene_ids))
+                batch_scene_ids = scene_ids[batch_start:batch_end]
+                
                 try:
-                    # Update progress
+                    # Update progress for batch
                     current_task.update_state(
                         state='PROGRESS',
                         meta={
-                            'current': idx + 1,
+                            'current': batch_end,
                             'total': total_scenes,
                             'stage': 'ai_processing',
-                            'description': f'Processing scene {idx + 1}/{total_scenes}',
-                            'scene_id': scene_id,
-                            'processed': processed_count,
-                            'failed': failed_count
+                            'description': f'Processing batch {batch_start//batch_size + 1} ({len(batch_scene_ids)} scenes)',
+                            'batch_size': len(batch_scene_ids),
+                            'processed': len(processed_scenes),
+                            'failed': len(failed_scenes)
                         }
                     )
                     
                     await job_service.add_job_event(job_id, "progress", {
                         "stage": "ai_processing",
-                        "description": f"Processing scene {idx + 1}/{total_scenes}",
-                        "scene_id": scene_id,
-                        "progress": (idx + 1) / total_scenes * 100,
-                        "processed": processed_count,
-                        "failed": failed_count
+                        "description": f"Processing batch {batch_start//batch_size + 1}/{(total_scenes + batch_size - 1)//batch_size}",
+                        "progress": (batch_end / total_scenes * 100),
+                        "processed": len(processed_scenes),
+                        "failed": len(failed_scenes)
                     })
                     
-                    # Trigger individual scene processing task
-                    scene_job_id = str(uuid.uuid4())
-                    scene_task = process_scene.delay(scene_job_id, scene_id, {
-                        "parent_job": job_id,
-                        "dataset_id": dataset_id,
-                        "scene_index": idx + 1,
-                        "total_scenes": total_scenes
-                    })
+                    # Process batch in parallel using concurrent scene processing
+                    from app.worker.batch_helpers import process_scenes_batch
+                    batch_results = await process_scenes_batch(
+                        job_id, batch_scene_ids, dataset_id, job_service, options
+                    )
                     
-                    # Wait for scene processing to complete (with timeout)
-                    scene_result = scene_task.get(timeout=300)  # 5 minute timeout per scene
-                    processed_count += 1
+                    # Aggregate results
+                    for result in batch_results:
+                        if result.get("success", False):
+                            processed_scenes.append(result["scene_id"])
+                        else:
+                            failed_scenes.append({
+                                "scene_id": result["scene_id"],
+                                "error": result.get("error", "Unknown error")
+                            })
                     
-                    logger.info(f"Successfully processed scene {idx + 1}/{total_scenes}: {scene_id}")
+                    logger.info(f"Batch {batch_start//batch_size + 1} completed: {len([r for r in batch_results if r.get('success')])}/{len(batch_results)} successful")
                     
                 except Exception as e:
-                    failed_count += 1
-                    logger.error(f"Failed to process scene {idx + 1}/{total_scenes} ({scene_id}): {e}")
+                    logger.error(f"Batch processing failed for scenes {batch_scene_ids}: {e}")
                     
-                    await job_service.add_job_event(job_id, "scene_failed", {
-                        "scene_id": scene_id,
-                        "error": str(e),
-                        "scene_index": idx + 1
-                    })
-                    
-                    # Continue processing other scenes
-                    continue
+                    # Mark entire batch as failed
+                    for scene_id in batch_scene_ids:
+                        failed_scenes.append({
+                            "scene_id": scene_id,
+                            "error": f"Batch processing failed: {str(e)}"
+                        })
+                        
+                        await job_service.add_job_event(job_id, "scene_failed", {
+                            "scene_id": scene_id,
+                            "error": str(e),
+                            "batch_error": True
+                        })
+            
+            processed_count = len(processed_scenes)
+            failed_count = len(failed_scenes)
             
             # Update final job status
             final_status = "succeeded" if failed_count == 0 else ("partial_success" if processed_count > 0 else "failed")

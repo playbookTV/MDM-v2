@@ -43,6 +43,105 @@ class RunPodClient:
         """Check if RunPod is properly configured"""
         return bool(self.api_key and (self.endpoint_id or self.endpoint_url))
     
+    async def process_scenes_batch_runpod(
+        self,
+        scenes_data: List[Dict[str, Any]], 
+        batch_size: int = 3,
+        options: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Process multiple scenes using RunPod batch endpoint
+        
+        Args:
+            scenes_data: List of {"scene_id": str, "image_data": bytes} dicts
+            batch_size: Number of scenes to process in parallel (1-8)
+            options: Processing options
+            
+        Returns:
+            {"status": "success"|"error", "batch_results": List[Dict], "success_rate": float}
+        """
+        if not self.is_configured():
+            logger.warning("RunPod not configured, cannot process batch")
+            return {
+                "status": "error",
+                "error": "RunPod not configured",
+                "success": False,
+                "batch_results": []
+            }
+        
+        if not scenes_data:
+            return {
+                "status": "success", 
+                "batch_results": [],
+                "success_rate": 100.0,
+                "success": True
+            }
+        
+        try:
+            # Prepare batch images for RunPod handler
+            batch_images = []
+            for scene_data in scenes_data:
+                scene_id = scene_data["scene_id"]
+                image_data = scene_data["image_data"]
+                
+                # Encode image as base64
+                image_b64 = base64.b64encode(image_data).decode('utf-8')
+                batch_images.append((scene_id, image_b64))
+            
+            # Prepare batch request payload
+            payload = {
+                "input": {
+                    "batch_images": batch_images,
+                    "batch_size": min(batch_size, 8),  # Cap at RunPod handler limit
+                    "options": options or {}
+                }
+            }
+            
+            # Track batch request
+            self.stats["requests_made"] += 1
+            self.stats["last_request_time"] = datetime.utcnow()
+            
+            logger.info(f"🚀 Processing batch of {len(batch_images)} scenes with batch_size={batch_size}")
+            
+            # Send batch request to RunPod
+            result = await self._request_serverless_endpoint(payload)
+            
+            if result.get("status") == "success":
+                self.stats["successful_requests"] += 1
+                batch_results = result.get("result", {}).get("batch_results", [])
+                
+                # Calculate success rate
+                successful = sum(1 for r in batch_results if r.get("status") == "success")
+                success_rate = (successful / len(batch_results) * 100) if batch_results else 0
+                
+                logger.info(f"✅ Batch processing completed: {successful}/{len(batch_results)} scenes successful ({success_rate:.1f}%)")
+                
+                return {
+                    "status": "success",
+                    "batch_results": batch_results,
+                    "success_rate": success_rate,
+                    "success": True
+                }
+            else:
+                self.stats["failed_requests"] += 1
+                logger.error(f"❌ Batch processing failed: {result.get('error')}")
+                return {
+                    "status": "error", 
+                    "error": result.get("error", "Batch processing failed"),
+                    "batch_results": [],
+                    "success": False
+                }
+                
+        except Exception as e:
+            self.stats["failed_requests"] += 1
+            logger.error(f"RunPod batch client error: {e}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "batch_results": [],
+                "success": False
+            }
+
     async def process_scene_runpod(
         self, 
         image_data: bytes, 

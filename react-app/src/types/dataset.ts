@@ -220,3 +220,27 @@ export interface APIError {
     trace_id: string
   }
 }
+
+// Roboflow API types
+export interface ProcessRoboflowRequest {
+  roboflow_url: string
+  api_key: string
+  export_format?: string
+  max_images?: number
+}
+
+export interface ProcessRoboflowResponse {
+  job_id: string
+  status: string
+}
+
+export interface RoboflowDatasetInfo {
+  workspace: string
+  project: string
+  version: string
+  dataset_id: string
+  description: string
+  tags: string[]
+  license: string
+  format: string
+}

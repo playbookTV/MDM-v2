@@ -17,7 +17,7 @@ class DatasetBase(BaseModel):
 
 class DatasetCreate(DatasetBase):
     """Create dataset request"""
-    source: str = Field(..., description="Dataset source: upload, huggingface, url")
+    source: str = Field(..., description="Dataset source: upload, huggingface, roboflow, url")
     source_url: Optional[str] = Field(None, description="Source URL if applicable")
 
 class Dataset(DatasetBase):

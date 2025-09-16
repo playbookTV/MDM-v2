@@ -19,7 +19,7 @@ class Dataset(Base):
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4()))
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
-    source: Mapped[str] = mapped_column(String(50), nullable=False)  # 'upload', 'huggingface', 'url'
+    source: Mapped[str] = mapped_column(String(50), nullable=False)  # 'upload', 'huggingface', 'roboflow', 'url'
     source_url: Mapped[Optional[str]] = mapped_column(String(500))
     
     # Stats

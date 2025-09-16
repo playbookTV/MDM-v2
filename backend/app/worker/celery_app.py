@@ -11,7 +11,7 @@ celery_app = Celery(
     "modomo_worker",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=['app.worker.tasks', 'app.worker.huggingface_tasks']
+    include=['app.worker.tasks', 'app.worker.huggingface_tasks', 'app.worker.roboflow_tasks']
 )
 
 # Celery configuration
@@ -29,32 +29,44 @@ celery_app.conf.update(
     worker_max_tasks_per_child=settings.CELERY_WORKER_MAX_TASKS,
     broker_connection_retry_on_startup=True,
     broker_heartbeat=10,
-    # Redis connection resilience
+    # Enhanced Redis connection resilience
     broker_connection_retry=True,
-    broker_connection_max_retries=10,
+    broker_connection_max_retries=20,
     broker_pool_limit=10,
     result_backend_transport_options={
         'connection_pool_kwargs': {
-            'max_connections': 20,
+            'max_connections': 10,
             'socket_keepalive': True,
             'socket_keepalive_options': {},
             'retry_on_timeout': True,
+            'socket_timeout': 30,
+            'socket_connect_timeout': 30,
         },
-        'socket_timeout': 10,
-        'socket_connect_timeout': 10,
-        'health_check_interval': 30,
+        'socket_timeout': 30,
+        'socket_connect_timeout': 30,
+        'health_check_interval': 10,
+        'retry_on_error': [ConnectionError, OSError],
+        'master_name': None,
     },
     broker_transport_options={
         'connection_pool_kwargs': {
-            'max_connections': 20,
+            'max_connections': 10,
             'socket_keepalive': True,
             'socket_keepalive_options': {},
             'retry_on_timeout': True,
+            'socket_timeout': 30,
+            'socket_connect_timeout': 30,
         },
-        'socket_timeout': 10,
-        'socket_connect_timeout': 10,
-        'health_check_interval': 30,
-    }
+        'socket_timeout': 30,
+        'socket_connect_timeout': 30,
+        'health_check_interval': 10,
+        'retry_on_error': [ConnectionError, OSError],
+        'master_name': None,
+    },
+    # Additional reliability settings
+    task_reject_on_worker_lost=True,
+    task_acks_late=True,
+    worker_disable_rate_limits=True,
 )
 
 # Task routing - route tasks to specific queues for better control
