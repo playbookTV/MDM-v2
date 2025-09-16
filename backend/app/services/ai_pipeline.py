@@ -137,7 +137,8 @@ class AIPipelineService:
                 'original_label': label,
                 'category': category,
                 'confidence': confidence,
-                'bbox': bbox
+                'bbox': bbox,
+                'bbox_format': obj.get('bbox_format')
             }
             
             # Preserve additional fields from original object
@@ -236,6 +237,14 @@ class AIPipelineService:
                 # Process detected objects with taxonomy filtering
                 raw_objects = runpod_output.get('objects', [])
                 processed_objects = self._process_detected_objects(raw_objects)
+
+                # Extract image size when provided by RunPod (width, height)
+                image_size = runpod_output.get('image_size')
+                if isinstance(image_size, (list, tuple)) and len(image_size) == 2:
+                    image_width = int(image_size[0])
+                    image_height = int(image_size[1])
+                else:
+                    image_width = image_height = None
                 
                 # Parse scene analysis
                 scene_analysis = runpod_output.get('scene_analysis', {})
@@ -251,11 +260,23 @@ class AIPipelineService:
                 style_confidence = style_analysis.get('style_confidence', 0.0)
                 logger.info(f"Style normalized: '{raw_primary_style}' -> '{primary_style}'")
                 
-                # Parse color palette
+                # Parse color palette  
                 color_palette = runpod_output.get('color_palette', {})
                 dominant_colors = color_palette.get('dominant_colors', [])
+                
+                # Prepare palette in database format: [{"hex": "#aabbcc", "p": 0.23}, ...]
+                palette_for_db = []
                 dominant_color = {'r': 128, 'g': 128, 'b': 128, 'hex': '#808080'}  # Default
+                
                 if dominant_colors and len(dominant_colors) > 0:
+                    for color_info in dominant_colors:
+                        if 'hex' in color_info and 'frequency' in color_info:
+                            palette_for_db.append({
+                                'hex': color_info['hex'],
+                                'p': color_info['frequency']
+                            })
+                    
+                    # Set dominant color (first one) for backwards compatibility
                     first_color = dominant_colors[0]
                     if 'rgb' in first_color:
                         rgb = first_color['rgb']
@@ -278,6 +299,7 @@ class AIPipelineService:
                     'status': 'completed',
                     'success': True,
                     'processed_with': 'runpod',
+                    **({'width': image_width, 'height': image_height} if image_width is not None and image_height is not None else {}),
                     'scene_type': scene_type,
                     'scene_conf': scene_conf,
                     'objects_detected': len(processed_objects),
@@ -289,7 +311,8 @@ class AIPipelineService:
                     # Pass through base64 blobs so worker can upload
                     **({'thumbnail_base64': thumbnail_base64} if thumbnail_base64 else {}),
                     **({'depth_analysis': {**depth_analysis, **({'depth_base64': depth_base64} if depth_base64 else {})}} if depth_analysis else {}),
-                    'dominant_color': dominant_color,
+                    'dominant_color': dominant_color,  # Keep for backwards compatibility
+                    'color_palette': palette_for_db,  # Full palette for frontend
                     'processing_completed': datetime.utcnow().isoformat()
                 }
             else:

@@ -40,11 +40,40 @@ def get_category_for_item(item: str) -> str:
         return 'furniture'
 
 def get_yolo_whitelist() -> set:
-    """Get furniture items for YOLO filtering"""
+    """Get expanded furniture items for YOLO filtering"""
     return {
-        'chair', 'couch', 'sofa', 'table', 'bed', 'desk', 'cabinet',
-        'bench', 'stool', 'dresser', 'bookshelf', 'lamp', 'tv_stand',
-        'ottoman', 'sectional', 'loveseat', 'coffee_table', 'dining_table'
+        # Seating
+        'chair', 'couch', 'sofa', 'bench', 'stool', 'ottoman', 'sectional', 
+        'loveseat', 'recliner', 'armchair', 'bar_stool', 'office_chair',
+        
+        # Tables  
+        'table', 'desk', 'coffee_table', 'dining_table', 'side_table',
+        'end_table', 'nightstand', 'console_table',
+        
+        # Storage
+        'cabinet', 'dresser', 'bookshelf', 'shelf', 'wardrobe', 'armoire',
+        'tv_stand', 'media_console', 'chest_of_drawers', 'filing_cabinet',
+        
+        # Bedroom
+        'bed', 'mattress', 'headboard', 'bed_frame',
+        
+        # Lighting & Electronics
+        'lamp', 'floor_lamp', 'table_lamp', 'ceiling_light', 'chandelier',
+        'tv', 'television', 'monitor', 'computer',
+        
+        # Kitchen
+        'refrigerator', 'fridge', 'stove', 'oven', 'microwave', 'dishwasher',
+        'kitchen_island', 'sink',
+        
+        # Bathroom
+        'toilet', 'bathtub', 'shower', 'bathroom_sink',
+        
+        # Decor & Accessories
+        'mirror', 'plant', 'vase', 'rug', 'carpet', 'curtain', 'curtains',
+        'pillow', 'cushion', 'picture', 'painting', 'frame',
+        
+        # Architectural
+        'door', 'window', 'fireplace'
     }
 
 def is_furniture_item(label: str, confidence: float = 0.0, min_conf: float = 0.35) -> bool:
@@ -74,18 +103,31 @@ def load_models():
         logger.info("🔄 Loading Modomo AI models...")
         start_time = time.time()
         
+        # Check GPU availability and set device
+        import torch
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.info(f"🎯 Using device: {device}")
+        
+        if torch.cuda.is_available():
+            logger.info(f"🚀 GPU detected: {torch.cuda.get_device_name(0)}")
+            logger.info(f"💾 GPU memory: {torch.cuda.get_device_properties(0).total_memory // (1024**3)}GB")
+        else:
+            logger.warning("⚠️ No GPU available, using CPU")
+        
         # Load CLIP for scene classification and style analysis
         logger.info("Loading CLIP model...")
         from transformers import CLIPProcessor, CLIPModel
-        models['clip_model'] = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+        models['clip_model'] = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
         models['clip_processor'] = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-        logger.info("✅ CLIP loaded")
+        logger.info(f"✅ CLIP loaded on {device}")
         
         # Load YOLO for object detection  
         logger.info("Loading YOLO model...")
         from ultralytics import YOLO
         models['yolo'] = YOLO('yolov8n.pt')  # Nano version for speed
-        logger.info("✅ YOLO loaded")
+        if torch.cuda.is_available():
+            models['yolo'].to(device)
+        logger.info(f"✅ YOLO loaded on {device}")
         
         # Load SAM2 for segmentation
         logger.info("Loading SAM2 model...")
@@ -93,9 +135,6 @@ def load_models():
             from sam2.build_sam import build_sam2
             from sam2.sam2_image_predictor import SAM2ImagePredictor
 
-            # Download and use SAM2 properly
-            import torch
-            device = "cuda" if torch.cuda.is_available() else "cpu"
             logger.info(f"Loading SAM2 on device: {device}")
 
             # Use the correct SAM2 model loading
@@ -106,7 +145,7 @@ def load_models():
             sam2_model = build_sam2(sam2_model_cfg, sam2_checkpoint, device=device)
             models['sam2_predictor'] = SAM2ImagePredictor(sam2_model)
 
-            logger.info("✅ SAM2 loaded successfully")
+            logger.info(f"✅ SAM2 loaded successfully on {device}")
 
         except Exception as e:
             logger.error(f"SAM2 loading failed: {e}")
@@ -115,11 +154,11 @@ def load_models():
                 logger.info("Trying alternative SAM2 loading method...")
                 from transformers import Sam2Model, Sam2Processor
 
-                models['sam2_model'] = Sam2Model.from_pretrained("facebook/sam2-hiera-large")
+                models['sam2_model'] = Sam2Model.from_pretrained("facebook/sam2-hiera-large").to(device)
                 models['sam2_processor'] = Sam2Processor.from_pretrained("facebook/sam2-hiera-large")
                 models['sam2_predictor'] = "transformers_sam2"  # Flag for different method
 
-                logger.info("✅ SAM2 loaded via transformers")
+                logger.info(f"✅ SAM2 loaded via transformers on {device}")
 
             except Exception as e2:
                 logger.error(f"Both SAM2 loading methods failed: {e2}")
@@ -133,7 +172,10 @@ def load_models():
             model="Intel/dpt-large",
             device=0 if torch.cuda.is_available() else -1
         )
-        logger.info("✅ Depth estimation loaded")
+        logger.info(f"✅ Depth estimation loaded on {'GPU' if torch.cuda.is_available() else 'CPU'}")
+        
+        # Store device for later use
+        models['device'] = device
         
         load_time = time.time() - start_time
         logger.info(f"🎉 All models loaded successfully in {load_time:.1f}s")
@@ -162,6 +204,10 @@ def classify_scene(image: Image.Image) -> dict:
             padding=True
         )
         
+        # Move inputs to same device as model
+        device = models.get('device', 'cpu')
+        inputs = {k: v.to(device) if hasattr(v, 'to') else v for k, v in inputs.items()}
+        
         with torch.no_grad():
             outputs = models['clip_model'](**inputs)
             logits = outputs.logits_per_image
@@ -170,14 +216,14 @@ def classify_scene(image: Image.Image) -> dict:
         # Get top prediction
         best_idx = probs.argmax().item()
         confidence = probs[0][best_idx].item()
-        scene_type = scene_types[best_idx].replace("a ", "").replace(" interior", "")
+        scene_type = scene_types[best_idx].replace("a ", "").replace("an ", "").replace(" interior", "")
         
         # Get top 3 alternatives
         top_indices = probs[0].argsort(descending=True)[:3]
         alternatives = []
         for idx in top_indices:
             alternatives.append({
-                "type": scene_types[idx].replace("a ", "").replace(" interior", ""),
+                "type": scene_types[idx].replace("a ", "").replace("an ", "").replace(" interior", ""),
                 "confidence": float(probs[0][idx])
             })
         
@@ -196,75 +242,189 @@ def classify_scene(image: Image.Image) -> dict:
         }
 
 def detect_objects(image: Image.Image) -> list:
-    """Detect objects using YOLO"""
+    """Detect objects using enhanced YOLO with multi-scale detection"""
     try:
         # Convert PIL to numpy for YOLO
         img_array = np.array(image)
         
-        # Run YOLO inference
-        results = models['yolo'](img_array, conf=0.25, verbose=False)
+        # Multi-scale detection for better coverage
+        all_detections = []
         
-        objects = []
-        for result in results:
-            if result.boxes is not None:
-                for box in result.boxes:
-                    # Extract box data with validation
-                    coords = box.xyxy[0].cpu().numpy()
-                    x1, y1, x2, y2 = coords[0], coords[1], coords[2], coords[3]
-                    
-                    # Validate coordinates to prevent negative dimensions
-                    x1, y1, x2, y2 = float(x1), float(y1), float(x2), float(y2)
-                    
-                    # Ensure x2 > x1 and y2 > y1 (swap if necessary)
-                    if x2 < x1:
-                        x1, x2 = x2, x1
-                    if y2 < y1:
-                        y1, y2 = y2, y1
-                    
-                    # Validate minimum dimensions (at least 1 pixel)
-                    if (x2 - x1) < 1 or (y2 - y1) < 1:
-                        logger.warning(f"Invalid bbox dimensions for {models['yolo'].names[int(box.cls[0])]}: ({x1:.1f},{y1:.1f},{x2:.1f},{y2:.1f})")
-                        continue
-                    
-                    # Debug log valid detections
-                    logger.debug(f"Valid detection: {models['yolo'].names[int(box.cls[0])]} at ({x1:.1f},{y1:.1f},{x2:.1f},{y2:.1f})")
-                    
-                    conf = float(box.conf[0])
-                    cls = int(box.cls[0])
-                    label = models['yolo'].names[cls]
-                    
-                    # Use centralized taxonomy for filtering
-                    if is_furniture_item(label, conf, min_conf=0.35):
-                        # Convert to [x, y, width, height] format using validated coordinates
-                        bbox_x = int(x1)
-                        bbox_y = int(y1)
-                        bbox_width = int(x2 - x1)  # These are now guaranteed positive due to validation above
-                        bbox_height = int(y2 - y1)
-                        
-                        # Double-check dimensions are positive (should never trigger after validation)
-                        if bbox_width <= 0 or bbox_height <= 0:
-                            logger.error(f"Detected negative dimensions after validation: w={bbox_width}, h={bbox_height}")
-                            continue
-                        
-                        # Use centralized canonical label mapping
-                        canonical_label = get_canonical_label(label)
-                        object_category = get_category_for_item(canonical_label)
-                        
-                        objects.append({
-                            "label": canonical_label,
-                            "category": object_category,
-                            "confidence": round(conf, 3),
-                            "bbox": [bbox_x, bbox_y, bbox_width, bbox_height],
-                            "area": int(bbox_width * bbox_height)
-                        })
+        # Scale 1: Original size with enhanced parameters
+        results = models['yolo'](
+            img_array, 
+            conf=0.15,          # Lower threshold to catch more objects
+            iou=0.45,           # Better NMS threshold
+            agnostic_nms=True,  # Class-agnostic NMS for better results
+            max_det=50,         # Allow more detections
+            verbose=False
+        )
+        all_detections.extend(_extract_yolo_detections(results, image.size))
         
-        # Sort by confidence and limit results
-        objects.sort(key=lambda x: x['confidence'], reverse=True)
-        return objects[:20]  # Top 20 objects
+        # Scale 2: Larger scale for small objects (if image is large enough)
+        if image.size[0] > 800 and image.size[1] > 600:
+            scale_factor = 1.5
+            scaled_size = (int(image.size[0] * scale_factor), int(image.size[1] * scale_factor))
+            scaled_image = image.resize(scaled_size, Image.Resampling.BICUBIC)
+            scaled_array = np.array(scaled_image)
+            
+            scaled_results = models['yolo'](
+                scaled_array,
+                conf=0.18,
+                iou=0.5,
+                agnostic_nms=True,
+                max_det=30,
+                verbose=False
+            )
+            
+            # Scale back detections to original coordinates
+            scaled_detections = _extract_yolo_detections(scaled_results, scaled_image.size)
+            for det in scaled_detections:
+                det['bbox'][0] = int(det['bbox'][0] / scale_factor)  # x
+                det['bbox'][1] = int(det['bbox'][1] / scale_factor)  # y
+                det['bbox'][2] = int(det['bbox'][2] / scale_factor)  # width
+                det['bbox'][3] = int(det['bbox'][3] / scale_factor)  # height
+                det['area'] = int(det['bbox'][2] * det['bbox'][3])
+            
+            all_detections.extend(scaled_detections)
+        
+        # Combine and filter all detections
+        return _combine_multi_scale_detections(all_detections)
         
     except Exception as e:
-        logger.error(f"Object detection failed: {e}")
+        logger.error(f"Enhanced object detection failed: {e}")
         return []
+
+def _extract_yolo_detections(results, image_size) -> list:
+    """Extract and filter detections from YOLO results"""
+    objects = []
+    
+    for result in results:
+        if result.boxes is not None:
+            for box in result.boxes:
+                # Extract box data with validation
+                coords = box.xyxy[0].cpu().numpy()
+                x1, y1, x2, y2 = coords[0], coords[1], coords[2], coords[3]
+                
+                # Validate coordinates to prevent negative dimensions
+                x1, y1, x2, y2 = float(x1), float(y1), float(x2), float(y2)
+                
+                # Ensure x2 > x1 and y2 > y1 (swap if necessary)
+                if x2 < x1:
+                    x1, x2 = x2, x1
+                if y2 < y1:
+                    y1, y2 = y2, y1
+                
+                # Validate minimum dimensions (at least 1 pixel)
+                if (x2 - x1) < 1 or (y2 - y1) < 1:
+                    continue
+                
+                conf = float(box.conf[0])
+                cls = int(box.cls[0])
+                label = models['yolo'].names[cls]
+                
+                # Enhanced filtering with adaptive confidence thresholds
+                canonical_label = get_canonical_label(label)
+                is_known_furniture = canonical_label in get_yolo_whitelist()
+                
+                # Adaptive confidence based on object type and knowledge
+                min_conf_threshold = 0.20 if is_known_furniture else 0.35
+                
+                if is_furniture_item(label, conf, min_conf=min_conf_threshold):
+                    # Convert to [x, y, width, height] format
+                    bbox_x = int(x1)
+                    bbox_y = int(y1)
+                    bbox_width = int(x2 - x1)
+                    bbox_height = int(y2 - y1)
+                    
+                    # Double-check dimensions are positive
+                    if bbox_width <= 0 or bbox_height <= 0:
+                        continue
+                    
+                    # Use centralized canonical label mapping
+                    object_category = get_category_for_item(canonical_label)
+                    
+                    objects.append({
+                        "label": canonical_label,
+                        "category": object_category,
+                        "confidence": round(conf, 3),
+                        "bbox": [bbox_x, bbox_y, bbox_width, bbox_height],
+                        "bbox_format": "xywh",
+                        "area": int(bbox_width * bbox_height)
+
+                    })
+    
+    return objects
+
+def _combine_multi_scale_detections(all_detections: list) -> list:
+    """Combine detections from multiple scales, removing duplicates"""
+    if not all_detections:
+        return []
+    
+    # Enhanced post-processing and filtering
+    # Remove very small objects (likely noise)
+    objects = [obj for obj in all_detections if obj['area'] >= 100]
+    
+    # Apply NMS-like filtering for overlapping objects
+    objects = _filter_overlapping_objects(objects, iou_threshold=0.4)  # Slightly lower threshold for multi-scale
+    
+    # Sort by confidence and area (larger objects preferred for same confidence)
+    objects.sort(key=lambda x: (x['confidence'], x['area']), reverse=True)
+    return objects[:30]  # Increased limit for better coverage
+
+def _filter_overlapping_objects(objects: list, iou_threshold: float = 0.5) -> list:
+    """Remove highly overlapping objects of the same type (custom NMS)"""
+    if len(objects) <= 1:
+        return objects
+    
+    # Sort by confidence (highest first)
+    sorted_objects = sorted(objects, key=lambda x: x['confidence'], reverse=True)
+    kept_objects = []
+    
+    for current_obj in sorted_objects:
+        should_keep = True
+        current_bbox = current_obj['bbox']  # [x, y, width, height]
+        
+        for kept_obj in kept_objects:
+            # Only check overlap for same object type
+            if current_obj['label'] == kept_obj['label']:
+                kept_bbox = kept_obj['bbox']
+                
+                # Calculate IoU between bboxes
+                iou = _calculate_bbox_iou(current_bbox, kept_bbox)
+                
+                if iou > iou_threshold:
+                    should_keep = False
+                    break
+        
+        if should_keep:
+            kept_objects.append(current_obj)
+    
+    return kept_objects
+
+def _calculate_bbox_iou(bbox1: list, bbox2: list) -> float:
+    """Calculate IoU between two bboxes in [x, y, width, height] format"""
+    try:
+        x1, y1, w1, h1 = bbox1
+        x2, y2, w2, h2 = bbox2
+        
+        # Calculate intersection
+        xi1 = max(x1, x2)
+        yi1 = max(y1, y2)
+        xi2 = min(x1 + w1, x2 + w2)
+        yi2 = min(y1 + h1, y2 + h2)
+        
+        if xi2 <= xi1 or yi2 <= yi1:
+            return 0.0
+        
+        intersection = (xi2 - xi1) * (yi2 - yi1)
+        area1 = w1 * h1
+        area2 = w2 * h2
+        union = area1 + area2 - intersection
+        
+        return intersection / union if union > 0 else 0.0
+    except:
+        return 0.0
 
 # NOTE: get_canonical_label is now imported from app.core.taxonomy
 # The old implementation is removed to avoid conflicts
@@ -381,6 +541,10 @@ def segment_objects_transformers(image: Image.Image, objects: list) -> list:
                     return_tensors="pt"
                 )
                 
+                # Move inputs to same device as model
+                device = models.get('device', 'cpu')
+                inputs = {k: v.to(device) if hasattr(v, 'to') else v for k, v in inputs.items()}
+                
                 # Generate mask
                 with torch.no_grad():
                     outputs = models['sam2_model'](**inputs)
@@ -462,6 +626,10 @@ def analyze_style(image: Image.Image) -> dict:
             return_tensors="pt", 
             padding=True
         )
+        
+        # Move inputs to same device as model
+        device = models.get('device', 'cpu')
+        inputs = {k: v.to(device) if hasattr(v, 'to') else v for k, v in inputs.items()}
         
         with torch.no_grad():
             outputs = models['clip_model'](**inputs)
@@ -603,6 +771,10 @@ def detect_object_materials(image: Image.Image, objects: list, material_taxonomy
                     padding=True
                 )
                 
+                # Move inputs to same device as model
+                device = models.get('device', 'cpu')
+                inputs = {k: v.to(device) if hasattr(v, 'to') else v for k, v in inputs.items()}
+                
                 with torch.no_grad():
                     outputs = models['clip_model'](**inputs)
                     logits = outputs.logits_per_image
@@ -709,8 +881,23 @@ def analyze_materials(image: Image.Image, objects: list) -> dict:
         }
 
 def extract_color_palette(image: Image.Image) -> dict:
-    """Extract dominant colors from the image"""
+    """Extract dominant colors from the image using enhanced algorithm"""
     try:
+        # Try to use enhanced color extraction if available
+        try:
+            from app.services.color_extraction import extract_color_palette_advanced
+            result = extract_color_palette_advanced(
+                image, 
+                n_colors=5, 
+                sample_fraction=0.1,
+                seed=42  # For reproducibility
+            )
+            logger.info(f"Color extraction using {result.get('extraction_method', 'unknown')} method")
+            return result
+        except ImportError:
+            logger.debug("Enhanced color extraction not available, using fallback")
+        
+        # Fallback to simple method if enhanced not available
         # Resize image for faster processing
         img_resized = image.resize((150, 150))
         img_array = np.array(img_resized)
@@ -734,14 +921,16 @@ def extract_color_palette(image: Image.Image) -> dict:
         
         return {
             "dominant_colors": dominant_colors,
-            "palette_size": len(dominant_colors)
+            "palette_size": len(dominant_colors),
+            "extraction_method": "pixel_count"
         }
         
     except Exception as e:
         logger.error(f"Color palette extraction failed: {e}")
         return {
             "dominant_colors": [],
-            "palette_size": 0
+            "palette_size": 0,
+            "extraction_method": "error"
         }
 
 def estimate_depth(image: Image.Image) -> dict:
@@ -1137,6 +1326,10 @@ def _batch_classify_scenes(images: list) -> list:
         padding=True
     )
     
+    # Move inputs to same device as model
+    device = models.get('device', 'cpu')
+    inputs = {k: v.to(device) if hasattr(v, 'to') else v for k, v in inputs.items()}
+    
     with torch.no_grad():
         outputs = models['clip_model'](**inputs)
         logits = outputs.logits_per_image
@@ -1146,12 +1339,12 @@ def _batch_classify_scenes(images: list) -> list:
     for i in range(len(images)):
         best_idx = probs[i].argmax().item()
         confidence = probs[i][best_idx].item()
-        scene_type = scene_types[best_idx].replace("a ", "").replace(" interior", "")
+        scene_type = scene_types[best_idx].replace("a ", "").replace("an ", "").replace(" interior", "")
         
         top_indices = probs[i].argsort(descending=True)[:3]
         alternatives = [
             {
-                "type": scene_types[idx].replace("a ", "").replace(" interior", ""),
+                "type": scene_types[idx].replace("a ", "").replace("an ", "").replace(" interior", ""),
                 "confidence": float(probs[i][idx])
             }
             for idx in top_indices
@@ -1181,6 +1374,10 @@ def _batch_analyze_styles(images: list) -> list:
         padding=True
     )
     
+    # Move inputs to same device as model
+    device = models.get('device', 'cpu')
+    inputs = {k: v.to(device) if hasattr(v, 'to') else v for k, v in inputs.items()}
+    
     with torch.no_grad():
         outputs = models['clip_model'](**inputs)
         logits = outputs.logits_per_image
@@ -1208,12 +1405,19 @@ def _batch_analyze_styles(images: list) -> list:
     return results
 
 def _batch_detect_objects(images: list) -> list:
-    """Batch object detection using YOLO."""
+    """Enhanced batch object detection using YOLO."""
     # Convert PIL images to numpy arrays
     img_arrays = [np.array(img) for img in images]
     
-    # Run batch inference
-    batch_results = models['yolo'](img_arrays, conf=0.25, verbose=False)
+    # Run enhanced batch inference with optimized parameters
+    batch_results = models['yolo'](
+        img_arrays, 
+        conf=0.15,          # Lower threshold to catch more objects
+        iou=0.45,           # Better NMS threshold
+        agnostic_nms=True,  # Class-agnostic NMS
+        max_det=50,         # Allow more detections
+        verbose=False
+    )
     
     all_objects = []
     for result, img in zip(batch_results, images):
@@ -1236,18 +1440,27 @@ def _batch_detect_objects(images: list) -> list:
                 cls = int(box.cls[0])
                 label = models['yolo'].names[cls]
                 
-                # Filter for furniture objects
+                # Enhanced filtering with adaptive confidence thresholds
                 canonical_label = get_canonical_label(label.lower())
+                is_known_furniture = canonical_label in get_yolo_whitelist()
                 
-                objects.append({
-                    "label": canonical_label,
-                    "confidence": round(conf, 3),
-                    "bbox": [int(x1), int(y1), int(x2 - x1), int(y2 - y1)],
-                    "area": int((x2 - x1) * (y2 - y1))
-                })
+                # Adaptive confidence based on object type and knowledge
+                min_conf_threshold = 0.20 if is_known_furniture else 0.35
+                
+                if is_furniture_item(label, conf, min_conf=min_conf_threshold):
+                    objects.append({
+                        "label": canonical_label,
+                        "confidence": round(conf, 3),
+                        "bbox": [int(x1), int(y1), int(x2 - x1), int(y2 - y1)],
+                        "bbox_format": "xywh",
+                        "area": int((x2 - x1) * (y2 - y1))
+                    })
         
-        objects.sort(key=lambda x: x['confidence'], reverse=True)
-        all_objects.append(objects[:20])
+        # Enhanced post-processing
+        objects = [obj for obj in objects if obj['area'] >= 100]
+        objects = _filter_overlapping_objects(objects)
+        objects.sort(key=lambda x: (x['confidence'], x['area']), reverse=True)
+        all_objects.append(objects[:30])
     
     return all_objects
 
@@ -1291,6 +1504,46 @@ def _process_single_scene(image: Image.Image, scene_id: str, options: dict) -> d
             "error": str(e)
         }
 
+def check_gpu_utilization():
+    """Check GPU utilization and memory usage"""
+    try:
+        import torch
+        if not torch.cuda.is_available():
+            return {
+                "gpu_available": False,
+                "message": "No GPU available"
+            }
+        
+        device_count = torch.cuda.device_count()
+        gpu_info = []
+        
+        for i in range(device_count):
+            device_props = torch.cuda.get_device_properties(i)
+            memory_used = torch.cuda.memory_allocated(i)
+            memory_total = device_props.total_memory
+            memory_percent = (memory_used / memory_total) * 100
+            
+            gpu_info.append({
+                "device_id": i,
+                "name": device_props.name,
+                "memory_used_mb": memory_used // (1024**2),
+                "memory_total_mb": memory_total // (1024**2),
+                "memory_usage_percent": round(memory_percent, 2),
+                "is_current_device": i == torch.cuda.current_device()
+            })
+        
+        return {
+            "gpu_available": True,
+            "device_count": device_count,
+            "current_device": torch.cuda.current_device(),
+            "devices": gpu_info
+        }
+    except Exception as e:
+        return {
+            "gpu_available": False,
+            "error": str(e)
+        }
+
 def handler(event):
     """Main RunPod serverless handler with batch processing support"""
     try:
@@ -1308,13 +1561,26 @@ def handler(event):
         # Extract input data
         input_data = event.get("input", {})
         
+        # GPU diagnostics check
+        if input_data.get("gpu_check"):
+            gpu_status = check_gpu_utilization()
+            return {
+                "status": "success",
+                "gpu_diagnostics": gpu_status,
+                "models_device": models.get('device', 'unknown'),
+                "models_loaded": list(models.keys())
+            }
+        
         # Health check
         if input_data.get("health_check"):
+            gpu_status = check_gpu_utilization()
             return {
                 "status": "success",
                 "message": "Modomo AI pipeline is healthy",
                 "models_loaded": len(models) > 0,
-                "available_models": list(models.keys())
+                "available_models": list(models.keys()),
+                "device": models.get('device', 'unknown'),
+                "gpu_status": gpu_status
             }
         
         # Check for batch processing

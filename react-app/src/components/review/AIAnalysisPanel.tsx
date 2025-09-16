@@ -49,7 +49,7 @@ export function AIAnalysisPanel({
     sceneAnalysis: true,
     objects: true,
     styles: false,
-    colors: false,
+    colors: true,  // Expand colors by default to show enhanced color extraction
     depth: false,
   });
   const [showDepthMap, setShowDepthMap] = useState(false);
@@ -483,6 +483,15 @@ export function AIAnalysisPanel({
                     >
                       {scene.palette?.length || 0}
                     </Badge>
+                    {scene.palette && scene.palette.length > 0 && (
+                      <Badge
+                        variant="secondary"
+                        className="text-xs bg-green-50 text-green-700 border-green-200"
+                        data-oid="enhanced-badge"
+                      >
+                        Enhanced
+                      </Badge>
+                    )}
                   </div>
                   {expandedSections.colors ? (
                     <ChevronDown className="h-4 w-4" data-oid="rr19m0t" />

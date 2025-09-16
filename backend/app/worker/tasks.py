@@ -50,10 +50,15 @@ async def _create_scene_objects(scene_id: str, objects_data: list, mask_keys: di
         # Format 1: {category, confidence, bbox: {x, y, width, height}, ...}
         # Format 2: {label, confidence, bbox: [x, y, width, height], ...} (ACTUAL RunPod format)
         bbox_data = obj.get("bbox", {})
+        bbox_format = obj.get("bbox_format")
         
         # Validate and normalize bbox using robust utilities
         try:
-            bbox = validate_and_normalize_bbox(bbox_data, object_index=i)
+            bbox = validate_and_normalize_bbox(
+                bbox_data,
+                object_index=i,
+                format_hint=bbox_format
+            )
         except ValueError as e:
             logger.error(f"Skipping object {i} due to invalid bbox: {e}")
             continue
@@ -62,6 +67,12 @@ async def _create_scene_objects(scene_id: str, objects_data: list, mask_keys: di
         raw_label = obj.get("label", obj.get("category", "furniture"))
         canonical_label = get_canonical_label(raw_label)
         normalized_category = get_category_for_item(canonical_label)
+
+        # Merge any existing attributes so we can attach label metadata without losing data
+        existing_attrs = obj.get("attrs") or obj.get("attributes")
+        attrs: Dict[str, Any] = {}
+        if isinstance(existing_attrs, dict):
+            attrs = dict(existing_attrs)  # copy to avoid mutating original payload
         
         # Debug logging to trace final mapping
         logger.info(f"Object {i}: '{raw_label}' → canonical:'{canonical_label}' → category:'{normalized_category}'")
@@ -110,32 +121,35 @@ async def _create_scene_objects(scene_id: str, objects_data: list, mask_keys: di
             "thumb_key": uploaded_thumb_key or obj.get("thumb_key", obj.get("r2_thumb_key")),  # Use uploaded key first, then fallback
             "depth_key": obj.get("depth_key", obj.get("r2_depth_key")),  # R2 depth key
             "subcategory": subcategory or obj.get("subcategory"),
-            "description": obj.get("description", obj.get("caption")),  # Try description or caption
-            "attrs": obj.get("attrs", obj.get("attributes"))  # Additional object attributes
+            "description": obj.get("description", obj.get("caption"))  # Try description or caption
         }
         
-        # Add RunPod-specific attributes to attrs if not already present
-        if not db_object.get("attrs"):
-            attrs = {}
-            if obj.get("area"):
-                attrs["area"] = obj.get("area")
-            if obj.get("has_mask") is not None:
-                attrs["has_mask"] = obj.get("has_mask")
-            if obj.get("mask_area"):
-                attrs["mask_area"] = obj.get("mask_area")
-            if obj.get("mask_coverage"):
-                attrs["mask_coverage"] = obj.get("mask_coverage")
-            if obj.get("segmentation_confidence"):
-                attrs["segmentation_confidence"] = obj.get("segmentation_confidence")
-            if obj.get("color"):
-                attrs["color"] = obj.get("color")
-            if obj.get("material"):
-                attrs["material"] = obj.get("material")
-            if obj.get("style"):
-                attrs["style"] = obj.get("style")
-            
-            if attrs:  # Only set attrs if we have any attributes
-                db_object["attrs"] = attrs
+        # Always enrich attrs with detection metadata so label survives storage
+        if raw_label:
+            attrs.setdefault("raw_label", raw_label)
+        attrs.setdefault("canonical_label", canonical_label)
+        attrs.setdefault("detected_label", canonical_label)
+
+        # Add RunPod-specific attributes without losing existing keys
+        if obj.get("area") is not None:
+            attrs["area"] = obj.get("area")
+        if obj.get("has_mask") is not None:
+            attrs["has_mask"] = obj.get("has_mask")
+        if obj.get("mask_area") is not None:
+            attrs["mask_area"] = obj.get("mask_area")
+        if obj.get("mask_coverage") is not None:
+            attrs["mask_coverage"] = obj.get("mask_coverage")
+        if obj.get("segmentation_confidence") is not None:
+            attrs["segmentation_confidence"] = obj.get("segmentation_confidence")
+        if obj.get("color") is not None:
+            attrs["color"] = obj.get("color")
+        if obj.get("material") is not None:
+            attrs["material"] = obj.get("material")
+        if obj.get("style") is not None:
+            attrs["style"] = obj.get("style")
+
+        if attrs:
+            db_object["attrs"] = attrs
         
         # Filter out None values
         db_object = {k: v for k, v in db_object.items() if v is not None}
@@ -505,11 +519,13 @@ def process_scene(self, job_id: str, scene_id: str, options: Dict[str, Any] = No
                 "status": "processed",
                 "scene_type": ai_results.get("scene_type", "unknown"),
                 "scene_conf": ai_results.get("scene_conf", 0.0),
+                "width": ai_results.get("width"),
+                "height": ai_results.get("height"),
                 "primary_style": ai_results.get("primary_style", "contemporary"),
                 "style_confidence": ai_results.get("style_confidence", 0.0),
                 "objects_detected": ai_results.get("objects_detected", 0),
                 "objects": ai_results.get("objects", []),  # Include actual objects array
-                "palette": ai_results.get("color_palette", ai_results.get("dominant_color", {})),  # Match database schema
+                "palette": ai_results.get("color_palette", []),  # Enhanced color palette from AI pipeline
                 "depth_available": ai_results.get("depth_available", False),
                 "processing_success": ai_results.get("success", False),
                 "ai_error": ai_results.get("error") if not ai_results.get("success") else None,

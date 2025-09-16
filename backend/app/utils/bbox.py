@@ -134,7 +134,8 @@ def validate_and_normalize_bbox(
     object_index: int = 0,
     image_width: Optional[int] = None,
     image_height: Optional[int] = None,
-    min_area: int = 1
+    min_area: int = 1,
+    format_hint: Optional[str] = None
 ) -> Dict[str, int]:
     """
     Comprehensive bbox validation and normalization.
@@ -161,7 +162,7 @@ def validate_and_normalize_bbox(
             
             # Convert to float for processing
             bbox_list = [float(x) for x in bbox_data]
-            x, y, width, height = convert_bbox_to_xywh(bbox_list)
+            x, y, width, height = convert_bbox_to_xywh(bbox_list, format_hint=format_hint)
             
         elif isinstance(bbox_data, dict):
             # Handle dict format - ONLY accept x,y,width,height format

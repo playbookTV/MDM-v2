@@ -32,7 +32,19 @@ class SceneService:
         """
         # Convert Supabase object format to proper bbox format for frontend
         transformed = obj_data.copy()
-        
+
+        # Surface detected label if stored in attrs (older rows only had category_code)
+        if not transformed.get("label"):
+            attrs = transformed.get("attrs")
+            if isinstance(attrs, dict):
+                detected_label = (
+                    attrs.get("detected_label")
+                    or attrs.get("canonical_label")
+                    or attrs.get("raw_label")
+                )
+                if detected_label:
+                    transformed["label"] = detected_label
+
         # Convert separate bbox columns to bbox object if they exist
         if ("bbox_x" in obj_data and "bbox_y" in obj_data and 
             "bbox_w" in obj_data and "bbox_h" in obj_data):
@@ -95,9 +107,9 @@ class SceneService:
             transformed["has_depth"] = False
         
         # Map category_code to label for frontend compatibility
-        if "category_code" in obj_data and "label" not in obj_data:
+        if "category_code" in obj_data and "label" not in transformed:
             transformed["label"] = obj_data["category_code"] or "object"
-        
+
         return transformed
     
     def _enrich_scene_data(self, scene_data: Dict[str, Any], objects: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
@@ -382,10 +394,14 @@ class SceneService:
             # Allowed fields in Supabase scenes table
             allowed_fields = [
                 'scene_type', 'scene_conf', 'status', 'depth_key',
-                'r2_key_thumbnail', 'palette', 'phash'
+                'r2_key_thumbnail', 'palette', 'phash',
+                'width', 'height'
             ]
             
-            filtered_updates = {k: v for k, v in normalized.items() if k in allowed_fields}
+            filtered_updates = {
+                k: v for k, v in normalized.items()
+                if k in allowed_fields and v is not None
+            }
             
             if not filtered_updates:
                 logger.info(f"No allowed scene updates for {scene_id}; received keys: {list(updates.keys())}")

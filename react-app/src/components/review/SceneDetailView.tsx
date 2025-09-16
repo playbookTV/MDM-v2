@@ -46,6 +46,7 @@ export function SceneDetailView({
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
   const [showObjects, setShowObjects] = useState(true);
+  const [showMasks, setShowMasks] = useState(false);
   const [showInfo, setShowInfo] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -304,6 +305,20 @@ export function SceneDetailView({
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setShowMasks(!showMasks)}
+              data-oid="mask_toggle"
+            >
+              {showMasks ? (
+                <Layers className="h-4 w-4" data-oid="mask_layers_on" />
+              ) : (
+                <Layers className="h-4 w-4 opacity-50" data-oid="mask_layers_off" />
+              )}
+              Masks
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowInfo(!showInfo)}
               data-oid="j298zv5"
             >
@@ -445,6 +460,22 @@ export function SceneDetailView({
                 data-oid="lyruzec"
               />
             ))}
+
+          {/* Mask Overlays */}
+          {showMasks &&
+            normalizedObjects &&
+            normalizedObjects.map((object) => (
+              <MaskOverlay
+                key={`mask-${object.id}`}
+                object={object}
+                isSelected={selectedObject?.id === object.id}
+                color={getObjectColor(object.id)}
+                onClick={(e) => handleObjectClick(object, e)}
+                imageWidth={scene.width}
+                imageHeight={scene.height}
+                data-oid="mask-overlay"
+              />
+            ))}
         </div>
       </div>
 
@@ -534,6 +565,29 @@ export function SceneDetailView({
               </div>
             )}
 
+            {/* Mask information */}
+            {selectedObject.has_mask && (
+              <div className="space-y-1" data-oid="mask_info">
+                <div className="text-xs font-medium">Segmentation:</div>
+                <div className="text-xs flex items-center justify-between">
+                  <span className="text-muted-foreground">Area: {selectedObject.mask_area?.toLocaleString()} px</span>
+                </div>
+                {selectedObject.mask_coverage && (
+                  <div className="text-xs flex items-center justify-between">
+                    <span className="text-muted-foreground">Coverage: {(selectedObject.mask_coverage * 100).toFixed(1)}%</span>
+                  </div>
+                )}
+                {selectedObject.segmentation_confidence && (
+                  <div className="text-xs flex items-center justify-between">
+                    <span className="text-muted-foreground">SAM2 Score:</span>
+                    <span className="font-mono">
+                      {(selectedObject.segmentation_confidence * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {selectedObject.review_status && (
               <Badge variant="outline" className="text-xs" data-oid="98_3l0a">
                 {selectedObject.review_status}
@@ -610,6 +664,102 @@ function ObjectOverlay({
       </div>
     </div>
   );
+}
+
+// Mask overlay component for SAM2 segmentation masks
+function MaskOverlay({
+  object,
+  isSelected,
+  color,
+  onClick,
+  imageWidth,
+  imageHeight,
+}: {
+  object: SceneObject;
+  isSelected: boolean;
+  color: string;
+  onClick: (e: React.MouseEvent) => void;
+  imageWidth: number;
+  imageHeight: number;
+}) {
+  // Check if object has a mask
+  const hasMask = object.mask_base64 || (object as any).has_mask;
+  const maskData = object.mask_base64;
+
+  if (!hasMask || !maskData) {
+    return null;
+  }
+
+  const { bbox } = object;
+
+  // Guard against undefined bbox
+  if (
+    !bbox ||
+    typeof bbox.x !== "number" ||
+    typeof bbox.y !== "number" ||
+    typeof bbox.width !== "number" ||
+    typeof bbox.height !== "number"
+  ) {
+    return null;
+  }
+
+  // Convert bbox coordinates to percentage for positioning
+  if (!imageWidth || !imageHeight) return null;
+  const left = (bbox.x / imageWidth) * 100;
+  const top = (bbox.y / imageHeight) * 100;
+  const width = (bbox.width / imageWidth) * 100;
+  const height = (bbox.height / imageHeight) * 100;
+
+  return (
+    <div
+      className="absolute cursor-pointer"
+      style={{
+        left: `${left}%`,
+        top: `${top}%`,
+        width: `${width}%`,
+        height: `${height}%`,
+      }}
+      onClick={onClick}
+      data-oid="mask-overlay-container"
+    >
+      {/* Render the mask image */}
+      <img
+        src={`data:image/png;base64,${maskData}`}
+        alt={`${object.label} mask`}
+        className="w-full h-full object-contain"
+        style={{
+          opacity: isSelected ? 0.8 : 0.6,
+          filter: `hue-rotate(${getHueRotationForColor(color)}deg) saturate(150%) brightness(120%)`,
+          mixBlendMode: 'multiply',
+        }}
+        draggable={false}
+        data-oid="mask-image"
+      />
+      
+      {/* Label for the mask */}
+      <div
+        className="absolute -top-6 left-0 px-1 py-0.5 text-xs font-medium rounded text-white"
+        style={{ backgroundColor: color }}
+        data-oid="mask-label"
+      >
+        {object.label} (mask)
+      </div>
+    </div>
+  );
+}
+
+// Helper function to convert color to hue rotation
+function getHueRotationForColor(color: string): number {
+  const colorMap: { [key: string]: number } = {
+    '#3b82f6': 220, // blue
+    '#10b981': 150, // green
+    '#f59e0b': 40,  // amber
+    '#8b5cf6': 270, // violet
+    '#ef4444': 0,   // red
+    '#06b6d4': 180, // cyan
+    '#84cc16': 80,  // lime
+  };
+  return colorMap[color] || 0;
 }
 
 // Utility function

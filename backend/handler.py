@@ -164,6 +164,7 @@ def detect_objects_yolo(image: Image.Image, confidence_threshold: float = 0.35) 
                             "label": canonical_label,
                             "confidence": round(conf, 3),
                             "bbox": [int(x1), int(y1), int(x2 - x1), int(y2 - y1)],  # [x, y, width, height]
+                            "bbox_format": "xywh",
                             "area": int((x2 - x1) * (y2 - y1))
                         })
         

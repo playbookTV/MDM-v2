@@ -48,6 +48,11 @@ export interface SceneObject {
   confidence: number
   bbox: BoundingBox
   r2_key_mask?: string
+  mask_base64?: string  // SAM2 segmentation mask as base64 PNG
+  has_mask?: boolean    // Whether object has segmentation mask
+  mask_area?: number    // Mask area in pixels
+  mask_coverage?: number // Mask coverage as percentage
+  segmentation_confidence?: number // SAM2 confidence score
   material?: string  // Legacy single material
   material_conf?: number  // Legacy material confidence
   materials?: MaterialDetection[]  // Enhanced: multiple materials with confidence

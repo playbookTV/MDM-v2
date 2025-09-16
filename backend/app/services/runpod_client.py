@@ -6,7 +6,7 @@ import logging
 import httpx
 import asyncio
 import base64
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 
 from app.core.config import settings
