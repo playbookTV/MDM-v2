@@ -65,7 +65,7 @@ class ProcessHuggingFaceResponse(BaseModel):
 class ProcessRoboflowRequest(BaseModel):
     """Process Roboflow dataset request"""
     roboflow_url: str
-    api_key: str
+    api_key: Optional[str] = None  # Optional, will use env var if not provided
     export_format: str = "coco"
     max_images: Optional[int] = None
 
@@ -322,8 +322,17 @@ async def process_roboflow_dataset(
                 detail="Invalid Roboflow Universe URL format. Expected: https://universe.roboflow.com/workspace/project/model/version"
             )
         
+        # Use environment variable if API key not provided
+        api_key = request.api_key or settings.ROBOFLOW_API_KEY
+        
+        if not api_key:
+            raise HTTPException(
+                status_code=400,
+                detail="Roboflow API key required. Please provide api_key or set ROBOFLOW_API_KEY environment variable"
+            )
+        
         # Additional validation with Roboflow service (check API key and dataset access)
-        dataset_info = roboflow_service.extract_dataset_info(request.roboflow_url, request.api_key)
+        dataset_info = roboflow_service.extract_dataset_info(request.roboflow_url, api_key)
         
         if not dataset_info:
             raise HTTPException(
@@ -338,7 +347,7 @@ async def process_roboflow_dataset(
         job = rf_task.delay(
             dataset_id=dataset_id,
             roboflow_dataset_url=request.roboflow_url,
-            api_key=request.api_key,
+            api_key=api_key,
             export_format=request.export_format,
             max_images=request.max_images
         )

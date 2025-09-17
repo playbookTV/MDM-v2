@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ExternalLink, AlertCircle, CheckCircle, Loader2, Eye, EyeOff } from "lucide-react";
+import { ExternalLink, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -33,7 +33,6 @@ export function RoboflowImportModal({ open, onClose }: RoboflowImportModalProps)
   const [formData, setFormData] = useState<
     DatasetCreate & { 
       source_url: string;
-      api_key: string;
       export_format: string;
       max_images?: number;
     }
@@ -41,7 +40,6 @@ export function RoboflowImportModal({ open, onClose }: RoboflowImportModalProps)
     name: "",
     version: "v1.0",
     source_url: "",
-    api_key: "",
     export_format: "coco",
     max_images: undefined,
     license: "",
@@ -50,7 +48,6 @@ export function RoboflowImportModal({ open, onClose }: RoboflowImportModalProps)
   
   const [urlError, setUrlError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
 
   const createMutation = useCreateDataset();
 
@@ -101,7 +98,7 @@ export function RoboflowImportModal({ open, onClose }: RoboflowImportModalProps)
   };
 
   const handleSubmit = async () => {
-    if (!formData.name.trim() || !formData.source_url.trim() || !formData.api_key.trim()) return;
+    if (!formData.name.trim() || !formData.source_url.trim()) return;
 
     const isValidUrl = await validateRoboflowUrl(formData.source_url);
     if (!isValidUrl) return;
@@ -127,7 +124,6 @@ export function RoboflowImportModal({ open, onClose }: RoboflowImportModalProps)
       name: "",
       version: "v1.0",
       source_url: "",
-      api_key: "",
       export_format: "coco",
       max_images: undefined,
       license: "",
@@ -135,7 +131,6 @@ export function RoboflowImportModal({ open, onClose }: RoboflowImportModalProps)
     });
     setUrlError(null);
     setIsValidating(false);
-    setShowApiKey(false);
   };
 
   const handleClose = () => {
@@ -147,7 +142,6 @@ export function RoboflowImportModal({ open, onClose }: RoboflowImportModalProps)
   const canSubmit =
     formData.name.trim() &&
     formData.source_url.trim() &&
-    formData.api_key.trim() &&
     !urlError &&
     !isValidating &&
     !createMutation.isPending;
@@ -194,39 +188,6 @@ export function RoboflowImportModal({ open, onClose }: RoboflowImportModalProps)
             <p className="text-xs text-muted-foreground flex items-center space-x-1">
               <ExternalLink className="h-3 w-3" />
               <span>Browse datasets at universe.roboflow.com</span>
-            </p>
-          </div>
-
-          {/* API Key */}
-          <div className="space-y-2">
-            <Label htmlFor="api-key">Roboflow API Key *</Label>
-            <div className="relative">
-              <Input
-                id="api-key"
-                type={showApiKey ? "text" : "password"}
-                value={formData.api_key}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, api_key: e.target.value }))
-                }
-                placeholder="Your Roboflow API key"
-                disabled={createMutation.isPending}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
-                onClick={() => setShowApiKey(!showApiKey)}
-              >
-                {showApiKey ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Get your API key from your Roboflow Account settings
             </p>
           </div>
 

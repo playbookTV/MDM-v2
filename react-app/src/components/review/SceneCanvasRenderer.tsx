@@ -9,6 +9,7 @@ interface SceneCanvasRendererProps {
   showMasks: boolean;
   selectedObject: SceneObject | null | undefined;
   onObjectClick: (object: SceneObject) => void;
+  reviewingObjectId?: string | null;
   className?: string;
 }
 
@@ -25,6 +26,7 @@ export function SceneCanvasRenderer({
   showMasks,
   selectedObject,
   onObjectClick,
+  reviewingObjectId,
   className = "",
 }: SceneCanvasRendererProps) {
   // Add proxy parameter to image URL for CORS support
@@ -125,9 +127,9 @@ export function SceneCanvasRenderer({
       const newMaskImages = new Map<string, HTMLImageElement>();
 
       for (const obj of objects) {
+        // Try base64 first (direct data)
         if (obj.mask_base64) {
           const maskImg = new Image();
-          // Base64 data URLs don't need CORS
           
           await new Promise<void>((resolve) => {
             maskImg.onload = () => {
@@ -135,10 +137,28 @@ export function SceneCanvasRenderer({
               resolve();
             };
             maskImg.onerror = () => {
-              console.error(`Failed to load mask for object ${obj.id}`);
+              console.error(`Failed to load base64 mask for object ${obj.id}`);
               resolve();
             };
             maskImg.src = `data:image/png;base64,${obj.mask_base64}`;
+          });
+        }
+        // Try mask_key (R2 storage key) with proxy
+        else if (obj.mask_key) {
+          const maskImg = new Image();
+          const maskUrl = `/api/v1/images/mask/${obj.mask_key}?proxy=true`;
+          
+          await new Promise<void>((resolve) => {
+            maskImg.onload = () => {
+              newMaskImages.set(obj.id, maskImg);
+              resolve();
+            };
+            maskImg.onerror = () => {
+              console.error(`Failed to load mask from R2 for object ${obj.id}`);
+              resolve();
+            };
+            maskImg.crossOrigin = "anonymous";
+            maskImg.src = maskUrl;
           });
         }
       }
@@ -239,12 +259,32 @@ export function SceneCanvasRenderer({
         const color = getObjectColor(obj.id);
         const isSelected = selectedObject?.id === obj.id;
         const isHovered = hoveredObject?.id === obj.id;
+        const isBeingReviewed = reviewingObjectId === obj.id;
 
-        // Draw bounding box
-        ctx.strokeStyle = color;
-        ctx.lineWidth = isSelected ? 3 : 2;
-        ctx.globalAlpha = isSelected ? 1 : isHovered ? 0.9 : 0.7;
-        ctx.strokeRect(x, y, width, height);
+        // Draw bounding box with special highlighting for review state
+        if (isBeingReviewed) {
+          // Draw animated pulse effect for object being reviewed
+          const pulseAlpha = 0.3 + 0.4 * Math.sin(Date.now() / 300);
+          
+          // Draw pulsing background
+          ctx.fillStyle = '#3b82f6';
+          ctx.globalAlpha = pulseAlpha * 0.3;
+          ctx.fillRect(x - 5, y - 5, width + 10, height + 10);
+          
+          // Draw thick blue border
+          ctx.strokeStyle = '#3b82f6';
+          ctx.lineWidth = 4;
+          ctx.globalAlpha = 1;
+          ctx.setLineDash([8, 4]);
+          ctx.strokeRect(x, y, width, height);
+          ctx.setLineDash([]);
+        } else {
+          // Normal bounding box
+          ctx.strokeStyle = color;
+          ctx.lineWidth = isSelected ? 3 : 2;
+          ctx.globalAlpha = isSelected ? 1 : isHovered ? 0.9 : 0.7;
+          ctx.strokeRect(x, y, width, height);
+        }
 
         // Draw label
         ctx.fillStyle = color;
@@ -282,7 +322,7 @@ export function SceneCanvasRenderer({
     ctx.fillStyle = "white";
     ctx.font = "14px Inter, system-ui, sans-serif";
     ctx.fillText(`Zoom: ${Math.round(transform.scale * 100)}%`, 20, 30);
-  }, [transform, objects, showObjects, showMasks, selectedObject, hoveredObject, isLoading, getObjectColor]);
+  }, [transform, objects, showObjects, showMasks, selectedObject, hoveredObject, isLoading, getObjectColor, reviewingObjectId]);
 
   // Request animation frame for smooth rendering
   useEffect(() => {
@@ -298,6 +338,24 @@ export function SceneCanvasRenderer({
       }
     };
   }, [render]);
+
+  // Continuous animation when reviewing an object
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    
+    if (reviewingObjectId) {
+      // Start continuous re-rendering for pulse animation
+      intervalId = setInterval(() => {
+        render();
+      }, 16); // ~60fps
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [reviewingObjectId, render]);
 
 
   // Register wheel handler with passive: false to allow preventDefault

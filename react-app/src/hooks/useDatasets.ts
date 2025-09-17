@@ -135,16 +135,14 @@ const processRoboflowDataset = async (
   if (!request.roboflow_url) {
     throw new ValidationError('Roboflow URL is required')
   }
-  if (!request.api_key) {
-    throw new ValidationError('Roboflow API key is required')
-  }
+  // API key is now optional - backend will use env var if not provided
   
   return apiRequest<ProcessRoboflowResponse>(`${API_BASE}/datasets/${datasetId}/process-roboflow`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       roboflow_url: request.roboflow_url,
-      api_key: request.api_key,
+      api_key: request.api_key,  // Can be undefined - backend will handle
       export_format: request.export_format || 'coco',
       max_images: request.max_images,
     }),

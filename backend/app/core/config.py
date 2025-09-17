@@ -88,6 +88,9 @@ class Settings(BaseSettings):
     REQUIRE_BBOX_VALIDATION: bool = Field(default=True, description="Validate existing bounding boxes before accepting")
     FORCE_AI_REPROCESSING: bool = Field(default=False, description="Force AI reprocessing even when annotations exist")
     
+    # Roboflow integration settings
+    ROBOFLOW_API_KEY: Optional[str] = Field(default=None, description="Roboflow API key for Universe dataset imports")
+    
     # Sentry error tracking
     SENTRY_DSN: Optional[str] = Field(default=None, description="Sentry DSN for error tracking")
     SENTRY_TRACES_SAMPLE_RATE: float = Field(default=0.1, description="Sentry traces sample rate (0.0-1.0)")

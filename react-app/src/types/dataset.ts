@@ -47,12 +47,16 @@ export interface SceneObject {
   label: string
   confidence: number
   bbox: BoundingBox
+  subcategory?: string  // Object subcategory (e.g., "bed_frame" for bedroom category)
   r2_key_mask?: string
   mask_base64?: string  // SAM2 segmentation mask as base64 PNG
   has_mask?: boolean    // Whether object has segmentation mask
   mask_area?: number    // Mask area in pixels
   mask_coverage?: number // Mask coverage as percentage
   segmentation_confidence?: number // SAM2 confidence score
+  thumb_key?: string    // R2 key for object thumbnail image
+  depth_key?: string    // R2 key for object depth map
+  description?: string  // Generated description of the object
   material?: string  // Legacy single material
   material_conf?: number  // Legacy material confidence
   materials?: MaterialDetection[]  // Enhanced: multiple materials with confidence
@@ -229,7 +233,7 @@ export interface APIError {
 // Roboflow API types
 export interface ProcessRoboflowRequest {
   roboflow_url: string
-  api_key: string
+  api_key?: string  // Optional - backend will use env var if not provided
   export_format?: string
   max_images?: number
 }

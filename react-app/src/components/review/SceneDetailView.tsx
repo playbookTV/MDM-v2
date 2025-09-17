@@ -15,15 +15,65 @@ import {
   XCircle,
   Edit3,
   BarChart3,
+  Activity,
+  Save,
+  RotateCcw,
+  Plus,
+  Minus,
+  ChevronDown,
+  RefreshCw,
+  Zap,
+  Play,
+  CheckCircle,
+  Users,
+  Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { useScene, useSceneImages, useScenePrefetch } from "@/hooks/useScenes";
-import { useReviewKeyboard, useReviewWorkflow } from "@/hooks/useReviews";
+import { useReviewKeyboard, useReviewWorkflow, useSubmitObjectReview, useSubmitBatchReviews } from "@/hooks/useReviews";
 import { SceneCanvasRenderer } from "./SceneCanvasRenderer";
-import type { Scene, SceneObject } from "@/types/dataset";
+import type { Scene, SceneObject, StyleClassification } from "@/types/dataset";
+
+// Constants for editing
+const SCENE_TYPES = [
+  { value: "living_room", label: "Living Room" },
+  { value: "bedroom", label: "Bedroom" },
+  { value: "kitchen", label: "Kitchen" },
+  { value: "dining_room", label: "Dining Room" },
+  { value: "bathroom", label: "Bathroom" },
+  { value: "office", label: "Office" },
+] as const;
+
+const STYLE_CODES = [
+  { code: "contemporary", name: "Contemporary" },
+  { code: "traditional", name: "Traditional" },
+  { code: "modern", name: "Modern" },
+  { code: "rustic", name: "Rustic" },
+  { code: "industrial", name: "Industrial" },
+  { code: "minimalist", name: "Minimalist" },
+  { code: "bohemian", name: "Bohemian" },
+  { code: "scandinavian", name: "Scandinavian" },
+] as const;
 
 interface SceneDetailViewProps {
   sceneId: string;
@@ -55,10 +105,31 @@ export function SceneDetailView({
   const [showObjects, setShowObjects] = useState(true);
   const [showMasks, setShowMasks] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  
+  // Editing state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedSceneType, setEditedSceneType] = useState("");
+  const [editedStyles, setEditedStyles] = useState<StyleClassification[]>([]);
+  const [notes, setNotes] = useState("");
+  const [expandedSections, setExpandedSections] = useState({
+    aiAnalysis: false,
+    editing: false,
+  });
+  
+  // Processing state
+  const [processingStatus, setProcessingStatus] = useState<"idle" | "processing" | "completed" | "error">("idle");
+  const [processingProgress, setProcessingProgress] = useState(0);
+  
+  // Object review state
+  const [reviewingObjectId, setReviewingObjectId] = useState<string | null>(null);
+  const [bulkReviewInProgress, setBulkReviewInProgress] = useState(false);
 
   const { data: scene, isLoading, error } = useScene(sceneId, true);
   const { prefetchScene } = useScenePrefetch();
   const reviewWorkflow = useReviewWorkflow(sceneId);
+  const { toast } = useToast();
+  const submitObjectReview = useSubmitObjectReview();
+  const submitBatchReviews = useSubmitBatchReviews();
 
   // Prefetch adjacent scenes for smooth navigation
   useEffect(() => {
@@ -85,6 +156,15 @@ export function SceneDetailView({
     onObjectSelect?.(null);
   }, [sceneId, onObjectSelect]);
 
+  // Initialize editing values when scene changes
+  useEffect(() => {
+    if (scene) {
+      setEditedSceneType(scene.scene_type || "");
+      setEditedStyles(scene.styles || []);
+      setNotes("");
+    }
+  }, [scene]);
+
   const handleObjectClick = useCallback((object: SceneObject) => {
     const newSelection = selectedObject?.id === object.id ? null : object;
     onObjectSelect?.(newSelection);
@@ -107,8 +187,244 @@ export function SceneDetailView({
     return colors[index % colors.length];
   };
 
-  // Normalize objects to ensure bbox is present
+  // Editing functions
+  const handleSaveCorrections = async () => {
+    if (!scene) return;
+    try {
+      await reviewWorkflow.correctScene({
+        scene_type: editedSceneType !== scene.scene_type ? editedSceneType : undefined,
+        styles: JSON.stringify(editedStyles) !== JSON.stringify(scene.styles || [])
+          ? editedStyles : undefined,
+        notes: notes || undefined,
+      });
+      setIsEditing(false);
+      setNotes("");
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleResetEdits = () => {
+    if (scene) {
+      setEditedSceneType(scene.scene_type || "");
+      setEditedStyles(scene.styles || []);
+      setNotes("");
+    }
+  };
+
+  const addStyle = (styleCode: string) => {
+    if (!editedStyles.find((s) => s.code === styleCode)) {
+      setEditedStyles([...editedStyles, { code: styleCode, conf: 0.5 }]);
+    }
+  };
+
+  const removeStyle = (styleCode: string) => {
+    setEditedStyles(editedStyles.filter((s) => s.code !== styleCode));
+  };
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const hasChanges = scene ? (
+    editedSceneType !== scene.scene_type ||
+    JSON.stringify(editedStyles) !== JSON.stringify(scene.styles || [])
+  ) : false;
+
+  // AI Processing function
+  const triggerAIProcessing = async () => {
+    if (!scene) return;
+
+    setProcessingStatus("processing");
+    setProcessingProgress(0);
+    
+    try {
+      // Start the processing job
+      const processResponse = await fetch(
+        `/api/v1/scenes/${scene.id}/process`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            force_reprocess: true,
+          }),
+        },
+      );
+
+      if (!processResponse.ok) {
+        throw new Error(`Processing failed: ${processResponse.statusText}`);
+      }
+
+      const processResult = await processResponse.json();
+      const jobId = processResult.job_id;
+
+      if (!jobId) {
+        throw new Error("No job ID returned from processing request");
+      }
+
+      // Poll for progress updates
+      const pollProgress = async (): Promise<void> => {
+        const statusResponse = await fetch(
+          `/api/v1/scenes/${scene.id}/process-status`,
+        );
+
+        if (!statusResponse.ok) {
+          throw new Error("Failed to get processing status");
+        }
+
+        const statusData = await statusResponse.json();
+        setProcessingProgress(Math.min(statusData.progress || 0, 100));
+
+        if (statusData.status === "succeeded") {
+          setProcessingStatus("completed");
+          toast({
+            title: "Processing Complete",
+            description: "Scene has been successfully reanalyzed with AI.",
+          });
+          
+          // Refresh the scene data
+          window.location.reload(); // Simple refresh for now
+          return;
+        } else if (statusData.status === "failed") {
+          throw new Error(statusData.error || "Processing failed");
+        } else if (statusData.status === "processing") {
+          // Continue polling
+          setTimeout(pollProgress, 2000);
+        }
+      };
+
+      // Start polling
+      setTimeout(pollProgress, 1000);
+
+    } catch (error) {
+      setProcessingStatus("error");
+      toast({
+        title: "Processing Failed", 
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Check if scene needs processing
+  const needsProcessing = scene ? (
+    !scene.scene_type ||
+    !scene.objects ||
+    scene.objects.length === 0 ||
+    !scene.styles ||
+    scene.styles.length === 0
+  ) : false;
+
+  // Object review functions
+  const handleObjectApprove = async (objectId: string) => {
+    setReviewingObjectId(objectId);
+    try {
+      await submitObjectReview.mutateAsync({
+        object_id: objectId,
+        status: "approved",
+      });
+      toast({
+        title: "Object Approved",
+        description: "Object has been successfully approved.",
+      });
+    } catch (error) {
+      toast({
+        title: "Approval Failed",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setReviewingObjectId(null);
+    }
+  };
+
+  const handleObjectReject = async (objectId: string) => {
+    setReviewingObjectId(objectId);
+    try {
+      await submitObjectReview.mutateAsync({
+        object_id: objectId,
+        status: "rejected",
+      });
+      toast({
+        title: "Object Rejected",
+        description: "Object has been rejected.",
+      });
+    } catch (error) {
+      toast({
+        title: "Rejection Failed",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setReviewingObjectId(null);
+    }
+  };
+
+  const handleBulkApproveObjects = async () => {
+    if (!normalizedObjects.length) return;
+    
+    setBulkReviewInProgress(true);
+    try {
+      const result = await submitBatchReviews.mutateAsync({
+        scene_reviews: [], // API requires this field even if empty
+        object_reviews: normalizedObjects.map(obj => ({
+          object_id: obj.id,
+          status: "approved" as const,
+        }))
+      });
+      
+      console.log('Batch reviews result:', result);
+      
+      // Check if result is valid
+      if (!result) {
+        throw new Error('No response received from server');
+      }
+      
+      toast({
+        title: "Bulk Approval Complete",
+        description: `Successfully approved ${result.objects_updated || normalizedObjects.length} objects.`,
+      });
+    } catch (error) {
+      console.error('Batch approval error:', error);
+      
+      let errorMessage = "An error occurred";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message);
+      }
+      
+      toast({
+        title: "Bulk Approval Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setBulkReviewInProgress(false);
+    }
+  };
+
+  // Normalize objects to ensure bbox is present and map mask fields
   const normalizedObjects: SceneObject[] = (scene?.objects || []).map((obj: any) => {
+    let normalizedObj = { ...obj };
+    
+    // Map mask_key to r2_key_mask for compatibility
+    if (obj.mask_key && !obj.r2_key_mask) {
+      normalizedObj.r2_key_mask = obj.mask_key;
+    }
+    
+    // Also ensure canvas renderer can find it as mask_key
+    if (obj.r2_key_mask && !obj.mask_key) {
+      normalizedObj.mask_key = obj.r2_key_mask;
+    }
+    
     if (obj && !obj.bbox) {
       if (
         typeof obj.bbox_x === "number" &&
@@ -117,7 +433,7 @@ export function SceneDetailView({
         typeof obj.bbox_h === "number"
       ) {
         return {
-          ...obj,
+          ...normalizedObj,
           bbox: {
             x: obj.bbox_x,
             y: obj.bbox_y,
@@ -129,7 +445,7 @@ export function SceneDetailView({
       if (Array.isArray(obj.bbox) && obj.bbox.length === 4) {
         const [x1, y1, x2, y2] = obj.bbox;
         return {
-          ...obj,
+          ...normalizedObj,
           bbox: {
             x: x1,
             y: y1,
@@ -139,7 +455,7 @@ export function SceneDetailView({
         } as SceneObject;
       }
     }
-    return obj as SceneObject;
+    return normalizedObj as SceneObject;
   });
 
   if (error) {
@@ -243,10 +559,25 @@ export function SceneDetailView({
             <Button
               variant={showMasks ? "default" : "outline"}
               size="sm"
-              onClick={() => setShowMasks(!showMasks)}
+              onClick={() => {
+                const hasAnyMasks = normalizedObjects.some(obj => obj.has_mask || obj.mask_base64);
+                if (!hasAnyMasks && !showMasks) {
+                  toast({
+                    title: "No Masks Available",
+                    description: "This scene doesn't have SAM2 segmentation masks. Try reanalyzing the scene first.",
+                    variant: "destructive",
+                  });
+                }
+                setShowMasks(!showMasks);
+              }}
             >
               <Layers className="h-4 w-4 mr-1" />
               Masks
+              {normalizedObjects.some(obj => obj.has_mask || obj.mask_base64) && (
+                <span className="ml-1 text-xs bg-green-500 text-white rounded-full px-1">
+                  {normalizedObjects.filter(obj => obj.has_mask || obj.mask_base64).length}
+                </span>
+              )}
             </Button>
 
             <Separator orientation="vertical" className="h-6" />
@@ -282,6 +613,7 @@ export function SceneDetailView({
             showMasks={showMasks}
             selectedObject={selectedObject}
             onObjectClick={handleObjectClick}
+            reviewingObjectId={reviewingObjectId}
             className="w-full h-full"
           />
         </div>
@@ -383,27 +715,56 @@ export function SceneDetailView({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex space-x-2">
-                <Button
-                  size="sm"
-                  onClick={() => reviewWorkflow.approveScene()}
-                  disabled={reviewWorkflow.isLoading}
-                  className="flex-1"
-                >
-                  <Check className="h-4 w-4 mr-1" />
-                  Approve
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => reviewWorkflow.rejectScene()}
-                  disabled={reviewWorkflow.isLoading}
-                  className="flex-1"
-                >
-                  <XCircle className="h-4 w-4 mr-1" />
-                  Reject
-                </Button>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Scene Review</div>
+                <div className="flex space-x-2">
+                  <Button
+                    size="sm"
+                    onClick={() => reviewWorkflow.approveScene()}
+                    disabled={reviewWorkflow.isLoading}
+                    className="flex-1"
+                  >
+                    <Check className="h-4 w-4 mr-1" />
+                    Approve Scene
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => reviewWorkflow.rejectScene()}
+                    disabled={reviewWorkflow.isLoading}
+                    className="flex-1"
+                  >
+                    <XCircle className="h-4 w-4 mr-1" />
+                    Reject Scene
+                  </Button>
+                </div>
               </div>
+
+              {/* Bulk Object Actions */}
+              {normalizedObjects.length > 0 && (
+                <div className="space-y-2 pt-2 border-t">
+                  <div className="text-sm font-medium">Object Review</div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleBulkApproveObjects}
+                    disabled={bulkReviewInProgress || submitBatchReviews.isPending}
+                    className="w-full"
+                  >
+                    {bulkReviewInProgress ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Approving {normalizedObjects.length} objects...
+                      </>
+                    ) : (
+                      <>
+                        <Users className="h-4 w-4 mr-2" />
+                        Bulk Approve All Objects ({normalizedObjects.length})
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
               
               {/* Progress Information */}
               <div className="pt-2 border-t">
@@ -423,13 +784,270 @@ export function SceneDetailView({
             </CardContent>
           </Card>
 
+          {/* AI Analysis Panel */}
+          <Card className="m-4 my-2">
+            <Collapsible
+              open={expandedSections.aiAnalysis}
+              onOpenChange={() => toggleSection('aiAnalysis')}
+            >
+              <CollapsibleTrigger>
+                <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50">
+                  <CardTitle className="text-base flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Activity className="h-4 w-4 mr-2" />
+                      AI Analysis
+                    </div>
+                    {expandedSections.aiAnalysis ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </CardTitle>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="space-y-4">
+                  {/* Scene Classification Details */}
+                  <div>
+                    <div className="text-sm font-medium mb-2">Scene Classification</div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">{scene.scene_type?.replace("_", " ")}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {scene.scene_conf ? `${(scene.scene_conf * 100).toFixed(0)}%` : "N/A"}
+                        </Badge>
+                      </div>
+                      
+                      {/* Object Detection Summary */}
+                      <div>
+                        <div className="text-sm text-muted-foreground mb-1">Object Detection</div>
+                        <div className="text-sm">
+                          {normalizedObjects.length} objects detected
+                          {normalizedObjects.length > 0 && (
+                            <span className="text-muted-foreground ml-1">
+                              (avg conf: {(normalizedObjects.reduce((acc, obj) => acc + obj.confidence, 0) / normalizedObjects.length * 100).toFixed(0)}%)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Processing Status */}
+                      <div className="pt-2 border-t">
+                        <div className="text-sm text-muted-foreground mb-3">
+                          Status: {scene.review_status || "pending"}
+                        </div>
+                        
+                        {/* Reanalyze Button */}
+                        <div className="space-y-2">
+                          {needsProcessing && (
+                            <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border">
+                              ⚠️ Scene needs AI analysis
+                            </div>
+                          )}
+                          
+                          <Button
+                            size="sm"
+                            variant={needsProcessing ? "default" : "outline"}
+                            onClick={triggerAIProcessing}
+                            disabled={processingStatus === "processing"}
+                            className="w-full"
+                          >
+                            {processingStatus === "processing" ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <Zap className="h-4 w-4 mr-2" />
+                                Reanalyze Scene
+                              </>
+                            )}
+                          </Button>
+                          
+                          {processingStatus === "processing" && (
+                            <div className="space-y-2">
+                              <Progress value={processingProgress} className="h-2" />
+                              <div className="text-xs text-center text-muted-foreground">
+                                {processingProgress}% complete
+                              </div>
+                            </div>
+                          )}
+                          
+                          {processingStatus === "completed" && (
+                            <div className="text-xs text-green-600 bg-green-50 p-2 rounded border">
+                              ✅ Analysis completed successfully
+                            </div>
+                          )}
+                          
+                          {processingStatus === "error" && (
+                            <div className="text-xs text-red-600 bg-red-50 p-2 rounded border">
+                              ❌ Analysis failed - check console for details
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
+
+          {/* Edit Scene Panel */}
+          <Card className="m-4 my-2">
+            <Collapsible
+              open={expandedSections.editing}
+              onOpenChange={() => toggleSection('editing')}
+            >
+              <CollapsibleTrigger>
+                <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50">
+                  <CardTitle className="text-base flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Edit3 className="h-4 w-4 mr-2" />
+                      Edit Scene
+                    </div>
+                    {expandedSections.editing ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </CardTitle>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="space-y-4">
+                  {/* Scene Type Editing */}
+                  <div>
+                    <Label htmlFor="scene-type" className="text-sm font-medium">
+                      Scene Type
+                    </Label>
+                    <Select
+                      value={editedSceneType}
+                      onValueChange={setEditedSceneType}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select scene type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SCENE_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Style Editing */}
+                  <div>
+                    <Label className="text-sm font-medium">Styles</Label>
+                    <div className="mt-2 space-y-2">
+                      {editedStyles.map((style) => (
+                        <div key={style.code} className="flex items-center justify-between">
+                          <Badge variant="outline">{style.code}</Badge>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeStyle(style.code)}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                      
+                      <Select onValueChange={addStyle}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Add style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STYLE_CODES.filter(style => 
+                            !editedStyles.find(s => s.code === style.code)
+                          ).map((style) => (
+                            <SelectItem key={style.code} value={style.code}>
+                              {style.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <Label htmlFor="notes" className="text-sm font-medium">
+                      Correction Notes
+                    </Label>
+                    <Textarea
+                      id="notes"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Add notes about corrections..."
+                      className="mt-1"
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex space-x-2 pt-2">
+                    <Button
+                      size="sm"
+                      onClick={handleSaveCorrections}
+                      disabled={!hasChanges || reviewWorkflow.isLoading}
+                      className="flex-1"
+                    >
+                      <Save className="h-4 w-4 mr-1" />
+                      Save Changes
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleResetEdits}
+                      disabled={!hasChanges}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-1" />
+                      Reset
+                    </Button>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
+
           {/* Selected Object Details */}
           {selectedObject && (
-            <Card className="m-4 mt-0 flex-1 overflow-auto">
+            <Card className={`m-4 mt-0 flex-1 overflow-auto ${
+              reviewingObjectId === selectedObject.id ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
+            }`}>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center">
-                  <TagIcon className="h-4 w-4 mr-2" />
-                  Object Details
+                <CardTitle className="text-base flex items-center justify-between">
+                  <div className="flex items-center">
+                    <TagIcon className="h-4 w-4 mr-2" />
+                    Object Details
+                    {reviewingObjectId === selectedObject.id && (
+                      <Target className="h-4 w-4 ml-2 text-blue-500 animate-pulse" />
+                    )}
+                  </div>
+                  <div className="flex space-x-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleObjectApprove(selectedObject.id)}
+                      disabled={reviewingObjectId !== null || submitObjectReview.isPending}
+                      className="text-green-600 hover:text-green-700"
+                    >
+                      <CheckCircle className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleObjectReject(selectedObject.id)}
+                      disabled={reviewingObjectId !== null || submitObjectReview.isPending}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <XCircle className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -445,6 +1063,13 @@ export function SceneDetailView({
                     {(selectedObject.confidence * 100).toFixed(0)}% conf
                   </span>
                 </div>
+
+                {/* Review Status */}
+                {reviewingObjectId === selectedObject.id && (
+                  <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded border animate-pulse">
+                    🎯 Reviewing this object...
+                  </div>
+                )}
 
                 {/* Materials */}
                 {selectedObject.materials && selectedObject.materials.length > 0 ? (
@@ -548,19 +1173,54 @@ export function SceneDetailView({
                 {normalizedObjects.map((obj) => (
                   <div
                     key={obj.id}
-                    className="flex items-center justify-between p-2 rounded border hover:bg-muted/50 cursor-pointer"
-                    onClick={() => handleObjectClick(obj)}
+                    className={`flex items-center justify-between p-2 rounded border hover:bg-muted/50 ${
+                      reviewingObjectId === obj.id ? 'ring-2 ring-blue-500 ring-opacity-50 bg-blue-50' : ''
+                    }`}
                   >
-                    <div className="flex items-center space-x-2">
+                    <div 
+                      className="flex items-center space-x-2 flex-1 cursor-pointer"
+                      onClick={() => handleObjectClick(obj)}
+                    >
                       <div
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: getObjectColor(obj.id) }}
                       />
                       <span className="text-sm font-medium">{obj.label}</span>
+                      {reviewingObjectId === obj.id && (
+                        <Target className="h-3 w-3 text-blue-500 animate-pulse" />
+                      )}
                     </div>
-                    <span className="text-xs font-mono text-muted-foreground">
-                      {(obj.confidence * 100).toFixed(0)}%
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-mono text-muted-foreground">
+                        {(obj.confidence * 100).toFixed(0)}%
+                      </span>
+                      <div className="flex space-x-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleObjectApprove(obj.id);
+                          }}
+                          disabled={reviewingObjectId !== null || submitObjectReview.isPending}
+                          className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                        >
+                          <CheckCircle className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleObjectReject(obj.id);
+                          }}
+                          disabled={reviewingObjectId !== null || submitObjectReview.isPending}
+                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <XCircle className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </CardContent>
