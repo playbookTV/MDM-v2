@@ -418,107 +418,20 @@ export function SceneReviewPage() {
           </div>
         ) : (
           currentScene && (
-            <div
-              className="grid grid-cols-1 xl:grid-cols-5 gap-6"
-              data-oid="qvlylhj"
-            >
-              {/* Scene Detail View */}
-              <div className="xl:col-span-3" data-oid="w4j0s9a">
-                <SceneDetailView
-                  sceneId={currentScene.id}
-                  onNext={handleNextScene}
-                  onPrevious={handlePreviousScene}
-                  onClose={handleCloseDetail}
-                  selectedObject={selectedObject}
-                  onObjectSelect={setSelectedObject}
-                  nextSceneId={getNextSceneId()}
-                  previousSceneId={getPreviousSceneId()}
-                  className="h-[calc(100vh-200px)]"
-                  data-oid=".pz_6sm"
-                />
-              </div>
-
-              {/* AI Analysis Panel */}
-              <div className="xl:col-span-1" data-oid="fbttboq">
-                <AIAnalysisPanel
-                  scene={currentScene}
-                  selectedObject={selectedObject}
-                  onObjectSelect={setSelectedObject}
-                  onProcessingComplete={handleProcessingComplete}
-                  className="max-h-[calc(100vh-200px)] overflow-y-auto"
-                  data-oid="1du34_g"
-                />
-              </div>
-
-              {/* Annotation Tools Sidebar */}
-              <div className="xl:col-span-1 space-y-4" data-oid="7jh7n:0">
-                <AnnotationTools
-                  scene={currentScene}
-                  selectedObject={selectedObject}
-                  onObjectSelect={setSelectedObject}
-                  data-oid="bni:isx"
-                />
-
-                {/* Mini Progress */}
-                <div
-                  className="bg-card border rounded-lg p-4"
-                  data-oid="beejc8h"
-                >
-                  <div
-                    className="flex items-center justify-between mb-2"
-                    data-oid="66hrzth"
-                  >
-                    <span className="text-sm font-medium" data-oid="ujrc06v">
-                      Progress
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className="text-xs"
-                      data-oid="wj7q2ek"
-                    >
-                      {getCurrentSceneIndex() + 1} / {scenes.length}
-                    </Badge>
-                  </div>
-                  <div
-                    className="w-full bg-muted rounded-full h-2"
-                    data-oid=":p:ypec"
-                  >
-                    <div
-                      className="bg-primary h-2 rounded-full transition-all"
-                      style={{
-                        width: `${((getCurrentSceneIndex() + 1) / scenes.length) * 100}%`,
-                      }}
-                      data-oid="tc9foj."
-                    />
-                  </div>
-                  <div
-                    className="text-xs text-muted-foreground mt-1"
-                    data-oid="t1t88mm"
-                  >
-                    {Math.round(
-                      ((getCurrentSceneIndex() + 1) / scenes.length) * 100,
-                    )}
-                    % complete
-                  </div>
-                </div>
-
-                {/* Navigation Help */}
-                <div className="bg-muted/50 rounded-lg p-3" data-oid="15rm5ja">
-                  <h4 className="text-xs font-medium mb-2" data-oid=".e16j_g">
-                    Keyboard Shortcuts
-                  </h4>
-                  <div
-                    className="space-y-1 text-xs text-muted-foreground"
-                    data-oid="hqpfi::"
-                  >
-                    <div data-oid="lgwpcwr">← → Arrow keys: Navigate</div>
-                    <div data-oid="s1qgulo">A: Approve scene</div>
-                    <div data-oid="fuv5m8l">R: Reject scene</div>
-                    <div data-oid="rotrz-9">Esc: Close detail view</div>
-                    <div data-oid="jkqk5h0">Space: Next scene</div>
-                  </div>
-                </div>
-              </div>
+            <div className="h-[calc(100vh-120px)]">
+              <SceneDetailView
+                sceneId={currentScene.id}
+                onNext={handleNextScene}
+                onPrevious={handlePreviousScene}
+                onClose={handleCloseDetail}
+                selectedObject={selectedObject}
+                onObjectSelect={setSelectedObject}
+                nextSceneId={getNextSceneId()}
+                previousSceneId={getPreviousSceneId()}
+                currentIndex={getCurrentSceneIndex()}
+                totalScenes={scenes.length}
+                className="w-full h-full"
+              />
             </div>
           )
         )}

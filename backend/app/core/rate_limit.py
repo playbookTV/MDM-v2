@@ -4,6 +4,7 @@ Rate limiting middleware using Redis
 
 import time
 import logging
+import asyncio
 from typing import Dict, Optional
 from fastapi import Request, HTTPException, status
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -119,7 +120,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             # Set expiration for cleanup
             pipe.expire(key, window_seconds + 1)
             
-            results = await pipe.execute()
+            # Execute with timeout protection
+            results = await asyncio.wait_for(pipe.execute(), timeout=3.0)
             requests_made = results[1]  # Count from zcard
             
             allowed = requests_made < requests_limit
@@ -131,6 +133,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 'requests_remaining': requests_remaining
             }
             
+        except asyncio.TimeoutError:
+            logger.warning("Redis rate limiting timeout - allowing request")
+            return {
+                'allowed': True,
+                'requests_made': 0,
+                'requests_remaining': requests_limit
+            }
         except Exception as e:
             logger.error(f"Redis rate limiting error: {e}")
             # Allow request if Redis operations fail

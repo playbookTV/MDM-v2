@@ -182,12 +182,14 @@ MDM/
 - Enhanced scene review interface with object visualization
 - Fixed category taxonomy with proper hierarchical structure
 - Integrated SAM2 segmentation with RunPod handler
+- **Fixed scene classification bug**: Resolved foreign key constraint error where "an office interior" was processed to "an_office" instead of "office" - now properly handles both "a" and "an" articles
 
 **Active Development**:
 - Optimizing job processing pipeline performance
 - Enhancing error handling and retry logic
 - Improving material detection accuracy
 - Adding batch processing capabilities
+- **Current Issue**: RunPod GPU server experiencing HTTP 524 timeouts during model inference (infrastructure-related)
 
 **Deployment**:
 - Backend: Railway deployment ready with health checks

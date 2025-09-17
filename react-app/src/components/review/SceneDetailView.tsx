@@ -4,7 +4,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  EyeOff,
   Layers,
   X,
   AlertTriangle,
@@ -12,13 +11,17 @@ import {
   TagIcon,
   Palette,
   Ruler,
+  Check,
+  XCircle,
+  Edit3,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useScene, useSceneImages, useScenePrefetch } from "@/hooks/useScenes";
-import { useReviewKeyboard } from "@/hooks/useReviews";
+import { useReviewKeyboard, useReviewWorkflow } from "@/hooks/useReviews";
 import { SceneCanvasRenderer } from "./SceneCanvasRenderer";
 import type { Scene, SceneObject } from "@/types/dataset";
 
@@ -27,10 +30,12 @@ interface SceneDetailViewProps {
   onNext?: () => void;
   onPrevious?: () => void;
   onClose?: () => void;
-  selectedObject?: SceneObject;
+  selectedObject?: SceneObject | null;
   onObjectSelect?: (object: SceneObject | null) => void;
   nextSceneId?: string;
   previousSceneId?: string;
+  currentIndex?: number;
+  totalScenes?: number;
   className?: string;
 }
 
@@ -43,6 +48,8 @@ export function SceneDetailView({
   onObjectSelect,
   nextSceneId,
   previousSceneId,
+  currentIndex = 0,
+  totalScenes = 0,
   className,
 }: SceneDetailViewProps) {
   const [showObjects, setShowObjects] = useState(true);
@@ -51,6 +58,7 @@ export function SceneDetailView({
 
   const { data: scene, isLoading, error } = useScene(sceneId, true);
   const { prefetchScene } = useScenePrefetch();
+  const reviewWorkflow = useReviewWorkflow(sceneId);
 
   // Prefetch adjacent scenes for smooth navigation
   useEffect(() => {
@@ -141,7 +149,7 @@ export function SceneDetailView({
           <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Failed to load scene</h3>
           <p className="text-sm text-muted-foreground">
-            {error?.message || "An error occurred"}
+            {(error as any)?.message || "An error occurred"}
           </p>
         </CardContent>
       </Card>
@@ -366,6 +374,55 @@ export function SceneDetailView({
             </CardContent>
           </Card>
 
+          {/* Review Actions */}
+          <Card className="m-4 my-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center">
+                <Check className="h-4 w-4 mr-2" />
+                Review Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex space-x-2">
+                <Button
+                  size="sm"
+                  onClick={() => reviewWorkflow.approveScene()}
+                  disabled={reviewWorkflow.isLoading}
+                  className="flex-1"
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  Approve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => reviewWorkflow.rejectScene()}
+                  disabled={reviewWorkflow.isLoading}
+                  className="flex-1"
+                >
+                  <XCircle className="h-4 w-4 mr-1" />
+                  Reject
+                </Button>
+              </div>
+              
+              {/* Progress Information */}
+              <div className="pt-2 border-t">
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-muted-foreground">Session Progress</span>
+                  <Badge variant="outline" className="text-xs">
+                    {currentIndex + 1} of {totalScenes}
+                  </Badge>
+                </div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <div>• A: Approve scene</div>
+                  <div>• R: Reject scene</div>
+                  <div>• ← → Navigate scenes</div>
+                  <div>• Esc: Close view</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Selected Object Details */}
           {selectedObject && (
             <Card className="m-4 mt-0 flex-1 overflow-auto">
@@ -488,7 +545,7 @@ export function SceneDetailView({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {normalizedObjects.map((obj, idx) => (
+                {normalizedObjects.map((obj) => (
                   <div
                     key={obj.id}
                     className="flex items-center justify-between p-2 rounded border hover:bg-muted/50 cursor-pointer"

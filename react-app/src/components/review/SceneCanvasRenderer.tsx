@@ -7,7 +7,7 @@ interface SceneCanvasRendererProps {
   objects: SceneObject[];
   showObjects: boolean;
   showMasks: boolean;
-  selectedObject: SceneObject | undefined;
+  selectedObject: SceneObject | null | undefined;
   onObjectClick: (object: SceneObject) => void;
   className?: string;
 }
@@ -19,7 +19,6 @@ interface ViewTransform {
 }
 
 export function SceneCanvasRenderer({
-  scene,
   imageUrl,
   objects,
   showObjects,
@@ -33,7 +32,6 @@ export function SceneCanvasRenderer({
     ? `${imageUrl}&proxy=true` 
     : `${imageUrl}?proxy=true`;
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const offscreenCanvasRef = useRef<OffscreenCanvas | null>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const maskImagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -301,32 +299,6 @@ export function SceneCanvasRenderer({
     };
   }, [render]);
 
-  // Mouse wheel zoom
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    const scaleDelta = e.deltaY > 0 ? 0.9 : 1.1;
-    const newScale = Math.max(0.1, Math.min(10, transform.scale * scaleDelta));
-
-    // Zoom towards mouse position
-    const scaleChange = newScale - transform.scale;
-    const offsetX = -(mouseX - transform.x) * (scaleChange / transform.scale);
-    const offsetY = -(mouseY - transform.y) * (scaleChange / transform.scale);
-
-    setTransform((prev) => ({
-      x: prev.x + offsetX,
-      y: prev.y + offsetY,
-      scale: newScale,
-    }));
-  }, [transform]);
 
   // Register wheel handler with passive: false to allow preventDefault
   useEffect(() => {
@@ -400,7 +372,7 @@ export function SceneCanvasRenderer({
     }
   }, [isDragging, dragStart, transform, objects]);
 
-  const handleMouseUp = useCallback((e: React.MouseEvent) => {
+  const handleMouseUp = useCallback(() => {
     if (!isDragging && hoveredObject) {
       onObjectClick(hoveredObject);
     }
