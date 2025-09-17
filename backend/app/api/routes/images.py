@@ -4,9 +4,10 @@ Image serving endpoints
 
 import logging
 from typing import Optional
+import httpx
 
-from fastapi import APIRouter, HTTPException, Query, Response
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, HTTPException, Query, Response, Request
+from fastapi.responses import RedirectResponse, StreamingResponse
 
 from app.services.scenes import SceneService
 
@@ -16,9 +17,13 @@ router = APIRouter()
 @router.get("/scenes/{scene_id}.jpg")
 async def get_scene_image(
     scene_id: str,
+    request: Request,
     type: str = Query("original", description="Image type: original, thumbnail, depth")
 ):
-    """Serve scene images by redirecting to presigned R2 URLs"""
+    """
+    Serve scene images - either proxy or redirect based on client needs.
+    Canvas rendering requires proxy mode to avoid CORS issues.
+    """
     try:
         service = SceneService()
         
@@ -40,8 +45,38 @@ async def get_scene_image(
             else:
                 raise HTTPException(status_code=404, detail=f"No {type} image available")
         
-        # Redirect to the presigned R2 URL
-        return RedirectResponse(url=url, status_code=302)
+        # Check if request needs proxy (for Canvas/CORS support)
+        user_agent = request.headers.get("user-agent", "").lower()
+        needs_proxy = (
+            "canvas" in user_agent or 
+            request.headers.get("x-canvas-mode") == "true" or
+            request.query_params.get("proxy") == "true"
+        )
+        
+        if needs_proxy:
+            # Proxy the image through the backend to handle CORS
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url)
+                
+                if response.status_code != 200:
+                    raise HTTPException(
+                        status_code=response.status_code,
+                        detail="Failed to fetch image from storage"
+                    )
+                
+                return Response(
+                    content=response.content,
+                    media_type=response.headers.get("content-type", "image/jpeg"),
+                    headers={
+                        "Cache-Control": "public, max-age=3600",
+                        "Access-Control-Allow-Origin": "*",
+                        "Access-Control-Allow-Methods": "GET, OPTIONS",
+                        "Access-Control-Allow-Headers": "Content-Type",
+                    }
+                )
+        else:
+            # Regular redirect for DOM-based rendering
+            return RedirectResponse(url=url, status_code=302)
         
     except HTTPException:
         raise

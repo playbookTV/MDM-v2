@@ -1,22 +1,25 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
-  ZoomIn,
-  ZoomOut,
-  RotateCw,
   Download,
-  Maximize,
   ChevronLeft,
   ChevronRight,
   Eye,
   EyeOff,
   Layers,
-  Info,
+  X,
   AlertTriangle,
+  ImageIcon,
+  TagIcon,
+  Palette,
+  Ruler,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { useScene, useSceneImages, useScenePrefetch } from "@/hooks/useScenes";
 import { useReviewKeyboard } from "@/hooks/useReviews";
+import { SceneCanvasRenderer } from "./SceneCanvasRenderer";
 import type { Scene, SceneObject } from "@/types/dataset";
 
 interface SceneDetailViewProps {
@@ -42,15 +45,9 @@ export function SceneDetailView({
   previousSceneId,
   className,
 }: SceneDetailViewProps) {
-  const [zoom, setZoom] = useState(1);
-  const [panX, setPanX] = useState(0);
-  const [panY, setPanY] = useState(0);
   const [showObjects, setShowObjects] = useState(true);
   const [showMasks, setShowMasks] = useState(false);
-  const [showInfo, setShowInfo] = useState(true);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
 
   const { data: scene, isLoading, error } = useScene(sceneId, true);
   const { prefetchScene } = useScenePrefetch();
@@ -61,7 +58,7 @@ export function SceneDetailView({
     if (previousSceneId) prefetchScene(previousSceneId);
   }, [nextSceneId, previousSceneId, prefetchScene]);
 
-  const { originalUrl, depthUrl } = useSceneImages(scene || ({} as Scene));
+  const { originalUrl } = useSceneImages(scene || ({} as Scene));
 
   // Keyboard shortcuts
   const { handleKeyPress } = useReviewKeyboard({
@@ -75,68 +72,15 @@ export function SceneDetailView({
     return () => document.removeEventListener("keydown", handleKeyPress);
   }, [handleKeyPress]);
 
-  // Reset view when scene changes
+  // Reset selection when scene changes
   useEffect(() => {
-    setZoom(1);
-    setPanX(0);
-    setPanY(0);
     onObjectSelect?.(null);
   }, [sceneId, onObjectSelect]);
 
-  // Register non-passive wheel listener to allow preventDefault
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      setZoom((z) => Math.max(0.1, Math.min(5, z * delta)));
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => {
-      el.removeEventListener("wheel", onWheel as EventListener);
-    };
-  }, []);
-
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.button === 0) {
-        // Left click
-        setIsDragging(true);
-        setDragStart({ x: e.clientX - panX, y: e.clientY - panY });
-      }
-    },
-    [panX, panY],
-  );
-
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      if (isDragging) {
-        setPanX(e.clientX - dragStart.x);
-        setPanY(e.clientY - dragStart.y);
-      }
-    },
-    [isDragging, dragStart],
-  );
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  const handleObjectClick = (object: SceneObject, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (selectedObject?.id === object.id) {
-      onObjectSelect?.(null);
-    } else {
-      onObjectSelect?.(object);
-    }
-  };
-
-  const resetView = () => {
-    setZoom(1);
-    setPanX(0);
-    setPanY(0);
-  };
+  const handleObjectClick = useCallback((object: SceneObject) => {
+    const newSelection = selectedObject?.id === object.id ? null : object;
+    onObjectSelect?.(newSelection);
+  }, [selectedObject, onObjectSelect]);
 
   const downloadImage = () => {
     if (!scene) return;
@@ -148,23 +92,16 @@ export function SceneDetailView({
 
   const getObjectColor = (objectId: string) => {
     const colors = [
-      "#3b82f6",
-      "#10b981",
-      "#f59e0b",
-      "#8b5cf6",
-      "#ef4444",
-      "#06b6d4",
-      "#84cc16",
+      "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", 
+      "#ef4444", "#06b6d4", "#84cc16"
     ];
-
     const index = scene?.objects?.findIndex((obj) => obj.id === objectId) || 0;
     return colors[index % colors.length];
   };
 
-  // Normalize objects to ensure bbox is present when DB fields are returned
+  // Normalize objects to ensure bbox is present
   const normalizedObjects: SceneObject[] = (scene?.objects || []).map((obj: any) => {
     if (obj && !obj.bbox) {
-      // From DB-style columns
       if (
         typeof obj.bbox_x === "number" &&
         typeof obj.bbox_y === "number" &&
@@ -179,11 +116,10 @@ export function SceneDetailView({
             width: obj.bbox_w,
             height: obj.bbox_h,
           },
-        } as SceneObject
+        } as SceneObject;
       }
-      // From array format [x1,y1,x2,y2]
       if (Array.isArray(obj.bbox) && obj.bbox.length === 4) {
-        const [x1, y1, x2, y2] = obj.bbox
+        const [x1, y1, x2, y2] = obj.bbox;
         return {
           ...obj,
           bbox: {
@@ -192,52 +128,34 @@ export function SceneDetailView({
             width: x2 - x1,
             height: y2 - y1,
           },
-        } as SceneObject
+        } as SceneObject;
       }
     }
-    return obj as SceneObject
-  })
+    return obj as SceneObject;
+  });
 
   if (error) {
     return (
-      <div
-        className={`flex items-center justify-center min-h-96 bg-card border rounded-lg ${className}`}
-        data-oid="a08uv3r"
-      >
-        <div className="text-center" data-oid="p_ia0kt">
-          <AlertTriangle
-            className="h-12 w-12 text-destructive mx-auto mb-4"
-            data-oid=":s0ungw"
-          />
-
-          <h3 className="text-lg font-semibold mb-2" data-oid="pn7esmx">
-            Failed to load scene
-          </h3>
-          <p className="text-sm text-muted-foreground" data-oid="m0u651w">
+      <Card className={`w-full h-96 flex items-center justify-center ${className}`}>
+        <CardContent className="text-center">
+          <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Failed to load scene</h3>
+          <p className="text-sm text-muted-foreground">
             {error?.message || "An error occurred"}
           </p>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
   if (isLoading) {
     return (
-      <div
-        className={`flex items-center justify-center min-h-96 bg-card border rounded-lg ${className}`}
-        data-oid="4ctyfd9"
-      >
-        <div className="text-center" data-oid="6le0vx_">
-          <div
-            className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"
-            data-oid="23tego0"
-          />
-
-          <p className="text-sm text-muted-foreground" data-oid="7q883dm">
-            Loading scene...
-          </p>
-        </div>
-      </div>
+      <Card className={`w-full h-96 flex items-center justify-center ${className}`}>
+        <CardContent className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-muted-foreground">Loading scene...</p>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -246,520 +164,355 @@ export function SceneDetailView({
   }
 
   return (
-    <div
-      className={`relative bg-card border rounded-lg overflow-hidden ${className}`}
-      data-oid="vy.xxcj"
-    >
-      {/* Header */}
-      <div
-        className="absolute top-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-b z-20 p-4"
-        data-oid="9at:puk"
-      >
-        <div className="flex items-center justify-between" data-oid="k788zfr">
-          <div className="flex items-center space-x-3" data-oid="_8fs243">
-            <h3
-              className="font-semibold truncate max-w-64"
-              title={scene.source}
-              data-oid="9nlcnc:"
-            >
-              {scene.source}
-            </h3>
-            <div className="flex items-center space-x-1" data-oid="37-o78_">
+    <div className={`flex h-full bg-background ${className}`}>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Toolbar */}
+        <div className="flex items-center justify-between p-4 border-b bg-card">
+          <div className="flex items-center space-x-4">
+            {/* Navigation */}
+            {onPrevious && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onPrevious}
+                disabled={!previousSceneId}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+            )}
+
+            {onNext && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onNext}
+                disabled={!nextSceneId}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            )}
+
+            <Separator orientation="vertical" className="h-6" />
+
+            {/* Scene Info */}
+            <div className="flex items-center space-x-2">
+              <ImageIcon className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium truncate max-w-48" title={scene.source}>
+                {scene.source}
+              </span>
               {scene.scene_type && (
-                <Badge variant="outline" data-oid="50xa1-n">
+                <Badge variant="outline">
                   {scene.scene_type.replace("_", " ")}
                 </Badge>
               )}
               {scene.scene_conf && (
-                <Badge variant="secondary" data-oid=".0:a_rv">
+                <Badge variant="secondary">
                   {(scene.scene_conf * 100).toFixed(0)}% conf
                 </Badge>
               )}
               {scene.review_status && (
-                <Badge
-                  variant={getReviewStatusVariant(scene.review_status)}
-                  data-oid="p3piq0i"
-                >
+                <Badge variant={getReviewStatusVariant(scene.review_status)}>
                   {scene.review_status}
                 </Badge>
               )}
             </div>
           </div>
 
-          <div className="flex items-center space-x-2" data-oid="prdrwm_">
+          <div className="flex items-center space-x-2">
             {/* View Controls */}
             <Button
-              variant="outline"
+              variant={showObjects ? "default" : "outline"}
               size="sm"
               onClick={() => setShowObjects(!showObjects)}
-              data-oid="9l6_ksm"
             >
-              {showObjects ? (
-                <Eye className="h-4 w-4" data-oid="z35swrb" />
-              ) : (
-                <EyeOff className="h-4 w-4" data-oid="1abviih" />
-              )}
+              <Eye className="h-4 w-4 mr-1" />
               Objects
             </Button>
 
             <Button
-              variant="outline"
+              variant={showMasks ? "default" : "outline"}
               size="sm"
               onClick={() => setShowMasks(!showMasks)}
-              data-oid="mask_toggle"
             >
-              {showMasks ? (
-                <Layers className="h-4 w-4" data-oid="mask_layers_on" />
-              ) : (
-                <Layers className="h-4 w-4 opacity-50" data-oid="mask_layers_off" />
-              )}
+              <Layers className="h-4 w-4 mr-1" />
               Masks
             </Button>
 
+            <Separator orientation="vertical" className="h-6" />
+
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowInfo(!showInfo)}
-              data-oid="j298zv5"
+              onClick={() => setSidebarVisible(!sidebarVisible)}
             >
-              <Info className="h-4 w-4" data-oid="hyfn7kg" />
+              <TagIcon className="h-4 w-4 mr-1" />
+              Details
             </Button>
 
-            {/* Zoom Controls */}
-            <div className="flex border rounded-md" data-oid="x1hx3f:">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setZoom(Math.max(0.1, zoom * 0.8))}
-                className="rounded-r-none"
-                data-oid="yx2lsuw"
-              >
-                <ZoomOut className="h-4 w-4" data-oid="49nh71c" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetView}
-                className="rounded-none border-x text-xs px-2"
-                data-oid="3.zn1vf"
-              >
-                {Math.round(zoom * 100)}%
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setZoom(Math.min(5, zoom * 1.25))}
-                className="rounded-l-none"
-                data-oid="o18gwy_"
-              >
-                <ZoomIn className="h-4 w-4" data-oid="aiv1l_9" />
-              </Button>
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={downloadImage}
-              data-oid="elfpstz"
-            >
-              <Download className="h-4 w-4" data-oid="tw29j.p" />
+            <Button variant="outline" size="sm" onClick={downloadImage}>
+              <Download className="h-4 w-4" />
             </Button>
 
             {onClose && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onClose}
-                data-oid="z-z0atp"
-              >
-                <Maximize className="h-4 w-4" data-oid="pvvvy7c" />
+              <Button variant="outline" size="sm" onClick={onClose}>
+                <X className="h-4 w-4" />
               </Button>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Navigation */}
-      {(onPrevious || onNext) && (
-        <>
-          {onPrevious && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onPrevious}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-10"
-              disabled={!previousSceneId}
-              data-oid="l4eufhe"
-            >
-              <ChevronLeft className="h-4 w-4" data-oid=".:9.fb5" />
-            </Button>
-          )}
-
-          {onNext && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onNext}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10"
-              disabled={!nextSceneId}
-              data-oid="q:dn3o8"
-            >
-              <ChevronRight className="h-4 w-4" data-oid="xx53:dc" />
-            </Button>
-          )}
-        </>
-      )}
-
-      {/* Image Container */}
-      <div
-        className="relative h-full min-h-96 overflow-hidden cursor-grab active:cursor-grabbing"
-        ref={containerRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        data-oid="ugw-j2j"
-      >
-        <div
-          className="relative transition-transform origin-center"
-          style={{
-            transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
-            width: "100%",
-            height: "100%",
-            paddingTop: "80px", // Account for header
-          }}
-          data-oid="uuxx_e-"
-        >
-          {/* Main Image */}
-          <img
-            src={originalUrl}
-            alt={scene.source}
-            className="max-w-none h-auto mx-auto block"
-            style={{
-              width: "auto",
-              height: "calc(100vh - 200px)",
-              maxWidth: "none",
-              objectFit: "contain",
-            }}
-            draggable={false}
-            data-oid="f..vnk6"
+        {/* Canvas Area */}
+        <div className="flex-1 bg-muted/20">
+          <SceneCanvasRenderer
+            scene={scene}
+            imageUrl={originalUrl}
+            objects={normalizedObjects}
+            showObjects={showObjects}
+            showMasks={showMasks}
+            selectedObject={selectedObject}
+            onObjectClick={handleObjectClick}
+            className="w-full h-full"
           />
-
-          {/* Object Overlays */}
-          {showObjects &&
-            normalizedObjects &&
-            normalizedObjects.map((object) => (
-              <ObjectOverlay
-                key={object.id}
-                object={object}
-                isSelected={selectedObject?.id === object.id}
-                color={getObjectColor(object.id)}
-                onClick={(e) => handleObjectClick(object, e)}
-                imageWidth={scene.width}
-                imageHeight={scene.height}
-                data-oid="lyruzec"
-              />
-            ))}
-
-          {/* Mask Overlays */}
-          {showMasks &&
-            normalizedObjects &&
-            normalizedObjects.map((object) => (
-              <MaskOverlay
-                key={`mask-${object.id}`}
-                object={object}
-                isSelected={selectedObject?.id === object.id}
-                color={getObjectColor(object.id)}
-                onClick={(e) => handleObjectClick(object, e)}
-                imageWidth={scene.width}
-                imageHeight={scene.height}
-                data-oid="mask-overlay"
-              />
-            ))}
         </div>
-      </div>
 
-      {/* Info Panel */}
-      {showInfo && (
-        <div
-          className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4 z-20"
-          data-oid="-2xpgjp"
-        >
-          <div
-            className="flex items-center justify-between text-sm"
-            data-oid="62wcr0u"
-          >
-            <div className="flex items-center space-x-4" data-oid="ei1had0">
-              <span data-oid="7lvcnk7">
-                {scene.width} × {scene.height}px
-              </span>
-              <span data-oid="wef5v92">
-              {normalizedObjects?.length || 0} objects
-              </span>
-              {scene.dataset_name && (
-                <span data-oid="vms9ok3">Dataset: {scene.dataset_name}</span>
-              )}
-            </div>
-
-            <div className="text-xs text-muted-foreground" data-oid="e60ie3v">
-              Use mouse wheel to zoom, drag to pan, arrow keys to navigate
-            </div>
+        {/* Bottom Status Bar */}
+        <div className="flex items-center justify-between p-2 border-t bg-card text-sm text-muted-foreground">
+          <div className="flex items-center space-x-4">
+            <span>{scene.width} × {scene.height}px</span>
+            <span>{normalizedObjects?.length || 0} objects detected</span>
+            {scene.dataset_name && <span>Dataset: {scene.dataset_name}</span>}
+          </div>
+          <div className="text-xs">
+            Mouse wheel: zoom • Drag: pan • Click objects to select
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Object Info */}
-      {selectedObject && (
-        <div
-          className="absolute top-20 right-4 bg-background/95 backdrop-blur-sm border rounded-lg p-3 z-20 max-w-64"
-          data-oid="tkoc:ux"
-        >
-          <div className="space-y-2" data-oid="sc:247s">
-            <div
-              className="flex items-center justify-between"
-              data-oid=":jie40c"
-            >
-              <Badge variant="secondary" data-oid="qu0gngl">
-                {selectedObject.label}
-              </Badge>
-              <span className="text-xs font-mono" data-oid="5_5ypka">
-                {(selectedObject.confidence * 100).toFixed(0)}%
-              </span>
-            </div>
+      {/* Right Sidebar */}
+      {sidebarVisible && (
+        <div className="w-80 border-l bg-card flex flex-col">
+          {/* Scene Details */}
+          <Card className="m-4 mb-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center">
+                <ImageIcon className="h-4 w-4 mr-2" />
+                Scene Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Type:</span>
+                  <div className="font-medium">
+                    {scene.scene_type?.replace("_", " ") || "Unknown"}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Confidence:</span>
+                  <div className="font-medium">
+                    {scene.scene_conf ? `${(scene.scene_conf * 100).toFixed(0)}%` : "N/A"}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Objects:</span>
+                  <div className="font-medium">{normalizedObjects?.length || 0}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Status:</span>
+                  <div className="font-medium">
+                    <Badge variant={getReviewStatusVariant(scene.review_status || "pending")}>
+                      {scene.review_status || "pending"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
 
-            {/* Enhanced material display */}
-            {selectedObject.materials && selectedObject.materials.length > 0 ? (
-              <div className="space-y-1" data-oid="qg3pl96">
-                <div className="text-xs font-medium">Materials:</div>
-                {selectedObject.materials.slice(0, 3).map((mat, idx) => (
-                  <div key={idx} className="text-xs flex items-center justify-between">
-                    <span className="text-muted-foreground">{mat.material}</span>
-                    <span className="font-mono">
-                      {(mat.confidence * 100).toFixed(0)}%
+              {/* Style Information */}
+              {scene.styles && scene.styles.length > 0 && (
+                <div>
+                  <div className="text-muted-foreground text-sm mb-1 flex items-center">
+                    <Palette className="h-3 w-3 mr-1" />
+                    Design Styles
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {scene.styles.slice(0, 3).map((style, idx) => (
+                      <Badge key={idx} variant="outline" className="text-xs">
+                        {style.code} ({(style.conf * 100).toFixed(0)}%)
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Color Palette */}
+              {scene.palette && scene.palette.length > 0 && (
+                <div>
+                  <div className="text-muted-foreground text-sm mb-1">Color Palette</div>
+                  <div className="flex space-x-1">
+                    {scene.palette.slice(0, 6).map((color, idx) => (
+                      <div
+                        key={idx}
+                        className="w-6 h-6 rounded border border-border"
+                        style={{ backgroundColor: color.hex }}
+                        title={`${color.hex} (${(color.p * 100).toFixed(1)}%)`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Selected Object Details */}
+          {selectedObject && (
+            <Card className="m-4 mt-0 flex-1 overflow-auto">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center">
+                  <TagIcon className="h-4 w-4 mr-2" />
+                  Object Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Badge 
+                    variant="secondary" 
+                    className="text-sm"
+                    style={{ backgroundColor: `${getObjectColor(selectedObject.id)}20`, color: getObjectColor(selectedObject.id) }}
+                  >
+                    {selectedObject.label}
+                  </Badge>
+                  <span className="text-sm font-mono">
+                    {(selectedObject.confidence * 100).toFixed(0)}% conf
+                  </span>
+                </div>
+
+                {/* Materials */}
+                {selectedObject.materials && selectedObject.materials.length > 0 ? (
+                  <div>
+                    <div className="text-sm font-medium mb-2">Materials</div>
+                    <div className="space-y-1">
+                      {selectedObject.materials.slice(0, 3).map((mat, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">{mat.material}</span>
+                          <span className="font-mono">{(mat.confidence * 100).toFixed(0)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : selectedObject.material ? (
+                  <div>
+                    <div className="text-sm font-medium mb-1">Material</div>
+                    <div className="text-sm">
+                      {selectedObject.material} ({(selectedObject.material_conf || 0) * 100}%)
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Bounding Box */}
+                {selectedObject.bbox && (
+                  <div>
+                    <div className="text-sm font-medium mb-2 flex items-center">
+                      <Ruler className="h-3 w-3 mr-1" />
+                      Dimensions
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Size:</span>
+                        <div className="font-mono">
+                          {Math.round(selectedObject.bbox.width)} × {Math.round(selectedObject.bbox.height)}px
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Position:</span>
+                        <div className="font-mono">
+                          ({Math.round(selectedObject.bbox.x)}, {Math.round(selectedObject.bbox.y)})
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Segmentation Info */}
+                {selectedObject.has_mask && (
+                  <div>
+                    <div className="text-sm font-medium mb-2">Segmentation</div>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Mask Area:</span>
+                        <span className="font-mono">
+                          {selectedObject.mask_area?.toLocaleString()} px
+                        </span>
+                      </div>
+                      {selectedObject.mask_coverage && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Coverage:</span>
+                          <span className="font-mono">
+                            {(selectedObject.mask_coverage * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                      )}
+                      {selectedObject.segmentation_confidence && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">SAM2 Score:</span>
+                          <span className="font-mono">
+                            {(selectedObject.segmentation_confidence * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Review Status */}
+                {selectedObject.review_status && (
+                  <div>
+                    <div className="text-sm font-medium mb-1">Review Status</div>
+                    <Badge variant={getReviewStatusVariant(selectedObject.review_status)}>
+                      {selectedObject.review_status}
+                    </Badge>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Objects List when no selection */}
+          {!selectedObject && normalizedObjects.length > 0 && (
+            <Card className="m-4 mt-0 flex-1 overflow-auto">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">
+                  Detected Objects ({normalizedObjects.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {normalizedObjects.map((obj, idx) => (
+                  <div
+                    key={obj.id}
+                    className="flex items-center justify-between p-2 rounded border hover:bg-muted/50 cursor-pointer"
+                    onClick={() => handleObjectClick(obj)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: getObjectColor(obj.id) }}
+                      />
+                      <span className="text-sm font-medium">{obj.label}</span>
+                    </div>
+                    <span className="text-xs font-mono text-muted-foreground">
+                      {(obj.confidence * 100).toFixed(0)}%
                     </span>
                   </div>
                 ))}
-              </div>
-            ) : selectedObject.material ? (
-              // Fallback to legacy single material
-              <div className="text-xs" data-oid="qg3pl96">
-                Material: {selectedObject.material} (
-                {(selectedObject.material_conf || 0) * 100}%)
-              </div>
-            ) : null}
-
-            {(selectedObject.bbox &&
-              typeof selectedObject.bbox.x === "number" &&
-              typeof selectedObject.bbox.y === "number" &&
-              typeof selectedObject.bbox.width === "number" &&
-              typeof selectedObject.bbox.height === "number") ? (
-              <div className="text-xs text-muted-foreground" data-oid=".ojmm.v">
-                {Math.round(selectedObject.bbox.width)}×
-                {Math.round(selectedObject.bbox.height)} at (
-                {Math.round(selectedObject.bbox.x)},{" "}
-                {Math.round(selectedObject.bbox.y)})
-              </div>
-            ) : (
-              <div className="text-xs text-muted-foreground" data-oid=".ojmm.v">
-                Bounding box: N/A
-              </div>
-            )}
-
-            {/* Mask information */}
-            {selectedObject.has_mask && (
-              <div className="space-y-1" data-oid="mask_info">
-                <div className="text-xs font-medium">Segmentation:</div>
-                <div className="text-xs flex items-center justify-between">
-                  <span className="text-muted-foreground">Area: {selectedObject.mask_area?.toLocaleString()} px</span>
-                </div>
-                {selectedObject.mask_coverage && (
-                  <div className="text-xs flex items-center justify-between">
-                    <span className="text-muted-foreground">Coverage: {(selectedObject.mask_coverage * 100).toFixed(1)}%</span>
-                  </div>
-                )}
-                {selectedObject.segmentation_confidence && (
-                  <div className="text-xs flex items-center justify-between">
-                    <span className="text-muted-foreground">SAM2 Score:</span>
-                    <span className="font-mono">
-                      {(selectedObject.segmentation_confidence * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {selectedObject.review_status && (
-              <Badge variant="outline" className="text-xs" data-oid="98_3l0a">
-                {selectedObject.review_status}
-              </Badge>
-            )}
-          </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>
   );
-}
-
-// Object overlay component
-function ObjectOverlay({
-  object,
-  isSelected,
-  color,
-  onClick,
-  imageWidth,
-  imageHeight,
-}: {
-  object: SceneObject;
-  isSelected: boolean;
-  color: string;
-  onClick: (e: React.MouseEvent) => void;
-  imageWidth: number;
-  imageHeight: number;
-}) {
-  const { bbox } = object;
-
-  // Guard against undefined bbox
-  if (
-    !bbox ||
-    typeof bbox.x !== "number" ||
-    typeof bbox.y !== "number" ||
-    typeof bbox.width !== "number" ||
-    typeof bbox.height !== "number"
-  ) {
-    console.debug("ObjectOverlay: Invalid bbox data", { objectId: object?.id, bbox });
-    return null;
-  }
-
-  // Convert bbox coordinates to percentage
-  if (!imageWidth || !imageHeight) return null;
-  const left = (bbox.x / imageWidth) * 100;
-  const top = (bbox.y / imageHeight) * 100;
-  const width = (bbox.width / imageWidth) * 100;
-  const height = (bbox.height / imageHeight) * 100;
-
-  return (
-    <div
-      className={`absolute border-2 cursor-pointer transition-all ${
-        isSelected
-          ? "border-primary bg-primary/20"
-          : "border-white/60 hover:border-white/80"
-      }`}
-      style={{
-        left: `${left}%`,
-        top: `${top}%`,
-        width: `${width}%`,
-        height: `${height}%`,
-        borderColor: isSelected ? color : "rgba(255, 255, 255, 0.6)",
-      }}
-      onClick={onClick}
-      data-oid="heq5ywk"
-    >
-      {/* Label */}
-      <div
-        className="absolute -top-6 left-0 px-1 py-0.5 text-xs font-medium rounded text-white"
-        style={{ backgroundColor: color }}
-        data-oid="4zw6-.s"
-      >
-        {object.label} ({(object.confidence * 100).toFixed(0)}%)
-      </div>
-    </div>
-  );
-}
-
-// Mask overlay component for SAM2 segmentation masks
-function MaskOverlay({
-  object,
-  isSelected,
-  color,
-  onClick,
-  imageWidth,
-  imageHeight,
-}: {
-  object: SceneObject;
-  isSelected: boolean;
-  color: string;
-  onClick: (e: React.MouseEvent) => void;
-  imageWidth: number;
-  imageHeight: number;
-}) {
-  // Check if object has a mask
-  const hasMask = object.mask_base64 || (object as any).has_mask;
-  const maskData = object.mask_base64;
-
-  if (!hasMask || !maskData) {
-    return null;
-  }
-
-  const { bbox } = object;
-
-  // Guard against undefined bbox
-  if (
-    !bbox ||
-    typeof bbox.x !== "number" ||
-    typeof bbox.y !== "number" ||
-    typeof bbox.width !== "number" ||
-    typeof bbox.height !== "number"
-  ) {
-    return null;
-  }
-
-  // Convert bbox coordinates to percentage for positioning
-  if (!imageWidth || !imageHeight) return null;
-  const left = (bbox.x / imageWidth) * 100;
-  const top = (bbox.y / imageHeight) * 100;
-  const width = (bbox.width / imageWidth) * 100;
-  const height = (bbox.height / imageHeight) * 100;
-
-  return (
-    <div
-      className="absolute cursor-pointer"
-      style={{
-        left: `${left}%`,
-        top: `${top}%`,
-        width: `${width}%`,
-        height: `${height}%`,
-      }}
-      onClick={onClick}
-      data-oid="mask-overlay-container"
-    >
-      {/* Render the mask image */}
-      <img
-        src={`data:image/png;base64,${maskData}`}
-        alt={`${object.label} mask`}
-        className="w-full h-full object-contain"
-        style={{
-          opacity: isSelected ? 0.8 : 0.6,
-          filter: `hue-rotate(${getHueRotationForColor(color)}deg) saturate(150%) brightness(120%)`,
-          mixBlendMode: 'multiply',
-        }}
-        draggable={false}
-        data-oid="mask-image"
-      />
-      
-      {/* Label for the mask */}
-      <div
-        className="absolute -top-6 left-0 px-1 py-0.5 text-xs font-medium rounded text-white"
-        style={{ backgroundColor: color }}
-        data-oid="mask-label"
-      >
-        {object.label} (mask)
-      </div>
-    </div>
-  );
-}
-
-// Helper function to convert color to hue rotation
-function getHueRotationForColor(color: string): number {
-  const colorMap: { [key: string]: number } = {
-    '#3b82f6': 220, // blue
-    '#10b981': 150, // green
-    '#f59e0b': 40,  // amber
-    '#8b5cf6': 270, // violet
-    '#ef4444': 0,   // red
-    '#06b6d4': 180, // cyan
-    '#84cc16': 80,  // lime
-  };
-  return colorMap[color] || 0;
 }
 
 // Utility function
