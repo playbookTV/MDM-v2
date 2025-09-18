@@ -157,7 +157,7 @@ export function SceneDetailView({
             Failed to load scene
           </h3>
           <p className="text-sm text-muted-foreground" data-oid="m0u651w">
-            {error?.message || "An error occurred"}
+            {(error as Error)?.message || "An error occurred"}
           </p>
         </div>
       </div>

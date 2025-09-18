@@ -79,18 +79,58 @@ async def _create_scene_objects(scene_id: str, objects_data: list, mask_keys: di
         
         # Set subcategory for more granular classification
         subcategory = None
-        if canonical_label in ['sectional', 'loveseat', 'chaise_lounge']:
-            subcategory = canonical_label
-        elif canonical_label in ['dining_table', 'coffee_table', 'console_table']:
-            subcategory = canonical_label  
-        elif raw_label.lower() in ['floor_lamp', 'table_lamp', 'pendant_light']:
-            subcategory = raw_label.lower()
-        elif raw_label.lower() in ['bookshelf', 'tv_stand', 'dresser']:
-            subcategory = raw_label.lower()
-        elif raw_label.lower() in ['platform_bed', 'bunk_bed', 'canopy_bed', 'bed_frame']:
-            subcategory = raw_label.lower()
-        elif raw_label.lower() == 'bed':
+        raw_lower = raw_label.lower()
+        canonical_lower = canonical_label.lower()
+        
+        # Seating subcategories
+        if canonical_lower in ['sectional', 'loveseat', 'chaise_lounge', 'armchair', 'recliner', 'ottoman']:
+            subcategory = canonical_lower
+        elif canonical_lower in ['sofa', 'couch'] and 'sectional' in raw_lower:
+            subcategory = 'sectional'
+        elif canonical_lower in ['chair'] and any(x in raw_lower for x in ['office', 'desk', 'computer']):
+            subcategory = 'office_chair'
+        elif canonical_lower in ['chair'] and any(x in raw_lower for x in ['dining', 'kitchen']):
+            subcategory = 'dining_chair'
+        elif canonical_lower in ['chair'] and any(x in raw_lower for x in ['bar', 'counter']):
+            subcategory = 'bar_stool'
+        
+        # Table subcategories
+        elif canonical_lower in ['dining_table', 'coffee_table', 'console_table', 'side_table', 'end_table']:
+            subcategory = canonical_lower
+        elif canonical_lower in ['table'] and any(x in raw_lower for x in ['dining', 'kitchen']):
+            subcategory = 'dining_table'
+        elif canonical_lower in ['table'] and any(x in raw_lower for x in ['coffee', 'center']):
+            subcategory = 'coffee_table'
+        elif canonical_lower in ['desk'] and any(x in raw_lower for x in ['office', 'computer']):
+            subcategory = 'office_desk'
+        
+        # Lighting subcategories
+        elif raw_lower in ['floor_lamp', 'table_lamp', 'pendant_light', 'ceiling_light', 'chandelier']:
+            subcategory = raw_lower
+        elif canonical_lower in ['lamp'] and 'floor' in raw_lower:
+            subcategory = 'floor_lamp'
+        elif canonical_lower in ['lamp'] and any(x in raw_lower for x in ['table', 'desk']):
+            subcategory = 'table_lamp'
+        
+        # Storage subcategories
+        elif raw_lower in ['bookshelf', 'tv_stand', 'dresser', 'nightstand', 'wardrobe', 'armoire']:
+            subcategory = raw_lower
+        elif canonical_lower in ['cabinet'] and any(x in raw_lower for x in ['kitchen', 'upper', 'lower']):
+            subcategory = 'kitchen_cabinet'
+        elif canonical_lower in ['cabinet'] and any(x in raw_lower for x in ['bathroom', 'medicine']):
+            subcategory = 'bathroom_cabinet'
+        
+        # Bedroom subcategories
+        elif raw_lower in ['platform_bed', 'bunk_bed', 'canopy_bed', 'bed_frame']:
+            subcategory = raw_lower
+        elif canonical_lower in ['bed'] or raw_lower == 'bed':
             subcategory = 'bed_frame'  # Default subcategory for generic bed detection
+        elif canonical_lower in ['mattress']:
+            subcategory = 'mattress'
+        
+        # If no specific subcategory found, use canonical label as subcategory for specificity
+        if not subcategory and canonical_lower != normalized_category.lower():
+            subcategory = canonical_lower
 
         # Get mask and thumbnail keys from uploaded R2 files
         uploaded_mask_key = None
@@ -527,10 +567,11 @@ def process_scene(self, job_id: str, scene_id: str, options: Dict[str, Any] = No
                 "objects": ai_results.get("objects", []),  # Include actual objects array
                 "palette": ai_results.get("color_palette", []),  # Enhanced color palette from AI pipeline
                 "depth_available": ai_results.get("depth_available", False),
+                "has_depth": bool(scene_file_keys.get("r2_key_depth")),  # Set has_depth based on successful upload
                 "processing_success": ai_results.get("success", False),
                 "ai_error": ai_results.get("error") if not ai_results.get("success") else None,
                 # Add R2 keys to scene record
-                **scene_file_keys  # This adds thumb_key and depth_key if they exist
+                **scene_file_keys  # This adds r2_key_depth and r2_key_thumbnail if they exist
             }
             
             updated = await scene_service.update_scene(scene_id, processing_results)

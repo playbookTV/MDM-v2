@@ -30,7 +30,7 @@ export function DatasetExplorerPage() {
   });
 
   const processHuggingFace = useProcessHuggingFaceDataset();
-  // const processRoboflow = useProcessRoboflowDataset(); // TODO: Use for advanced Roboflow processing
+  const processRoboflow = useProcessRoboflowDataset();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -85,14 +85,27 @@ export function DatasetExplorerPage() {
       const isHuggingFace = dataset.source_url.includes("huggingface.co");
 
       if (isRoboflow) {
-        // For Roboflow datasets, we need API key - show a prompt or use a stored key
-        // For now, we'll prompt user to process via the import flow
+        // Process Roboflow dataset using the backend API
+        // The backend will use the environment variable ROBOFLOW_API_KEY if available
+        const result = await processRoboflow.mutateAsync({
+          datasetId: dataset.id,
+          request: {
+            roboflow_url: dataset.source_url,
+            export_format: "coco",
+            max_images: 100, // Optional limit for testing
+          },
+        });
+
+        console.log(`Roboflow processing started successfully. Job ID: ${result.job_id}`);
+
         toast({
-          title: "Roboflow Processing",
-          description: "For Roboflow datasets, please use the 'Import from Roboflow' option with your API key",
+          title: "Processing Started",
+          description: `Roboflow dataset processing job ${result.job_id} started successfully`,
           variant: "default",
         });
-        return;
+
+        // Navigate to job monitoring page
+        navigate("/jobs");
       } else if (isHuggingFace) {
         const result = await processHuggingFace.mutateAsync({
           datasetId: dataset.id,
@@ -160,7 +173,7 @@ export function DatasetExplorerPage() {
               Failed to load datasets
             </p>
             <p className="text-muted-foreground" data-oid="jb6s.di">
-              {error?.message || "An error occurred while loading datasets"}
+              {(error as Error)?.message || "An error occurred while loading datasets"}
             </p>
           </div>
         )}

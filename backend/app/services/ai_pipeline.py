@@ -108,6 +108,73 @@ class AIPipelineService:
         # Return mapped value or normalized value if no mapping exists
         return style_type_mapping.get(normalized, normalized)
     
+    def _generate_subcategory(self, raw_label: str, canonical_label: str, category: str) -> Optional[str]:
+        """Generate subcategory for more granular object classification"""
+        raw_lower = raw_label.lower()
+        canonical_lower = canonical_label.lower()
+        
+        # Seating subcategories
+        if canonical_lower in ['sectional', 'loveseat', 'chaise_lounge', 'armchair', 'recliner', 'ottoman']:
+            return canonical_lower
+        elif canonical_lower in ['sofa', 'couch'] and 'sectional' in raw_lower:
+            return 'sectional'
+        elif canonical_lower in ['sofa', 'couch']:
+            return 'sofa'  # Default for sofa/couch
+        elif canonical_lower in ['chair'] and any(x in raw_lower for x in ['office', 'desk', 'computer']):
+            return 'office_chair'
+        elif canonical_lower in ['chair'] and any(x in raw_lower for x in ['dining', 'kitchen']):
+            return 'dining_chair'
+        elif canonical_lower in ['chair'] and any(x in raw_lower for x in ['bar', 'counter']):
+            return 'bar_stool'
+        elif canonical_lower in ['chair']:
+            return 'chair'  # Default for chair
+        
+        # Table subcategories
+        elif canonical_lower in ['dining_table', 'coffee_table', 'console_table', 'side_table', 'end_table']:
+            return canonical_lower
+        elif canonical_lower in ['table'] and any(x in raw_lower for x in ['dining', 'kitchen']):
+            return 'dining_table'
+        elif canonical_lower in ['table'] and any(x in raw_lower for x in ['coffee', 'center']):
+            return 'coffee_table'
+        elif canonical_lower in ['desk'] and any(x in raw_lower for x in ['office', 'computer']):
+            return 'office_desk'
+        elif canonical_lower in ['table']:
+            return 'table'  # Default for table
+        
+        # Lighting subcategories
+        elif raw_lower in ['floor_lamp', 'table_lamp', 'pendant_light', 'ceiling_light', 'chandelier']:
+            return raw_lower
+        elif canonical_lower in ['lamp'] and 'floor' in raw_lower:
+            return 'floor_lamp'
+        elif canonical_lower in ['lamp'] and any(x in raw_lower for x in ['table', 'desk']):
+            return 'table_lamp'
+        elif canonical_lower in ['lamp']:
+            return 'lamp'  # Default for lamp
+        
+        # Storage subcategories
+        elif raw_lower in ['bookshelf', 'tv_stand', 'dresser', 'nightstand', 'wardrobe', 'armoire']:
+            return raw_lower
+        elif canonical_lower in ['cabinet'] and any(x in raw_lower for x in ['kitchen', 'upper', 'lower']):
+            return 'kitchen_cabinet'
+        elif canonical_lower in ['cabinet'] and any(x in raw_lower for x in ['bathroom', 'medicine']):
+            return 'bathroom_cabinet'
+        elif canonical_lower in ['cabinet']:
+            return 'cabinet'  # Default for cabinet
+        
+        # Bedroom subcategories
+        elif raw_lower in ['platform_bed', 'bunk_bed', 'canopy_bed', 'bed_frame']:
+            return raw_lower
+        elif canonical_lower in ['bed'] or raw_lower == 'bed':
+            return 'bed_frame'  # Default subcategory for generic bed detection
+        elif canonical_lower in ['mattress']:
+            return 'mattress'
+        
+        # Default: use canonical label as subcategory if different from category
+        if canonical_lower != category.lower():
+            return canonical_lower
+        
+        return None
+    
     def _process_detected_objects(self, raw_objects: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Process and filter detected objects using centralized taxonomy"""
         processed_objects = []
@@ -131,18 +198,25 @@ class AIPipelineService:
             canonical_label = get_canonical_label(label)
             category = get_category_for_item(canonical_label)
             
+            # Generate subcategory for granular classification
+            subcategory = self._generate_subcategory(label, canonical_label, category)
+            
             # Create processed object with canonical labels
             processed_obj = {
                 'label': canonical_label,
                 'original_label': label,
                 'category': category,
+                'subcategory': subcategory,
                 'confidence': confidence,
                 'bbox': bbox,
                 'bbox_format': obj.get('bbox_format')
             }
             
             # Preserve additional fields from original object
-            for field in ['mask_url', 'mask_base64', 'segmentation', 'area', 'material', 'description']:
+            for field in ['mask_url', 'mask_base64', 'segmentation', 'area', 'material', 'description',
+                         'has_mask', 'mask_area', 'mask_coverage', 'segmentation_confidence',
+                         'thumb_base64', 'primary_material', 'material_confidence', 'materials',
+                         'depth_base64', 'has_depth_crop', 'depth_stats']:
                 if field in obj:
                     processed_obj[field] = obj[field]
             

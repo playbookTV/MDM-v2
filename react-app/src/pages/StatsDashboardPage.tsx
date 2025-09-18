@@ -70,7 +70,7 @@ export function StatsDashboardPage() {
                 Failed to load statistics
               </p>
               <p className="text-muted-foreground" data-oid="o2x:axw">
-                {error?.message || "An error occurred while loading statistics"}
+                {(error as Error)?.message || "An error occurred while loading statistics"}
               </p>
             </div>
           )}

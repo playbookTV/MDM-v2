@@ -1,6 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
 import {
-  Play,
   Pause,
   Square,
   RotateCcw,
@@ -78,7 +77,6 @@ export function JobCard({
 
   const statusConfig = STATUS_CONFIG[job.status];
   const StatusIcon = statusConfig.icon;
-  const isActive = job.status === "running" || job.status === "queued";
   const canCancel = job.status === "running" || job.status === "queued";
   const canRetry = job.status === "failed";
 

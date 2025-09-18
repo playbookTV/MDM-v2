@@ -402,7 +402,7 @@ export function StartJobModal({
                 />
 
                 <span className="text-sm text-destructive" data-oid="t81y82u">
-                  {createJobMutation.error?.message ||
+                  {(createJobMutation.error as Error)?.message ||
                     "An error occurred while creating job"}
                 </span>
               </div>

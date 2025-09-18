@@ -437,7 +437,7 @@ export function SceneReviewPage() {
         )}
         {error && (
           <p className="text-sm text-muted-foreground" data-oid="t21k.ps">
-            {error?.message || "An error occurred"}
+            {(error as Error)?.message || "An error occurred"}
           </p>
         )}
       </div>

@@ -560,22 +560,26 @@ export function SceneDetailView({
               variant={showMasks ? "default" : "outline"}
               size="sm"
               onClick={() => {
-                const hasAnyMasks = normalizedObjects.some(obj => obj.has_mask || obj.mask_base64);
+                const hasAnyMasks = normalizedObjects.some(obj => obj.has_mask || obj.mask_base64 || obj.mask_url);
                 if (!hasAnyMasks && !showMasks) {
                   toast({
                     title: "No Masks Available",
-                    description: "This scene doesn't have SAM2 segmentation masks. Try reanalyzing the scene first.",
+                    description: "This scene doesn't have SAM2 segmentation masks. Click 'Reanalyze Scene' in the sidebar to generate masks.",
                     variant: "destructive",
                   });
+                  // Open sidebar to show reanalyze button
+                  setSidebarVisible(true);
+                  return; // Don't toggle if no masks available
                 }
                 setShowMasks(!showMasks);
               }}
+              disabled={normalizedObjects.length === 0}
             >
               <Layers className="h-4 w-4 mr-1" />
               Masks
-              {normalizedObjects.some(obj => obj.has_mask || obj.mask_base64) && (
+              {normalizedObjects.some(obj => obj.has_mask || obj.mask_base64 || obj.mask_url) && (
                 <span className="ml-1 text-xs bg-green-500 text-white rounded-full px-1">
-                  {normalizedObjects.filter(obj => obj.has_mask || obj.mask_base64).length}
+                  {normalizedObjects.filter(obj => obj.has_mask || obj.mask_base64 || obj.mask_url).length}
                 </span>
               )}
             </Button>
@@ -721,7 +725,7 @@ export function SceneDetailView({
                   <Button
                     size="sm"
                     onClick={() => reviewWorkflow.approveScene()}
-                    disabled={reviewWorkflow.isLoading}
+                    disabled={reviewWorkflow.isSubmitting}
                     className="flex-1"
                   >
                     <Check className="h-4 w-4 mr-1" />
@@ -731,7 +735,7 @@ export function SceneDetailView({
                     size="sm"
                     variant="destructive"
                     onClick={() => reviewWorkflow.rejectScene()}
-                    disabled={reviewWorkflow.isLoading}
+                    disabled={reviewWorkflow.isSubmitting}
                     className="flex-1"
                   >
                     <XCircle className="h-4 w-4 mr-1" />
@@ -993,7 +997,7 @@ export function SceneDetailView({
                     <Button
                       size="sm"
                       onClick={handleSaveCorrections}
-                      disabled={!hasChanges || reviewWorkflow.isLoading}
+                      disabled={!hasChanges || reviewWorkflow.isSubmitting}
                       className="flex-1"
                     >
                       <Save className="h-4 w-4 mr-1" />

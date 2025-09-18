@@ -121,7 +121,7 @@ export function JobsPage() {
                 Failed to load jobs
               </p>
               <p className="text-muted-foreground" data-oid="q6jjzk9">
-                {error?.message || "An error occurred while loading jobs"}
+                {(error as Error)?.message || "An error occurred while loading jobs"}
               </p>
             </div>
           )}

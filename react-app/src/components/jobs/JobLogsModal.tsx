@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import {
   Download,
   Trash2,
-  Filter,
   Search,
   ChevronDown,
   Bug,
@@ -23,13 +22,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useJobLogsStream } from "@/hooks/useJobLogs";
 import type { Job, JobLogEntry } from "@/types/dataset";
 
@@ -83,7 +75,6 @@ export function JobLogsModal({ job, open, onClose }: JobLogsModalProps) {
     error,
     clearLogs,
     downloadLogs,
-    getLogsByLevel,
     getLogStats,
     hasNewLogs,
   } = useJobLogsStream(job?.id || "", {
@@ -333,7 +324,7 @@ export function JobLogsModal({ job, open, onClose }: JobLogsModalProps) {
                 className="text-sm text-destructive/80 mt-1"
                 data-oid="nmc6:dd"
               >
-                {error?.message || "An error occurred"}
+                {(error as Error)?.message || "An error occurred"}
               </p>
             </div>
           )}

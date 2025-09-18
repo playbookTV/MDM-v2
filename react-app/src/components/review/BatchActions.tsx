@@ -4,7 +4,6 @@ import {
   XCircle,
   AlertTriangle,
   Loader2,
-  MessageSquare,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";

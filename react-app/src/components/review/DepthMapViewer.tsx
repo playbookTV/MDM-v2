@@ -5,7 +5,6 @@ import {
   EyeOff,
   RotateCw,
   Layers,
-  Settings,
   Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";

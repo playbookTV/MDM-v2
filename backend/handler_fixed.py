@@ -199,14 +199,21 @@ def classify_scene(image: Image.Image) -> dict:
         
         inputs = models['clip_processor'](
             text=scene_types, 
-            images=image, 
+            images=[image],  # CLIP processor expects a list of images
             return_tensors="pt", 
             padding=True
         )
         
-        # Move inputs to same device as model
+        # Move inputs to same device as model with error handling
         device = models.get('device', 'cpu')
-        inputs = {k: v.to(device) if hasattr(v, 'to') else v for k, v in inputs.items()}
+        try:
+            inputs = {k: v.to(device) if hasattr(v, 'to') else v for k, v in inputs.items()}
+            logger.debug(f"Scene classification inputs moved to device {device}")
+        except Exception as e:
+            logger.error(f"Error moving scene inputs to device {device}: {e}")
+            # Fallback to CPU
+            device = 'cpu'
+            inputs = {k: v.to(device) if hasattr(v, 'to') else v for k, v in inputs.items()}
         
         with torch.no_grad():
             outputs = models['clip_model'](**inputs)
@@ -622,14 +629,21 @@ def analyze_style(image: Image.Image) -> dict:
         
         inputs = models['clip_processor'](
             text=style_prompts,
-            images=image,
+            images=[image],  # CLIP processor expects a list of images
             return_tensors="pt", 
             padding=True
         )
         
-        # Move inputs to same device as model
+        # Move inputs to same device as model with error handling
         device = models.get('device', 'cpu')
-        inputs = {k: v.to(device) if hasattr(v, 'to') else v for k, v in inputs.items()}
+        try:
+            inputs = {k: v.to(device) if hasattr(v, 'to') else v for k, v in inputs.items()}
+            logger.debug(f"Style analysis inputs moved to device {device}")
+        except Exception as e:
+            logger.error(f"Error moving style inputs to device {device}: {e}")
+            # Fallback to CPU
+            device = 'cpu'
+            inputs = {k: v.to(device) if hasattr(v, 'to') else v for k, v in inputs.items()}
         
         with torch.no_grad():
             outputs = models['clip_model'](**inputs)
@@ -677,50 +691,68 @@ def detect_object_materials(image: Image.Image, objects: list, material_taxonomy
     if not objects:
         return []
     
-    # Define material taxonomy based on object types
+    # Define comprehensive material taxonomy based on object types
     if material_taxonomy is None:
         material_taxonomy = {
-            # Seating materials
+            # Seating materials - Enhanced with specific textures
             "sofa": ["fabric upholstery", "leather upholstery", "velvet fabric", "linen fabric", 
-                    "microfiber", "wood frame", "metal legs"],
-            "chair": ["wood", "metal", "plastic", "fabric seat", "leather seat", "rattan", "mesh"],
+                    "microfiber", "cotton blend", "corduroy", "wood frame", "metal legs", "plastic base"],
+            "couch": ["fabric upholstery", "leather upholstery", "velvet fabric", "linen fabric", 
+                     "microfiber", "cotton blend", "corduroy", "wood frame", "metal legs"],
+            "chair": ["solid wood", "metal frame", "plastic", "fabric seat", "leather seat", "rattan", 
+                     "mesh back", "wicker", "bamboo", "steel", "aluminum"],
+            "armchair": ["fabric upholstery", "leather upholstery", "velvet", "wood frame", "metal legs"],
+            "ottoman": ["fabric", "leather", "woven material", "wood base", "metal legs"],
             
-            # Table materials
-            "table": ["wood surface", "glass top", "marble top", "metal frame", "laminate", 
-                     "stone surface", "acrylic"],
-            "desk": ["wood", "metal", "glass", "laminate", "particle board"],
+            # Table materials - Enhanced with finishes
+            "table": ["solid wood", "oak wood", "pine wood", "walnut wood", "glass top", "tempered glass",
+                     "marble top", "granite surface", "metal frame", "steel legs", "laminate", 
+                     "stone surface", "acrylic", "reclaimed wood", "bamboo"],
+            "desk": ["wood veneer", "solid wood", "metal frame", "glass surface", "laminate top", 
+                    "particle board", "steel legs", "aluminum frame"],
+            "coffee_table": ["wood surface", "glass top", "metal frame", "stone surface", "marble top"],
+            "dining_table": ["solid wood", "oak", "pine", "walnut", "glass top", "metal base"],
             
-            # Storage materials  
-            "cabinet": ["wood", "metal", "laminate", "glass doors", "particle board", "MDF"],
-            "shelf": ["wood", "metal", "glass", "wire mesh", "plastic"],
-            "dresser": ["solid wood", "veneer", "laminate", "metal handles"],
+            # Storage materials - Enhanced with construction details
+            "cabinet": ["solid wood", "plywood", "metal", "laminate finish", "glass doors", 
+                       "particle board", "MDF", "wood veneer", "steel frame"],
+            "shelf": ["wood", "metal brackets", "glass shelves", "wire mesh", "plastic", "steel"],
+            "bookshelf": ["solid wood", "wood veneer", "metal frame", "particle board", "laminate"],
+            "dresser": ["solid wood", "wood veneer", "laminate finish", "metal handles", "wood handles"],
+            "wardrobe": ["wood construction", "metal frame", "fabric doors", "mirror doors"],
             
-            # Bedroom materials
-            "bed": ["wood frame", "metal frame", "upholstered headboard", "fabric", "leather"],
-            "mattress": ["memory foam", "latex", "spring coils", "fabric cover"],
+            # Bedroom materials - Enhanced
+            "bed": ["wood frame", "metal frame", "upholstered headboard", "fabric headboard", 
+                   "leather headboard", "solid wood", "steel frame", "iron frame"],
+            "mattress": ["memory foam", "latex foam", "spring coils", "fabric cover", "cotton cover"],
+            "nightstand": ["solid wood", "wood veneer", "metal", "glass top", "laminate"],
             
-            # Lighting materials
-            "lamp": ["metal base", "ceramic base", "glass shade", "fabric shade", "plastic", "wood"],
+            # Lighting materials - Enhanced
+            "lamp": ["metal base", "ceramic base", "wood base", "glass shade", "fabric shade", 
+                    "paper shade", "plastic shade", "steel construction", "brass finish"],
+            "ceiling_light": ["metal fixture", "glass shade", "fabric shade", "LED panel", "chrome finish"],
+            "floor_lamp": ["metal pole", "wood base", "fabric shade", "paper shade", "steel base"],
             
-            # Electronics
-            "tv": ["plastic casing", "glass screen", "metal stand"],
-            "monitor": ["plastic", "metal", "glass screen"],
+            # Textiles and soft goods
+            "pillow": ["cotton fabric", "linen", "velvet", "silk", "polyester", "down filling", "foam filling"],
+            "curtains": ["cotton fabric", "linen", "polyester", "silk", "sheer fabric", "blackout fabric"],
+            "rug": ["wool", "cotton", "synthetic fibers", "jute", "sisal", "silk", "bamboo"],
+            "carpet": ["wool pile", "nylon", "polyester", "natural fibers"],
             
-            # Bathroom
-            "toilet": ["ceramic", "porcelain", "plastic seat"],
-            "bathtub": ["acrylic", "fiberglass", "cast iron", "ceramic"],
-            "sink": ["ceramic", "porcelain", "stainless steel", "stone"],
+            # Decorative items
+            "mirror": ["glass surface", "metal frame", "wood frame", "plastic frame", "silver backing"],
+            "plant": ["natural foliage", "ceramic pot", "plastic pot", "terra cotta", "metal planter"],
+            "vase": ["ceramic", "glass", "metal", "plastic", "stone", "clay"],
+            "artwork": ["canvas", "paper", "metal print", "wood frame", "plastic frame"],
             
-            # Decor
-            "mirror": ["glass", "metal frame", "wood frame", "plastic frame"],
-            "plant": ["organic leaves", "ceramic pot", "plastic pot", "terracotta pot"],
-            "vase": ["glass", "ceramic", "porcelain", "metal", "crystal"],
-            "rug": ["wool", "cotton", "synthetic fiber", "jute", "silk"],
-            "curtains": ["fabric", "polyester", "cotton", "linen", "silk"],
-            "pillow": ["cotton cover", "linen", "velvet", "silk", "polyester fill"],
+            # Kitchen and bathroom
+            "sink": ["stainless steel", "ceramic", "granite composite", "marble", "copper"],
+            "faucet": ["chrome finish", "stainless steel", "brass finish", "nickel finish"],
+            "toilet": ["ceramic", "porcelain"],
+            "bathtub": ["acrylic", "fiberglass", "cast iron", "stone"],
             
-            # Default materials for unknown objects
-            "default": ["wood", "metal", "fabric", "plastic", "glass", "ceramic"]
+            # Default fallback for unknown objects
+            "default": ["wood", "metal", "plastic", "glass", "fabric", "ceramic", "stone"]
         }
     
     try:
@@ -755,8 +787,22 @@ def detect_object_materials(image: Image.Image, objects: list, material_taxonomy
                 # Get material candidates based on object type
                 material_candidates = material_taxonomy.get(label, material_taxonomy.get("default", []))
                 
-                # Prepare material prompts for CLIP
-                material_prompts = [f"a photo of {mat}" for mat in material_candidates]
+                # Prepare enhanced material prompts for CLIP with context
+                material_prompts = []
+                for mat in material_candidates:
+                    # Enhanced prompting with object context for better accuracy
+                    if "fabric" in mat or "upholstery" in mat:
+                        material_prompts.append(f"a photo of {label} with {mat}")
+                        material_prompts.append(f"furniture made from {mat}")
+                    elif "wood" in mat or "metal" in mat or "glass" in mat:
+                        material_prompts.append(f"a photo of {label} made from {mat}")
+                        material_prompts.append(f"{mat} {label}")
+                    else:
+                        material_prompts.append(f"a photo of {mat} {label}")
+                        material_prompts.append(f"{label} with {mat}")
+                
+                # Deduplicate prompts while preserving order
+                material_prompts = list(dict.fromkeys(material_prompts))
                 
                 if not material_prompts:
                     enhanced_obj["materials"] = []
@@ -766,14 +812,20 @@ def detect_object_materials(image: Image.Image, objects: list, material_taxonomy
                 # Run CLIP on object crop with material prompts
                 inputs = models['clip_processor'](
                     text=material_prompts,
-                    images=object_crop,
+                    images=[object_crop],  # CLIP processor expects a list of images
                     return_tensors="pt",
                     padding=True
                 )
                 
-                # Move inputs to same device as model
+                # Move inputs to same device as model with error handling
                 device = models.get('device', 'cpu')
-                inputs = {k: v.to(device) if hasattr(v, 'to') else v for k, v in inputs.items()}
+                try:
+                    inputs = {k: v.to(device) if hasattr(v, 'to') else v for k, v in inputs.items()}
+                except Exception as e:
+                    logger.error(f"Error moving material inputs to device {device}: {e}")
+                    # Fallback to CPU
+                    device = 'cpu'
+                    inputs = {k: v.to(device) if hasattr(v, 'to') else v for k, v in inputs.items()}
                 
                 with torch.no_grad():
                     outputs = models['clip_model'](**inputs)
@@ -979,13 +1031,14 @@ def estimate_depth(image: Image.Image) -> dict:
             }
         }
 
-def enhance_objects_with_details(image: Image.Image, objects: list) -> list:
+def enhance_objects_with_details(image: Image.Image, objects: list, depth_map: Image.Image = None) -> list:
     """
     Generate object thumbnails, descriptions, and depth crops for detected objects.
     
     Args:
         image: Original scene image
         objects: List of detected objects with bounding boxes
+        depth_map: Optional depth map for generating object depth crops
         
     Returns:
         Enhanced objects with thumb_base64, description, and depth_base64 fields
@@ -1056,10 +1109,35 @@ def enhance_objects_with_details(image: Image.Image, objects: list) -> list:
                 
                 enhanced_obj["description"] = description
                 
-                # Generate depth crop if depth estimation was successful
-                # Note: This would require passing depth map from estimate_depth function
-                # For now, we'll mark it as a placeholder
-                enhanced_obj["has_depth_crop"] = False  # Will be implemented when depth integration is added
+                # Generate depth crop if depth map is available
+                if depth_map is not None:
+                    try:
+                        # Crop depth map using same bbox
+                        depth_crop = depth_map.crop((x, y, x + w, y + h))
+                        
+                        # Convert depth crop to base64
+                        depth_buffer = io.BytesIO()
+                        depth_crop.save(depth_buffer, format='PNG')
+                        depth_base64 = base64.b64encode(depth_buffer.getvalue()).decode('utf-8')
+                        
+                        enhanced_obj["depth_base64"] = depth_base64
+                        enhanced_obj["has_depth_crop"] = True
+                        
+                        # Calculate depth statistics for the object
+                        depth_array = np.array(depth_crop)
+                        if depth_array.size > 0:
+                            enhanced_obj["depth_stats"] = {
+                                "min_depth": float(np.min(depth_array)),
+                                "max_depth": float(np.max(depth_array)),
+                                "mean_depth": float(np.mean(depth_array)),
+                                "depth_range": float(np.max(depth_array) - np.min(depth_array))
+                            }
+                        
+                    except Exception as e:
+                        logger.warning(f"Failed to generate depth crop for {label}: {e}")
+                        enhanced_obj["has_depth_crop"] = False
+                else:
+                    enhanced_obj["has_depth_crop"] = False
                 
                 logger.debug(f"Enhanced object {label}: thumb={len(thumb_base64)} chars, desc='{description[:50]}...'")
                 
@@ -1083,11 +1161,16 @@ def process_scene_complete(image_data_b64: str, scene_id: str, options: dict = N
     start_time = time.time()
     
     try:
-        # Decode and load image
+        # Decode and load image with validation
+        logger.debug(f"Decoding image for scene {scene_id}")
         image_bytes = base64.b64decode(image_data_b64)
         image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
         
-        logger.info(f"Processing scene {scene_id}, image size: {image.size}")
+        # Validate image
+        if image.size[0] <= 0 or image.size[1] <= 0:
+            raise ValueError(f"Invalid image dimensions: {image.size}")
+        
+        logger.info(f"Processing scene {scene_id}, image size: {image.size} ({image.mode})")
         
         # Generate thumbnail (256x256 max, maintaining aspect ratio)
         thumbnail = image.copy()
@@ -1106,37 +1189,67 @@ def process_scene_complete(image_data_b64: str, scene_id: str, options: dict = N
         }
         
         # Run AI analysis pipeline
-        logger.info("Running scene classification...")
-        scene_analysis = classify_scene(image)
-        results["scene_analysis"] = scene_analysis
+        try:
+            logger.info("Running scene classification...")
+            scene_analysis = classify_scene(image)
+            results["scene_analysis"] = scene_analysis
+        except Exception as e:
+            logger.error(f"Scene classification failed: {e}")
+            raise e
         
-        logger.info("Running object detection...")
-        objects = detect_objects(image)
-        results["objects_detected"] = len(objects)
+        try:
+            logger.info("Running object detection...")
+            objects = detect_objects(image)
+            results["objects_detected"] = len(objects)
+        except Exception as e:
+            logger.error(f"Object detection failed: {e}")
+            raise e
         
-        logger.info("Running object segmentation...")
-        segmented_objects = segment_objects(image, objects)
-        results["objects"] = segmented_objects
+        try:
+            logger.info("Running object segmentation...")
+            segmented_objects = segment_objects(image, objects)
+        except Exception as e:
+            logger.error(f"Object segmentation failed: {e}")
+            raise e
         
-        logger.info("Running style analysis...")
-        style_analysis = analyze_style(image)
-        results["style_analysis"] = style_analysis
+        try:
+            logger.info("Running style analysis...")
+            style_analysis = analyze_style(image)
+            results["style_analysis"] = style_analysis
+        except Exception as e:
+            logger.error(f"Style analysis failed: {e}")
+            raise e
+        
+        try:
+            logger.info("Running depth estimation...")
+            depth_analysis = estimate_depth(image)
+            results["depth_analysis"] = depth_analysis
+        except Exception as e:
+            logger.error(f"Depth estimation failed: {e}")
+            raise e
+        
+        # Extract depth map for object enhancement
+        depth_map = None
+        if depth_analysis.get("depth_available"):
+            try:
+                depth_base64 = depth_analysis.get("depth_base64", "")
+                if depth_base64:
+                    depth_data = base64.b64decode(depth_base64)
+                    depth_map = Image.open(io.BytesIO(depth_data))
+            except Exception as e:
+                logger.warning(f"Failed to load depth map for object enhancement: {e}")
         
         logger.info("Running material analysis...")
         material_analysis = analyze_materials(image, segmented_objects)
         results["material_analysis"] = material_analysis
         
-        logger.info("Generating object thumbnails and descriptions...")
-        enhanced_objects = enhance_objects_with_details(image, segmented_objects)
-        results["segmented_objects"] = enhanced_objects  # Replace with enhanced objects
+        logger.info("Generating object thumbnails, descriptions, and depth crops...")
+        enhanced_objects = enhance_objects_with_details(image, segmented_objects, depth_map)
+        results["objects"] = enhanced_objects  # Use enhanced objects as primary output
         
         logger.info("Extracting color palette...")
         color_palette = extract_color_palette(image)
         results["color_palette"] = color_palette
-        
-        logger.info("Running depth estimation...")
-        depth_analysis = estimate_depth(image)
-        results["depth_analysis"] = depth_analysis
         
         # Processing complete
         processing_time = time.time() - start_time
@@ -1154,11 +1267,16 @@ def process_scene_complete(image_data_b64: str, scene_id: str, options: dict = N
         }
         
     except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
         processing_time = time.time() - start_time
         logger.error(f"❌ Scene processing failed after {processing_time:.2f}s: {e}")
+        logger.error(f"Full traceback: {error_trace}")
         return {
             "status": "error",
             "error": str(e),
+            "error_type": type(e).__name__,
+            "traceback": error_trace,
             "processing_time": round(processing_time, 2)
         }
 
@@ -1283,9 +1401,21 @@ def _process_batch_gpu(pil_images: list, scene_ids: list, options: dict) -> list
         # Individual processing for segmentation and enhancement
         segmented = segment_objects(img, objects)
         materials = detect_object_materials(img, segmented)
-        enhanced = enhance_objects_with_details(img, materials)
-        colors = extract_color_palette(img)
+        
+        # Get depth map for object enhancement
         depth = estimate_depth(img)
+        depth_map = None
+        if depth.get("depth_available"):
+            try:
+                depth_base64 = depth.get("depth_base64", "")
+                if depth_base64:
+                    depth_data = base64.b64decode(depth_base64)
+                    depth_map = Image.open(io.BytesIO(depth_data))
+            except Exception as e:
+                logger.warning(f"Failed to load depth map for batch processing: {e}")
+        
+        enhanced = enhance_objects_with_details(img, materials, depth_map)
+        colors = extract_color_palette(img)
         
         # Generate thumbnail
         thumbnail = img.copy()
@@ -1472,10 +1602,22 @@ def _process_single_scene(image: Image.Image, scene_id: str, options: dict) -> d
         objects = detect_objects(image)
         segmented = segment_objects(image, objects)
         materials = detect_object_materials(image, segmented)
-        enhanced = enhance_objects_with_details(image, materials)
+        
+        # Get depth map for object enhancement
+        depth = estimate_depth(image)
+        depth_map = None
+        if depth.get("depth_available"):
+            try:
+                depth_base64 = depth.get("depth_base64", "")
+                if depth_base64:
+                    depth_data = base64.b64decode(depth_base64)
+                    depth_map = Image.open(io.BytesIO(depth_data))
+            except Exception as e:
+                logger.warning(f"Failed to load depth map for single scene processing: {e}")
+        
+        enhanced = enhance_objects_with_details(image, materials, depth_map)
         style = analyze_style(image)
         colors = extract_color_palette(image)
-        depth = estimate_depth(image)
         
         # Generate thumbnail
         thumbnail = image.copy()
@@ -1560,6 +1702,7 @@ def handler(event):
         
         # Extract input data
         input_data = event.get("input", {})
+        logger.info(f"Input data keys: {list(input_data.keys())}")
         
         # GPU diagnostics check
         if input_data.get("gpu_check"):

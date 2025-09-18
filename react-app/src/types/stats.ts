@@ -1,6 +1,7 @@
 export interface SystemHealth {
   cpu_usage_percent: number
   memory_usage_percent: number
+  memory_usage_mb: number
   disk_usage_percent: number
   queue_depth: number
   active_workers: number
@@ -146,6 +147,10 @@ export interface StatsQuery {
 
 export interface DashboardSummary {
   system_health: SystemHealth
+  system_health_score: number
+  total_datasets: number
+  total_scenes: number
+  total_objects: number
   processing_metrics: ProcessingMetrics
   model_performance: ModelPerformanceMetrics[]
   dataset_stats: DatasetStats[]

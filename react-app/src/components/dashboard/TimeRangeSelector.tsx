@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Clock, ChevronDown } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,

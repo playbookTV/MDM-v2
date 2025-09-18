@@ -49,7 +49,9 @@ export interface SceneObject {
   bbox: BoundingBox
   subcategory?: string  // Object subcategory (e.g., "bed_frame" for bedroom category)
   r2_key_mask?: string
+  mask_key?: string     // Alias for r2_key_mask for backward compatibility
   mask_base64?: string  // SAM2 segmentation mask as base64 PNG
+  mask_url?: string     // URL to mask image in R2 storage
   has_mask?: boolean    // Whether object has segmentation mask
   mask_area?: number    // Mask area in pixels
   mask_coverage?: number // Mask coverage as percentage

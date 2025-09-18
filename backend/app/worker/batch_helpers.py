@@ -109,7 +109,7 @@ async def process_scenes_batch(
             # Prepare scenes for RunPod batch processing
             scenes_data = [
                 {
-                    "scene_id": scene["scene_id"],
+                    "scene_id": str(scene["scene_id"]),  # Ensure UUID is converted to string
                     "image_data": scene["image_data"]
                 }
                 for scene in valid_scenes
@@ -128,7 +128,7 @@ async def process_scenes_batch(
                 
                 for i, runpod_result in enumerate(batch_results):
                     scene = valid_scenes[i]
-                    scene_id = scene["scene_id"]
+                    scene_id = str(scene["scene_id"])  # Ensure UUID is converted to string
                     
                     if runpod_result.get("status") == "success":
                         try:

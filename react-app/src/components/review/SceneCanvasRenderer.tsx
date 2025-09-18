@@ -143,7 +143,24 @@ export function SceneCanvasRenderer({
             maskImg.src = `data:image/png;base64,${obj.mask_base64}`;
           });
         }
-        // Try mask_key (R2 storage key) with proxy
+        // Try mask_url (direct URL from backend)
+        else if (obj.mask_url) {
+          const maskImg = new Image();
+          
+          await new Promise<void>((resolve) => {
+            maskImg.onload = () => {
+              newMaskImages.set(obj.id, maskImg);
+              resolve();
+            };
+            maskImg.onerror = () => {
+              console.error(`Failed to load mask URL for object ${obj.id}: ${obj.mask_url}`);
+              resolve();
+            };
+            maskImg.crossOrigin = "anonymous";
+            maskImg.src = obj.mask_url;
+          });
+        }
+        // Try mask_key (R2 storage key) with proxy (legacy fallback)
         else if (obj.mask_key) {
           const maskImg = new Image();
           const maskUrl = `/api/v1/images/mask/${obj.mask_key}?proxy=true`;
