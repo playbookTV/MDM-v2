@@ -293,7 +293,7 @@ class RoboflowService:
                     # Get annotations for this image
                     image_annotations = annotations_by_image.get(coco_image['id'], [])
                     
-                    # Convert annotations to standard format
+                    # Convert annotations to standard format with enhanced data extraction
                     converted_annotations = []
                     for ann in image_annotations:
                         category_name = categories.get(ann['category_id'], 'furniture')
@@ -306,6 +306,38 @@ class RoboflowService:
                             'id': ann.get('id'),
                             'iscrowd': ann.get('iscrowd', 0)
                         }
+                        
+                        # Extract segmentation masks (polygon or RLE format)
+                        if 'segmentation' in ann:
+                            segmentation = ann['segmentation']
+                            if isinstance(segmentation, list):
+                                # Polygon format (list of vertex coordinates)
+                                converted_ann['segmentation_polygon'] = segmentation
+                                converted_ann['segmentation_type'] = 'polygon'
+                            elif isinstance(segmentation, dict):
+                                # RLE (Run-Length Encoding) format
+                                converted_ann['segmentation_rle'] = segmentation
+                                converted_ann['segmentation_type'] = 'rle'
+                        
+                        # Extract keypoints for pose estimation
+                        if 'keypoints' in ann:
+                            # COCO keypoints format: [x1, y1, v1, x2, y2, v2, ...]
+                            # where v is visibility flag (0: not labeled, 1: labeled but not visible, 2: labeled and visible)
+                            keypoints = ann['keypoints']
+                            if keypoints and len(keypoints) % 3 == 0:
+                                converted_ann['keypoints'] = keypoints
+                                converted_ann['num_keypoints'] = ann.get('num_keypoints', len(keypoints) // 3)
+                        
+                        # Extract instance-specific attributes
+                        if 'attributes' in ann:
+                            converted_ann['instance_attributes'] = ann['attributes']
+                        
+                        # Extract any custom metadata fields
+                        custom_fields = ['material', 'color', 'style', 'condition', 'brand', 'model']
+                        for field in custom_fields:
+                            if field in ann:
+                                converted_ann[field] = ann[field]
+                        
                         converted_annotations.append(converted_ann)
                     
                     images.append({
@@ -655,7 +687,7 @@ class RoboflowService:
     
     def _convert_roboflow_object_to_modomo(self, roboflow_obj: Dict[str, Any], index: int) -> Optional[Dict[str, Any]]:
         """
-        Convert Roboflow object annotation to Modomo object format.
+        Convert Roboflow object annotation to Modomo object format with enhanced data extraction.
         
         Args:
             roboflow_obj: Roboflow object dictionary 
@@ -679,7 +711,7 @@ class RoboflowService:
             else:
                 return None
                 
-            # Create Modomo object
+            # Create Modomo object with core fields
             modomo_obj = {
                 "category": str(category).lower(),
                 "confidence": float(roboflow_obj.get("confidence", roboflow_obj.get("score", 0.9))),
@@ -688,9 +720,59 @@ class RoboflowService:
                 "attributes": {}
             }
             
-            # Add additional attributes 
+            # Extract segmentation data if present
+            if "segmentation_polygon" in roboflow_obj:
+                modomo_obj["segmentation"] = {
+                    "type": "polygon",
+                    "data": roboflow_obj["segmentation_polygon"]
+                }
+            elif "segmentation_rle" in roboflow_obj:
+                modomo_obj["segmentation"] = {
+                    "type": "rle",
+                    "data": roboflow_obj["segmentation_rle"]
+                }
+            elif "segmentation" in roboflow_obj:
+                # Handle raw segmentation data
+                seg_data = roboflow_obj["segmentation"]
+                if isinstance(seg_data, list):
+                    modomo_obj["segmentation"] = {
+                        "type": "polygon",
+                        "data": seg_data
+                    }
+                elif isinstance(seg_data, dict):
+                    modomo_obj["segmentation"] = {
+                        "type": "rle",
+                        "data": seg_data
+                    }
+            
+            # Extract keypoints data if present
+            if "keypoints" in roboflow_obj:
+                keypoints_data = roboflow_obj["keypoints"]
+                if keypoints_data and isinstance(keypoints_data, list):
+                    modomo_obj["keypoints"] = {
+                        "points": keypoints_data,
+                        "num_keypoints": roboflow_obj.get("num_keypoints", len(keypoints_data) // 3)
+                    }
+            
+            # Extract instance attributes
+            if "instance_attributes" in roboflow_obj:
+                modomo_obj["instance_attributes"] = roboflow_obj["instance_attributes"]
+            
+            # Extract material, color, and style if present
+            for field in ["material", "color", "style", "condition", "brand", "model"]:
+                if field in roboflow_obj:
+                    modomo_obj["attributes"][field] = roboflow_obj[field]
+            
+            # Add all other attributes not explicitly handled
+            excluded_keys = [
+                "category", "class", "label", "bbox", "bounding_box", "box", 
+                "confidence", "score", "segmentation", "segmentation_polygon", 
+                "segmentation_rle", "keypoints", "num_keypoints", "instance_attributes",
+                "material", "color", "style", "condition", "brand", "model"
+            ]
+            
             for key, value in roboflow_obj.items():
-                if key not in ["category", "class", "label", "bbox", "bounding_box", "box", "confidence", "score"]:
+                if key not in excluded_keys:
                     modomo_obj["attributes"][key] = value
                     
             return modomo_obj

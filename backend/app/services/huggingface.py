@@ -760,6 +760,53 @@ class HuggingFaceService:
                     }
                 }
                 
+                # Extract enhanced data: segmentation masks (polygon or RLE format)
+                if "segmentation" in annotation:
+                    segmentation = annotation["segmentation"]
+                    if isinstance(segmentation, list):
+                        # Polygon format (list of vertex coordinates)
+                        modomo_obj["segmentation"] = {
+                            "type": "polygon",
+                            "data": segmentation
+                        }
+                    elif isinstance(segmentation, dict):
+                        # RLE (Run-Length Encoding) format
+                        modomo_obj["segmentation"] = {
+                            "type": "rle",
+                            "data": segmentation
+                        }
+                elif "segmentation_polygon" in annotation:
+                    modomo_obj["segmentation"] = {
+                        "type": "polygon",
+                        "data": annotation["segmentation_polygon"]
+                    }
+                elif "segmentation_rle" in annotation:
+                    modomo_obj["segmentation"] = {
+                        "type": "rle",
+                        "data": annotation["segmentation_rle"]
+                    }
+                
+                # Extract keypoints for pose estimation
+                if "keypoints" in annotation:
+                    # COCO keypoints format: [x1, y1, v1, x2, y2, v2, ...]
+                    # where v is visibility flag (0: not labeled, 1: labeled but not visible, 2: labeled and visible)
+                    keypoints = annotation["keypoints"]
+                    if keypoints and isinstance(keypoints, list) and len(keypoints) % 3 == 0:
+                        modomo_obj["keypoints"] = {
+                            "points": keypoints,
+                            "num_keypoints": annotation.get("num_keypoints", len(keypoints) // 3)
+                        }
+                
+                # Extract instance-specific attributes
+                if "attributes" in annotation:
+                    modomo_obj["instance_attributes"] = annotation["attributes"]
+                
+                # Extract custom metadata fields (material, color, style, etc.)
+                custom_fields = ["material", "color", "style", "condition", "brand", "model", "finish"]
+                for field in custom_fields:
+                    if field in annotation:
+                        modomo_obj["attributes"][field] = annotation[field]
+                
                 # Filter out None values from attributes
                 modomo_obj["attributes"] = {k: v for k, v in modomo_obj["attributes"].items() if v is not None}
                 

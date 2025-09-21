@@ -3,6 +3,8 @@ RunPod Serverless Client for AI processing
 """
 
 import logging
+import json
+import uuid
 import httpx
 import asyncio
 import base64
@@ -13,6 +15,18 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+
+
+def _serialize_uuids(obj):
+    """Custom JSON serializer that handles UUID objects"""
+    if isinstance(obj, uuid.UUID):
+        return str(obj)
+    elif isinstance(obj, (list, tuple)):
+        return [_serialize_uuids(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {key: _serialize_uuids(value) for key, value in obj.items()}
+    else:
+        return obj
 
 class RunPodClient:
     """Client for RunPod serverless AI processing"""
@@ -212,7 +226,7 @@ class RunPodClient:
             # Make initial request to our HTTP server
             response = await client.post(
                 self.endpoint_url,
-                json=payload.get("input", {}),  # Send just the input data
+                json=_serialize_uuids(payload.get("input", {})),  # Send just the input data, handling UUIDs
                 timeout=self.timeout
             )
             
@@ -244,7 +258,7 @@ class RunPodClient:
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 self.endpoint_url,
-                json=payload,
+                json=_serialize_uuids(payload),
                 timeout=self.timeout
             )
             
